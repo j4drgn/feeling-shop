@@ -1,13 +1,14 @@
-import React, { useState } from "react";
-import { User, Brain, Heart, Ear, Volume2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { User, Brain, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThumbSwitch } from "@/components/ui/ThumbSwitch";
 import { DuckCharacter } from "@/components/DuckCharacter";
-import { ChatInterface } from "@/components/ChatInterface";
 import { cn } from "@/lib/utils";
 import { useThemeContext } from "@/context/ThemeContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import duckImage from "@/assets/duck-character.png";
+
 export const MainScreen = ({
   isChatActive,
   chatMessages,
@@ -15,231 +16,200 @@ export const MainScreen = ({
   onSendMessage,
   onEndChat,
   onNavigateToHistory,
-  onNavigateToProducts,
 }) => {
   const { isThinking, colors, toggleTheme } = useThemeContext();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const chatContainerRef = useRef(null);
 
-  // 텍스트 표시 상태 관리
-  const [showWelcomeText, setShowWelcomeText] = useState(true);
-  const [isInConversation, setIsInConversation] = useState(false);
-  
-  // 음성 인식 훅 사용
-  const {
-    isListening,
-    isSupported,
-    error,
-    result,
-    startListening,
-    stopListening,
-    resetResult
-  } = useSpeechRecognition();
+  const { isListening, result, startListening, stopListening, resetResult } =
+    useSpeechRecognition();
 
-  // 음성 합성 훅 사용
   const {
     isSpeaking,
     isSupported: isSpeechSupported,
     speak,
-    stopSpeaking
+    stopSpeaking,
   } = useSpeechSynthesis();
 
-  // 음성 인식 결과 처리
-  React.useEffect(() => {
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  useEffect(() => {
     if (result) {
-      // 채팅이 시작되지 않았으면 시작
       if (!isChatActive) {
         onStartChat();
-        setIsInConversation(true);
       }
-      
-      // 음성 메시지 전송 (응답 완료 콜백 포함)
+      setIsProcessing(true);
       onSendMessage(result.transcript, result.emotion, (response) => {
-        // 음성으로 응답 재생
+        setIsProcessing(false);
         if (isSpeechSupported && response) {
-          // 이모지 제거하고 음성으로 읽기
-          const cleanResponse = response.replace(/[🦆😊😏]/g, '').trim();
-          speak(cleanResponse, {
-            rate: 1.0,
-            pitch: 1.1,
-            volume: 0.8
-          });
+          const cleanResponse = response.replace(/[🦆😊😏]/g, "").trim();
+          speak(cleanResponse, { rate: 1.0, pitch: 1.1, volume: 0.8 });
         }
       });
-      
-      // 결과 리셋
       resetResult();
     }
-  }, [result, isChatActive, onStartChat, onSendMessage, resetResult, isSpeechSupported, speak]);
+  }, [
+    result,
+    isChatActive,
+    onStartChat,
+    onSendMessage,
+    resetResult,
+    isSpeechSupported,
+    speak,
+  ]);
 
   const handleDuckClick = () => {
-    // 이전 음성이 재생 중이면 중지
     if (isSpeaking) {
       stopSpeaking();
       return;
     }
+    if (isProcessing) return;
 
-    // 첫 번째 클릭: 대화 시작
-    if (!isChatActive && !isListening && !isInConversation) {
-      setShowWelcomeText(false);
-      setIsInConversation(true);
+    if (!isChatActive && !isListening) {
       startListening();
       return;
     }
-
-    // 대화 중: 연속 음성 인식
-    if (isInConversation && !isListening && !isSpeaking) {
+    if (isChatActive && !isListening && !isSpeaking) {
       startListening();
       return;
+    }
+    if (isListening) {
+      stopListening();
     }
   };
 
+  const getStatusText = () => {
+    if (isListening) return "듣고 있어요...";
+    if (isProcessing) return "덕키가 생각 중이에요...";
+    if (isSpeaking) return "말하는 중...";
+    if (!isChatActive) return "덕키를 터치해서 대화를 시작하세요";
+    return "덕키를 터치해서 말하기";
+  };
+
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden max-h-screen">
-      {/* Background yellow - changes based on T/F toggle */}
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: colors.background }}
-      />
-
-      {/* Header with MBTI T/F toggle and profile icon - 글래스모피즘 효과 강화 */}
-      <header className="relative z-10 w-full mt-4 mb-2 px-4">
-        <div className="glassmorphism-card mx-auto rounded-full py-2 px-4 flex justify-between items-center shadow-lg border border-white/60 backdrop-blur-lg">
-          {/* MBTI T/F Toggle - 토글 버튼과 아이콘을 하나의 플로우로 통합 */}
-          <div
-            className="flex items-center gap-4 rounded-full py-1 px-4 backdrop-blur-sm border border-white/40"
-            style={{ backgroundColor: "#FFF2D1" }}
-          >
-            <div className="flex items-center gap-1">
-              <Brain className="h-5 w-5" style={{ color: "#5585FF" }} />
-              <span className="text-xs font-semibold">T</span>
-            </div>
-
-            <ThumbSwitch
-              checked={!isThinking}
-              onCheckedChange={() => toggleTheme()}
-              aria-label="Toggle between T and F"
-              thumbColor={!isThinking ? "#FFBB15" : "#5585FF"}
-              borderColor={!isThinking ? "#FFBB15" : "#5585FF"}
-              backgroundColor={!isThinking ? "#FFF2D1" : "#D6E4FF"}
-              trackColor={!isThinking ? colors.trackColor : colors.trackColor}
-            />
-
-            <div className="flex items-center gap-1">
-              <Heart className="h-5 w-5" style={{ color: "#FFBB15" }} />
-              <span className="text-xs font-semibold">F</span>
+    <div
+      className="h-screen flex flex-col relative overflow-hidden"
+      style={{ backgroundColor: colors.background }}
+    >
+      <header className="relative z-10 w-full px-4 pt-6 pb-2 safe-area-top">
+        <div className="max-w-sm mx-auto">
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onNavigateToHistory}
+              className="rounded-full bg-white/80 hover:bg-white/90 text-gray-700 shadow-md border border-gray-200/60 backdrop-blur-sm w-10 h-10"
+            >
+              <User className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="flex justify-center">
+            <div className="flex items-center gap-3 bg-white/85 backdrop-blur-md rounded-full py-2 px-5 shadow-lg border border-gray-200/60">
+              <div className="flex items-center gap-1.5">
+                <Brain className="h-4 w-4" style={{ color: "#5585FF" }} />
+                <span className="text-xs font-bold text-gray-700">T</span>
+              </div>
+              <ThumbSwitch
+                checked={!isThinking}
+                onCheckedChange={toggleTheme}
+                aria-label="Toggle between T and F"
+                thumbColor={!isThinking ? "#FFBB15" : "#5585FF"}
+                borderColor={!isThinking ? "#FFBB15" : "#5585FF"}
+                backgroundColor={!isThinking ? "#FFF2D1" : "#D6E4FF"}
+                trackColor={colors.trackColor}
+              />
+              <div className="flex items-center gap-1.5">
+                <Heart className="h-4 w-4" style={{ color: "#FFBB15" }} />
+                <span className="text-xs font-bold text-gray-700">F</span>
+              </div>
             </div>
           </div>
-
-          {/* Profile Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onNavigateToHistory}
-            className="rounded-full bg-white/40 hover:bg-white/60 text-foreground shadow-sm border border-white/40"
-          >
-            <User className="h-5 w-5" />
-          </Button>
         </div>
       </header>
 
-      {/* Main content area - PERFECT CENTER LAYOUT */}
-      <main className="h-screen flex flex-col items-center justify-center px-6 relative z-10 overflow-hidden max-h-[calc(100vh-56px)]">
-        {/* Duck character - perfectly centered - ALWAYS VISIBLE */}
-        <div className="flex flex-col items-center justify-center mt-[-80px]">
-          <div className="relative">
+      <main className="flex-grow flex flex-col items-center justify-center p-4 overflow-hidden">
+        <div className="w-full max-w-sm mx-auto flex flex-col items-center justify-center flex-grow">
+          <div className="mb-4">
             <DuckCharacter
-              size="xxl"
+              size="lg"
               onClick={handleDuckClick}
               className={cn(
-                "transition-all duration-300 mb-6",
-                isChatActive && "scale-75",
+                "transition-all duration-300 rounded-lg",
                 isListening && "listening-glow",
                 isSpeaking && "speaking-pulse",
-                isInConversation && "cursor-pointer hover:scale-105"
+                isProcessing && "thinking-animation",
+                (isChatActive || isListening) &&
+                  "cursor-pointer hover:scale-105"
               )}
               circleColor={colors.circle}
             />
-            {isListening && (
-              <div className="absolute -bottom-12 left-0 right-0 text-center">
-                <div className="inline-flex items-center gap-1 bg-white/90 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-white/60 shadow-md animate-pulse">
-                  <Ear className="h-5 w-5 text-blue-500" />
-                  <span className="font-bold">듣고 있어요...</span>
+          </div>
+
+          <div className="text-center h-6 mb-2 text-gray-600 font-medium">
+            <p>{getStatusText()}</p>
+          </div>
+
+          <div
+            ref={chatContainerRef}
+            className="w-full h-full flex-grow overflow-y-auto p-3 space-y-4 bg-white/70 rounded-2xl shadow-inner"
+          >
+            {chatMessages.map((message) => {
+              if (message.role === "assistant") {
+                return (
+                  <div
+                    key={message.id}
+                    className="flex items-end w-full justify-start gap-2"
+                  >
+                    <img
+                      src={duckImage}
+                      className="w-9 h-9 rounded-full border-2 border-white shadow-sm"
+                    />
+                    <div className="bg-white border border-gray-200 rounded-t-xl rounded-br-xl px-4 py-3 max-w-[80%] shadow-sm">
+                      <p className="text-base leading-relaxed text-gray-800">
+                        {message.content}
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+              if (message.role === "user") {
+                return (
+                  <div
+                    key={message.id}
+                    className="flex items-end w-full justify-end gap-2"
+                  >
+                    <div className="bg-sky-500 text-white rounded-t-xl rounded-bl-xl px-4 py-3 max-w-[80%] shadow-sm">
+                      <p className="text-base leading-relaxed">
+                        {message.content}
+                      </p>
+                    </div>
+                    <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center border-2 border-white shadow-sm">
+                      <User className="w-5 h-5 text-gray-500" />
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })}
+            {isListening && result && (
+              <div className="flex items-end w-full justify-end gap-2">
+                <div className="bg-sky-500/70 text-white rounded-t-xl rounded-bl-xl px-4 py-3 max-w-[80%] shadow-sm">
+                  <p className="text-base leading-relaxed">
+                    {result.transcript}
+                  </p>
                 </div>
-              </div>
-            )}
-            {isSpeaking && (
-              <div className="absolute -bottom-12 left-0 right-0 text-center">
-                <div className="inline-flex items-center gap-1 bg-green-100/90 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-green-200/60 shadow-md animate-pulse">
-                  <Volume2 className="h-5 w-5 text-green-600" />
-                  <span className="font-bold text-green-800">말하고 있어요...</span>
-                </div>
-              </div>
-            )}
-            {!isSupported && !isChatActive && (
-              <div className="absolute -bottom-12 left-0 right-0 text-center">
-                <div className="inline-flex items-center gap-1 bg-red-100 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-red-200 shadow-md">
-                  <span className="text-red-600 font-bold">음성 인식을 지원하지 않는 브라우저입니다</span>
-                </div>
-              </div>
-            )}
-            {error && !isChatActive && (
-              <div className="absolute -bottom-12 left-0 right-0 text-center">
-                <div className="inline-flex items-center gap-1 bg-yellow-100 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-yellow-200 shadow-md">
-                  <span className="text-yellow-700 font-bold">{error}</span>
+                <div className="w-9 h-9 rounded-full bg-gray-200/70 flex items-center justify-center">
+                  <User className="w-5 h-5 text-gray-500" />
                 </div>
               </div>
             )}
           </div>
-
-          {!isChatActive && showWelcomeText && (
-            <div className="text-center space-y-3 mb-8 animate-fade-in">
-              <h1 className="text-2xl font-bold text-foreground">
-                덕키랑 음성으로 대화해봐요!
-              </h1>
-              <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">
-                오리를 클릭하고 말해주세요. 음성으로 답해드릴게요!
-              </p>
-            </div>
-          )}
-
-          {isInConversation && !isChatActive && !isListening && !isSpeaking && (
-            <div className="text-center space-y-3 mb-8 animate-fade-in">
-              <h1 className="text-xl font-bold text-foreground">
-                계속 대화하려면 다시 클릭하세요!
-              </h1>
-              <p className="text-muted-foreground max-w-sm text-xs leading-relaxed">
-                음성으로 자연스럽게 대화를 이어가세요
-              </p>
-            </div>
-          )}
         </div>
-
-        {/* Chat interface - 동물의 숲 스타일로 화면 하단에 고정 표시 */}
-        <ChatInterface
-          messages={chatMessages}
-          onSendMessage={(message, emotion) => {
-            onSendMessage(message, emotion, (response) => {
-              // 채팅 인터페이스에서도 음성 응답 재생
-              if (isSpeechSupported && response) {
-                const cleanResponse = response.replace(/[🦆😊😏]/g, '').trim();
-                speak(cleanResponse, {
-                  rate: 1.0,
-                  pitch: 1.1,
-                  volume: 0.8
-                });
-              }
-            });
-          }}
-          onEndChat={() => {
-            onEndChat();
-            setIsInConversation(false);
-            setShowWelcomeText(true);
-            stopSpeaking(); // 대화 종료 시 음성도 중지
-          }}
-          isActive={isChatActive}
-          onNavigateToProducts={onNavigateToProducts}
-          isSpeaking={isSpeaking}
-          onStopSpeaking={stopSpeaking}
-        />
       </main>
     </div>
   );

@@ -111,7 +111,7 @@ const App = () => {
       if (onResponseComplete) {
         onResponseComplete(response);
       }
-    }, 800);
+    }, 300);
   };
 
   const handleProductLiked = (product) => {
@@ -126,9 +126,7 @@ const App = () => {
             isChatActive={isChatActive}
             chatMessages={chatHistory}
             onStartChat={startChat}
-            onSendMessage={(message) => {
-              handleSendMessage(message);
-            }}
+            onSendMessage={handleSendMessage}
             onEndChat={endChat}
             onNavigateToHistory={navigateToHistory}
             onNavigateToProducts={navigateToProducts}

@@ -11,14 +11,13 @@ export const DuckCharacter = ({
     sm: "w-12 h-12",
     md: "w-24 h-24",
     lg: "w-32 h-32 md:w-40 md:h-40",
-    xl: "w-56 h-56 md:w-64 md:h-64", // 크기 증가
-    xxl: "w-64 h-64 md:w-72 md:h-72", // 새로운 더 큰 크기 추가
+    xl: "w-48 h-48 md:w-56 md:h-56",
   };
 
   return (
     <div
       className={cn(
-        "duck-container rounded-full p-3 cursor-pointer interactive-scale pulsating-glow",
+        "duck-container rounded-full p-3 cursor-pointer interactive-scale",
         sizeClasses[size],
         onClick && "hover:shadow-glow",
         className
