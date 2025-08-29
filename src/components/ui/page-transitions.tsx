@@ -71,18 +71,28 @@ export const PageTransition = ({
 export const FadeTransition = ({
   children,
   isActive,
-  duration = 300,
+  duration = 200,
   className,
 }: Omit<PageTransitionProps, "transitionType">) => {
+  const [displayChildren, setDisplayChildren] = useState(children);
+  
+  useEffect(() => {
+    if (isActive) {
+      setDisplayChildren(children);
+    }
+  }, [children, isActive]);
+  
   return (
-    <PageTransition
-      isActive={isActive}
-      transitionType="fade"
-      duration={duration}
-      className={className}
+    <div
+      className={cn(
+        "transition-opacity w-full h-full",
+        isActive ? "opacity-100" : "opacity-0",
+        className
+      )}
+      style={{ transitionDuration: `${duration}ms` }}
     >
-      {children}
-    </PageTransition>
+      {displayChildren}
+    </div>
   );
 };
 
