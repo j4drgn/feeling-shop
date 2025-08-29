@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +7,8 @@ import { MainScreen } from "@/screens/MainScreen";
 import { ProductScreen } from "@/screens/ProductScreen";
 import { HistoryScreen } from "@/screens/HistoryScreen";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { FadeTransition } from "@/components/ui/page-transitions";
 
 const queryClient = new QueryClient();
 
@@ -28,65 +30,82 @@ const App = () => {
     navigateToMain,
     startChat,
     addMessage,
-    endChat
+    endChat,
   } = useAppNavigation();
 
   const [likedProducts, setLikedProducts] = useState<Product[]>([]);
 
   const handleSendMessage = (message: string) => {
-    addMessage('user', message);
-    
+    addMessage("user", message);
+
     // Simulate assistant response after user message
     setTimeout(() => {
       const responses = [
         "Great choice! Let me find some perfect options for you.",
         "I understand exactly what you're looking for! Give me a moment.",
         "Perfect! I have some amazing recommendations coming up.",
-        "Excellent taste! Let me show you what I found."
+        "Excellent taste! Let me show you what I found.",
       ];
       const response = responses[Math.floor(Math.random() * responses.length)];
-      addMessage('assistant', response);
-      
-      // End chat after assistant response
-      setTimeout(() => {
-        endChat();
-      }, 2000);
-    }, 1500);
+      addMessage("assistant", response);
+    }, 1000); // 시간을 1초로 줄여 더 빠르게 응답
   };
 
   const handleProductLiked = (product: Product) => {
-    setLikedProducts(prev => [...prev, product]);
+    setLikedProducts((prev) => [...prev, product]);
   };
+
+  // 화면 전환 애니메이션을 위한 상태 관리
+  const [prevScreen, setPrevScreen] = useState<string>(currentScreen);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  useEffect(() => {
+    if (prevScreen !== currentScreen) {
+      setIsTransitioning(true);
+      const timer = setTimeout(() => {
+        setPrevScreen(currentScreen);
+        setIsTransitioning(false);
+      }, 300); // 애니메이션 지속 시간과 일치시킴
+      return () => clearTimeout(timer);
+    }
+  }, [currentScreen, prevScreen]);
 
   const renderCurrentScreen = () => {
     switch (currentScreen) {
-      case 'main':
+      case "main":
         return (
-          <MainScreen
-            isChatActive={isChatActive}
-            chatMessages={chatHistory}
-            onStartChat={startChat}
-            onSendMessage={(message) => {
-              handleSendMessage(message);
-            }}
-            onEndChat={endChat}
-            onNavigateToHistory={navigateToHistory}
-          />
+          <FadeTransition isActive={!isTransitioning || prevScreen === currentScreen}>
+            <MainScreen
+              isChatActive={isChatActive}
+              chatMessages={chatHistory}
+              onStartChat={startChat}
+              onSendMessage={(message) => {
+                handleSendMessage(message);
+              }}
+              onEndChat={endChat}
+              onNavigateToHistory={navigateToHistory}
+              onNavigateToProducts={navigateToProducts}
+            />
+          </FadeTransition>
         );
-      case 'products':
+      case "products":
         return (
-          <ProductScreen
-            onNavigateToMain={navigateToMain}
-            onProductLiked={handleProductLiked}
-          />
+          <FadeTransition isActive={!isTransitioning || prevScreen === currentScreen}>
+            <ProductScreen
+              onNavigateToMain={navigateToMain}
+              onProductLiked={handleProductLiked}
+            />
+          </FadeTransition>
         );
-      case 'history':
+      case "history":
         return (
-          <HistoryScreen
-            onNavigateToMain={navigateToMain}
-            likedProducts={likedProducts}
-            chatHistory={chatHistory}
-          />
+          <FadeTransition isActive={!isTransitioning || prevScreen === currentScreen}>
+            <HistoryScreen
+              onNavigateToMain={navigateToMain}
+              likedProducts={likedProducts}
+              chatHistory={chatHistory}
+            />
+          </FadeTransition>
         );
       default:
         return null;
@@ -95,13 +114,16 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <div className="min-h-screen">
-          {renderCurrentScreen()}
-        </div>
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <div className="min-h-screen max-w-md mx-auto w-full relative overflow-hidden max-h-screen">
+            <div className="absolute inset-0 pointer-events-none border-x border-border/30"></div>
+            {renderCurrentScreen()}
+          </div>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

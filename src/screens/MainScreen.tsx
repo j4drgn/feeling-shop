@@ -1,11 +1,14 @@
-import { User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { DuckCharacter } from '@/components/DuckCharacter';
-import { ChatInterface } from '@/components/ChatInterface';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import { User, Brain, Heart, Ear } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ThumbSwitch } from "@/components/ui/ThumbSwitch";
+import { DuckCharacter } from "@/components/DuckCharacter";
+import { ChatInterface } from "@/components/ChatInterface";
+import { cn } from "@/lib/utils";
+import { useThemeContext } from "@/context/ThemeContext";
 
 interface Message {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   id: string;
 }
@@ -17,6 +20,7 @@ interface MainScreenProps {
   onSendMessage: (message: string) => void;
   onEndChat: () => void;
   onNavigateToHistory: () => void;
+  onNavigateToProducts: () => void;
 }
 
 export const MainScreen = ({
@@ -25,44 +29,110 @@ export const MainScreen = ({
   onStartChat,
   onSendMessage,
   onEndChat,
-  onNavigateToHistory
+  onNavigateToHistory,
+  onNavigateToProducts,
 }: MainScreenProps) => {
+  const { isThinking, colors, toggleTheme } = useThemeContext();
+
+  const [isListening, setIsListening] = useState(false);
+
+  // 텍스트 표시 상태 관리
+  const [showWelcomeText, setShowWelcomeText] = useState(true);
+
+  const handleDuckClick = () => {
+    if (!isChatActive) {
+      // 환영 텍스트 숨기기
+      setShowWelcomeText(false);
+      setIsListening(true);
+      // 1.5초 후에 채팅 시작 (듣고 있어요 메시지 표시 효과)
+      setTimeout(() => {
+        setIsListening(false);
+        onStartChat();
+      }, 1500);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 gradient-background" />
-      
-      {/* Header with profile icon */}
-      <header className="relative z-10 flex justify-end p-4 absolute top-0 right-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onNavigateToHistory}
-          className="rounded-full hover:bg-accent/20 text-muted-foreground hover:text-accent"
-        >
-          <User className="h-5 w-5" />
-        </Button>
+    <div className="min-h-screen flex flex-col relative overflow-hidden max-h-screen">
+      {/* Background yellow - changes based on T/F toggle */}
+      <div
+        className="absolute inset-0"
+        style={{ backgroundColor: colors.background }}
+      />
+
+      {/* Header with MBTI T/F toggle and profile icon - 글래스모피즘 효과 강화 */}
+      <header className="relative z-10 w-full mt-4 mb-2 px-4">
+        <div className="glassmorphism-card mx-auto rounded-full py-2 px-4 flex justify-between items-center shadow-lg border border-white/60 backdrop-blur-lg">
+          {/* MBTI T/F Toggle - 토글 버튼과 아이콘을 하나의 플로우로 통합 */}
+          <div
+            className="flex items-center gap-4 rounded-full py-1 px-4 backdrop-blur-sm border border-white/40"
+            style={{ backgroundColor: "#FFF2D1" }}
+          >
+            <div className="flex items-center gap-1">
+              <Brain className="h-5 w-5" style={{ color: "#5585FF" }} />
+              <span className="text-xs font-semibold">T</span>
+            </div>
+
+            <ThumbSwitch
+              checked={!isThinking}
+              onCheckedChange={() => toggleTheme()}
+              aria-label="Toggle between T and F"
+              thumbColor={!isThinking ? "#FFBB15" : "#5585FF"}
+              borderColor={!isThinking ? "#FFBB15" : "#5585FF"}
+              backgroundColor={!isThinking ? "#FFF2D1" : "#D6E4FF"}
+              trackColor={!isThinking ? colors.trackColor : colors.trackColor}
+            />
+
+            <div className="flex items-center gap-1">
+              <Heart className="h-5 w-5" style={{ color: "#FFBB15" }} />
+              <span className="text-xs font-semibold">F</span>
+            </div>
+          </div>
+
+          {/* Profile Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onNavigateToHistory}
+            className="rounded-full bg-white/40 hover:bg-white/60 text-foreground shadow-sm border border-white/40"
+          >
+            <User className="h-5 w-5" />
+          </Button>
+        </div>
       </header>
 
       {/* Main content area - PERFECT CENTER LAYOUT */}
-      <main className="h-screen flex flex-col items-center justify-center px-6 relative z-10">
-        {/* Duck character - perfectly centered */}
-        <div className="flex flex-col items-center justify-center">
-          <DuckCharacter
-            size="lg"
-            onClick={!isChatActive ? onStartChat : undefined}
-            className={cn(
-              "transition-all duration-300 mb-6"
+      <main className="h-screen flex flex-col items-center justify-center px-6 relative z-10 overflow-hidden max-h-[calc(100vh-56px)]">
+        {/* Duck character - perfectly centered - ALWAYS VISIBLE */}
+        <div className="flex flex-col items-center justify-center mt-[-80px]">
+          <div className="relative">
+            <DuckCharacter
+              size="xxl"
+              onClick={!isChatActive ? handleDuckClick : undefined}
+              className={cn(
+                "transition-all duration-300 mb-6",
+                isChatActive && "scale-75",
+                isListening && "listening-glow"
+              )}
+              circleColor={colors.circle}
+            />
+            {isListening && (
+              <div className="absolute -bottom-12 left-0 right-0 text-center">
+                <div className="inline-flex items-center gap-1 bg-white/90 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-white/60 shadow-md animate-pulse">
+                  <Ear className="h-5 w-5 text-blue-500" />
+                  <span className="font-bold">듣고 있어요...</span>
+                </div>
+              </div>
             )}
-          />
-          
-          {!isChatActive && (
-            <div className="text-center space-y-3 mb-8">
+          </div>
+
+          {!isChatActive && showWelcomeText && (
+            <div className="text-center space-y-3 mb-8 animate-fade-in">
               <h1 className="text-2xl font-bold text-foreground">
-                Meet Your Shopping Duck
+                덕키랑 대화하려면 날 클릭해!
               </h1>
               <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">
-                Tap the duck to start a conversation and get personalized product recommendations!
+                오리를 클릭하면 대화를 시작!
               </p>
             </div>
           )}
@@ -78,6 +148,7 @@ export const MainScreen = ({
               }}
               onEndChat={onEndChat}
               isActive={isChatActive}
+              onNavigateToProducts={onNavigateToProducts}
             />
           </div>
         )}

@@ -8,53 +8,65 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Warm Duck-Friendly Color Palette */
-    --background: 252 251 248 100%; /* Warm off-white */
-    --foreground: 87 76 59 100%; /* Warm brown */
+    /* 오리에 어울리는 노란색 계열 색상 팔레트 */
+    --background: 48 100% 97% 100%; /* 밝은 노란색 배경 */
+    --foreground: 36 30% 30% 100%; /* 따뜻한 갈색 텍스트 */
 
-    --card: 255 254 250 100%; /* Warm white */
-    --card-foreground: 87 76 59 100%;
+    --card: 48 100% 99% 100%; /* 밝은 노란색 카드 */
+    --card-foreground: 36 30% 30% 100%;
 
-    --popover: 255 254 250 100%;
-    --popover-foreground: 87 76 59 100%;
+    --popover: 48 100% 99% 100%;
+    --popover-foreground: 36 30% 30% 100%;
 
-    /* Warm duck yellow as primary */
-    --primary: 251 191 36 100%; /* Warm yellow */
-    --primary-foreground: 87 76 59 100%;
-    --primary-glow: 254 240 138 100%; /* Light yellow glow */
+    /* 밝은 오리 노란색을 주요 색상으로 */
+    --primary: 45 100% 50% 100%; /* 밝은 노란색 */
+    --primary-foreground: 36 30% 30% 100%;
+    --primary-glow: 45 100% 75% 100%; /* 노란색 글로우 */
 
-    --secondary: 249 245 235 100%; /* Warm beige */
-    --secondary-foreground: 87 76 59 100%;
+    --secondary: 43 100% 85% 100%; /* 연한 노란색 */
+    --secondary-foreground: 36 30% 30% 100%;
 
-    --muted: 248 244 232 100%; /* Soft cream */
-    --muted-foreground: 146 128 105 100%; /* Medium brown */
+    --muted: 45 70% 90% 100%; /* 부드러운 노란색 */
+    --muted-foreground: 36 30% 50% 100%; /* 중간 갈색 */
 
-    --accent: 251 146 60 100%; /* Warm orange */
+    --accent: 35 100% 55% 100%; /* 주황빛 노란색 */
     --accent-foreground: 255 255 255 100%;
 
-    --destructive: 239 68 68 100%;
+    --destructive: 0 84% 60% 100%;
     --destructive-foreground: 255 255 255 100%;
 
-    --border: 231 220 201 100%; /* Warm border */
-    --input: 249 245 235 100%;
-    --ring: 251 191 36 100%;
+    --border: 45 70% 80% 100%; /* 노란색 테두리 */
+    --input: 45 70% 95% 100%;
+    --ring: 45 100% 50% 100%;
 
-    /* Chat colors */
-    --chat-user: 251 146 60 100%; /* Warm orange for user */
+    /* 채팅 색상 */
+    --chat-user: 35 100% 55% 100%; /* 주황빛 노란색 (사용자) */
     --chat-user-foreground: 255 255 255 100%;
-    --chat-assistant: 249 245 235 100%; /* Soft cream for assistant */
-    --chat-assistant-foreground: 87 76 59 100%;
+    --chat-assistant: 45 70% 90% 100%; /* 부드러운 노란색 (어시스턴트) */
+    --chat-assistant-foreground: 36 30% 30% 100%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(251 191 36), hsl(254 240 138));
-    --gradient-duck: linear-gradient(135deg, hsl(251 191 36), hsl(251 146 60));
-    --gradient-card: linear-gradient(135deg, hsl(255 254 250), hsl(249 245 235));
-    --gradient-background: linear-gradient(135deg, hsl(252 251 248), hsl(249 245 235));
+    /* 그라디언트 */
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(45 100% 50%),
+      hsl(45 100% 75%)
+    );
+    --gradient-duck: linear-gradient(
+      135deg,
+      hsl(45 100% 50%),
+      hsl(35 100% 55%)
+    );
+    --gradient-card: linear-gradient(135deg, hsl(48 100% 99%), hsl(45 70% 95%));
+    --gradient-background: linear-gradient(
+      135deg,
+      hsl(48 100% 97%),
+      hsl(45 70% 95%)
+    );
 
     /* Shadows */
-    --shadow-duck: 0 10px 30px -10px hsl(251 146 60 / 0.3);
-    --shadow-card: 0 4px 20px -4px hsl(87 76 59 / 0.1);
-    --shadow-glow: 0 0 40px hsl(254 240 138 / 0.4);
+    --shadow-duck: 0 10px 30px -10px hsl(45 100% 50% / 0.3);
+    --shadow-card: 0 4px 20px -4px hsl(36 30% 30% / 0.1);
+    --shadow-glow: 0 0 40px hsl(45 100% 75% / 0.4);
 
     /* Animation timings */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -80,39 +92,39 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 41 35 27 100%; /* Dark warm brown */
-    --foreground: 252 251 248 100%;
+    --background: 36 30% 15% 100%; /* 어두운 갈색 배경 */
+    --foreground: 48 100% 97% 100%;
 
-    --card: 59 52 42 100%; /* Dark warm card */
-    --card-foreground: 252 251 248 100%;
+    --card: 36 30% 20% 100%; /* 어두운 갈색 카드 */
+    --card-foreground: 48 100% 97% 100%;
 
-    --popover: 59 52 42 100%;
-    --popover-foreground: 252 251 248 100%;
+    --popover: 36 30% 20% 100%;
+    --popover-foreground: 48 100% 97% 100%;
 
-    --primary: 254 240 138 100%; /* Light yellow for dark mode */
-    --primary-foreground: 41 35 27 100%;
-    --primary-glow: 251 191 36 100%;
+    --primary: 45 100% 75% 100%; /* 어두운 모드의 밝은 노란색 */
+    --primary-foreground: 36 30% 15% 100%;
+    --primary-glow: 45 100% 50% 100%;
 
-    --secondary: 74 66 54 100%; /* Dark warm secondary */
-    --secondary-foreground: 252 251 248 100%;
+    --secondary: 43 50% 30% 100%; /* 어두운 노란색 */
+    --secondary-foreground: 48 100% 97% 100%;
 
-    --muted: 59 52 42 100%;
-    --muted-foreground: 180 165 145 100%;
+    --muted: 36 30% 25% 100%;
+    --muted-foreground: 43 50% 75% 100%;
 
-    --accent: 251 146 60 100%; /* Warm orange accent */
+    --accent: 35 100% 55% 100%; /* 주황빛 노란색 강조 */
     --accent-foreground: 255 255 255 100%;
 
-    --destructive: 220 38 38 100%;
-    --destructive-foreground: 248 250 252 100%;
+    --destructive: 0 84% 60% 100%;
+    --destructive-foreground: 48 100% 97% 100%;
 
-    --border: 87 76 59 100%;
-    --input: 74 66 54 100%;
-    --ring: 254 240 138 100%;
+    --border: 36 30% 30% 100%;
+    --input: 36 30% 25% 100%;
+    --ring: 45 100% 75% 100%;
 
-    --chat-user: 251 146 60 100%;
+    --chat-user: 35 100% 55% 100%;
     --chat-user-foreground: 255 255 255 100%;
-    --chat-assistant: 74 66 54 100%;
-    --chat-assistant-foreground: 252 251 248 100%;
+    --chat-assistant: 36 30% 25% 100%;
+    --chat-assistant-foreground: 48 100% 97% 100%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -129,16 +141,73 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html,
   body {
     @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+
+  /* 모바일 앱 스타일 */
+  body {
+    @apply overflow-hidden touch-manipulation;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overscroll-behavior: none; /* 추가 스크롤 방지 */
+    max-height: 100vh;
+  }
+
+  #root {
+    @apply h-full overflow-hidden;
+    max-height: 100vh;
   }
 }
 
 @layer components {
+  /* 글래스모피즘 효과 */
+  /* 글래스모피즘 효과 - 향상된 버전 */
+  .glassmorphism {
+    @apply bg-white/40 backdrop-blur-md border border-white/50;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  }
+
+  .glassmorphism-dark {
+    @apply bg-black/20 backdrop-blur-md border border-white/20;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  }
+
+  .glassmorphism-card {
+    @apply bg-white/70 backdrop-blur-md border border-white/50;
+    box-shadow:
+      0 10px 25px rgba(0, 0, 0, 0.1),
+      inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  }
+
+  .glassmorphism-button {
+    @apply bg-white/50 backdrop-blur-sm border border-white/50 transition-all duration-300 hover:bg-white/60;
+    box-shadow:
+      0 4px 15px rgba(0, 0, 0, 0.1),
+      inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  }
+
+  /* 호버 효과 */
+  .glassmorphism:hover,
+  .glassmorphism-card:hover {
+    @apply bg-white/75;
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.15),
+      inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+
   /* Duck Animation Classes */
   .duck-container {
     @apply relative transition-all duration-300 hover:scale-105;
     filter: drop-shadow(var(--shadow-duck));
+    box-shadow:
+      0 10px 25px rgba(0, 0, 0, 0.1),
+      inset 0 5px 10px rgba(255, 255, 255, 0.6),
+      inset 0 -5px 10px rgba(0, 0, 0, 0.1);
   }
 
   .duck-container:hover {
@@ -151,19 +220,23 @@ All colors MUST be HSL.
   }
 
   .chat-bubble-user {
-    background: hsl(var(--chat-user));
+    @apply bg-white/60 backdrop-blur-sm border border-white/50;
     color: hsl(var(--chat-user-foreground));
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   }
 
   .chat-bubble-assistant {
-    background: hsl(var(--chat-assistant));
+    @apply bg-white/80 backdrop-blur-sm border border-white/50;
     color: hsl(var(--chat-assistant-foreground));
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   }
 
   /* Product Card Swipe Animations */
   .product-card {
-    background: var(--gradient-card);
-    box-shadow: var(--shadow-card);
+    @apply bg-white/80 backdrop-blur-md border border-white/50;
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.1),
+      inset 0 1px 1px rgba(255, 255, 255, 0.8);
     transition: var(--transition-smooth);
   }
 
@@ -188,9 +261,16 @@ All colors MUST be HSL.
 @layer utilities {
   /* Custom Keyframes */
   @keyframes duck-bounce {
-    0%, 100% { transform: translateY(0) scale(1); }
-    30% { transform: translateY(-10px) scale(1.05); }
-    60% { transform: translateY(-5px) scale(1.02); }
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    30% {
+      transform: translateY(-10px) scale(1.05);
+    }
+    60% {
+      transform: translateY(-5px) scale(1.02);
+    }
   }
 
   @keyframes slide-up {
@@ -210,7 +290,7 @@ All colors MUST be HSL.
       opacity: 1;
     }
     100% {
-      transform: translateX(100vw) rotate(15deg);
+      transform: translateX(300px) rotate(15deg);
       opacity: 0;
     }
   }
@@ -221,9 +301,55 @@ All colors MUST be HSL.
       opacity: 1;
     }
     100% {
-      transform: translateX(-100vw) rotate(-15deg);
+      transform: translateX(-300px) rotate(-15deg);
       opacity: 0;
     }
+  }
+
+  @keyframes pulsate-glow {
+    0% {
+      box-shadow:
+        0 0 10px 2px rgba(255, 255, 255, 0.5),
+        0 0 20px 5px rgba(255, 187, 21, 0.2);
+    }
+    100% {
+      box-shadow:
+        0 0 15px 5px rgba(255, 255, 255, 0.7),
+        0 0 30px 10px rgba(255, 187, 21, 0.4);
+    }
+  }
+
+  @keyframes listening-glow {
+    0% {
+      box-shadow:
+        0 0 15px 5px rgba(255, 255, 255, 0.6),
+        0 0 30px 8px rgba(255, 187, 21, 0.3);
+    }
+    100% {
+      box-shadow:
+        0 0 25px 10px rgba(255, 255, 255, 0.8),
+        0 0 50px 15px rgba(255, 187, 21, 0.6);
+    }
+  }
+
+  /* 모바일 앱 스타일 유틸리티 */
+  .app-container {
+    @apply max-w-md mx-auto h-full overflow-hidden;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+
+  .app-header {
+    @apply sticky top-0 z-30 bg-background/80 backdrop-blur-sm;
+    padding-top: env(safe-area-inset-top, 0.5rem);
+  }
+
+  .app-content {
+    @apply pb-safe;
+    min-height: calc(100vh - 3.5rem);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
   }
 
   .gradient-duck {
@@ -244,5 +370,16 @@ All colors MUST be HSL.
 
   .shadow-glow {
     box-shadow: var(--shadow-glow);
+  }
+
+  .pulsating-glow {
+    animation: pulsate-glow 2s infinite alternate;
+  }
+
+  .listening-glow {
+    animation: listening-glow 1s infinite alternate;
+    box-shadow:
+      0 0 20px 5px rgba(255, 255, 255, 0.7),
+      0 0 40px 10px rgba(255, 187, 21, 0.5);
   }
 }
