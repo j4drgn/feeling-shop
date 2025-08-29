@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, Volume2, VolumeX } from "lucide-react";
-import { cn } from "@/lib/utils";
 export const ChatInterface = ({
   messages,
   onSendMessage,
@@ -60,63 +59,59 @@ export const ChatInterface = ({
         )}
       </div>
       
-      {/* Chat Messages - 더 크게 조정하고 아래로 위치 조정 */}
-      <div className="h-80 overflow-y-auto mb-8 space-y-3 px-2 glassmorphism-card p-4 rounded-xl">
-        {messages.map((message, index) => (
-          <div
-            key={message.id}
-            className={cn(
-              "flex chat-bubble-enter",
-              message.role === "user" ? "justify-end" : "justify-start"
-            )}
-          >
-            <div
-              className={cn(
-                "max-w-[80%] px-4 py-2 rounded-2xl relative",
-                message.role === "user"
-                  ? "chat-bubble-user rounded-br-md"
-                  : "chat-bubble-assistant rounded-bl-md"
-              )}
-            >
-              <p
-                className={cn(
-                  "text-sm",
-                  message.role === "assistant" && "line-clamp-3"
-                )}
-              >
-                {message.content}
-              </p>
-              
-              {/* 감정 분석 정보 표시 */}
-              {message.emotion && message.role === "user" && (
-                <div className="mt-2 pt-2 border-t border-white/20">
-                  <div className="flex items-center gap-2 text-xs text-black/60">
-                    <Volume2 className="h-3 w-3" />
-                    <span className="font-medium">{message.emotion.description}</span>
+      {/* Animal Crossing Style Text Box - 동물의 숲 스타일 하단 텍스트 박스 */}
+      {messages.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50">
+          <div className="bg-white/95 backdrop-blur-lg border-t-2 border-gray-300 px-6 py-4 mx-4 mb-4 rounded-t-3xl shadow-2xl">
+            {/* 현재 메시지 표시 */}
+            {messages.length > 0 && (
+              <div className="space-y-3">
+                {/* 캐릭터 이름 표시 */}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <span className="text-sm">🦆</span>
                   </div>
-                  <div className="flex gap-2 text-xs text-black/50 mt-1">
-                    <span>음정: {message.emotion.pitch.toFixed(0)}Hz</span>
-                    <span>속도: {message.emotion.speed.toFixed(1)}</span>
-                    <span>볼륨: {(message.emotion.volume * 100).toFixed(0)}%</span>
-                  </div>
+                  <span className="font-bold text-gray-800">
+                    {messages[messages.length - 1].role === "user" ? "나" : "덕키"}
+                  </span>
                 </div>
-              )}
-              
-              {/* 상품 추천 화면으로 이동하는 버튼 - 마지막 응답 메시지의 우측 하단에 표시 */}
-              {message.role === "assistant" && index === messages.length - 1 && !showProductsPrompt && (
-                <Button
-                  onClick={() => onNavigateToProducts && onNavigateToProducts()}
-                  size="icon"
-                  className="absolute -bottom-3 -right-3 rounded-full w-8 h-8 p-0 bg-white hover:bg-gray-100 shadow-md border border-gray-200"
-                >
-                  <ArrowRight className="h-4 w-4 text-black" />
-                </Button>
-              )}
-            </div>
+                
+                {/* 메시지 텍스트 */}
+                <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-200">
+                  <p className="text-gray-800 text-base leading-relaxed">
+                    {messages[messages.length - 1].content}
+                  </p>
+                  
+                  {/* 감정 분석 정보 (사용자 메시지일 때만) */}
+                  {messages[messages.length - 1].emotion && messages[messages.length - 1].role === "user" && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <Volume2 className="h-3 w-3" />
+                        <span className="font-medium">{messages[messages.length - 1].emotion.description}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* 상품 화면 이동 버튼 */}
+                {messages[messages.length - 1].role === "assistant" && !showProductsPrompt && (
+                  <div className="flex justify-end mt-3">
+                    <Button
+                      onClick={() => onNavigateToProducts && onNavigateToProducts()}
+                      variant="outline"
+                      size="sm"
+                      className="bg-white/80 hover:bg-white border-gray-300"
+                    >
+                      상품 보러가기
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
+        </div>
+      )}
 
       {/* 하단 메시지 */}
       <div className="flex flex-col items-center gap-4">

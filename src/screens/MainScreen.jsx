@@ -213,37 +213,33 @@ export const MainScreen = ({
           )}
         </div>
 
-        {/* Chat interface area - appears below duck when active, keeping duck centered */}
-        {isChatActive && (
-          <div className="w-full max-w-lg animate-fade-in -mt-4">
-            <ChatInterface
-              messages={chatMessages}
-              onSendMessage={(message, emotion) => {
-                onSendMessage(message, emotion, (response) => {
-                  // 채팅 인터페이스에서도 음성 응답 재생
-                  if (isSpeechSupported && response) {
-                    const cleanResponse = response.replace(/[🦆😊😏]/g, '').trim();
-                    speak(cleanResponse, {
-                      rate: 1.0,
-                      pitch: 1.1,
-                      volume: 0.8
-                    });
-                  }
+        {/* Chat interface - 동물의 숲 스타일로 화면 하단에 고정 표시 */}
+        <ChatInterface
+          messages={chatMessages}
+          onSendMessage={(message, emotion) => {
+            onSendMessage(message, emotion, (response) => {
+              // 채팅 인터페이스에서도 음성 응답 재생
+              if (isSpeechSupported && response) {
+                const cleanResponse = response.replace(/[🦆😊😏]/g, '').trim();
+                speak(cleanResponse, {
+                  rate: 1.0,
+                  pitch: 1.1,
+                  volume: 0.8
                 });
-              }}
-              onEndChat={() => {
-                onEndChat();
-                setIsInConversation(false);
-                setShowWelcomeText(true);
-                stopSpeaking(); // 대화 종료 시 음성도 중지
-              }}
-              isActive={isChatActive}
-              onNavigateToProducts={onNavigateToProducts}
-              isSpeaking={isSpeaking}
-              onStopSpeaking={stopSpeaking}
-            />
-          </div>
-        )}
+              }
+            });
+          }}
+          onEndChat={() => {
+            onEndChat();
+            setIsInConversation(false);
+            setShowWelcomeText(true);
+            stopSpeaking(); // 대화 종료 시 음성도 중지
+          }}
+          isActive={isChatActive}
+          onNavigateToProducts={onNavigateToProducts}
+          isSpeaking={isSpeaking}
+          onStopSpeaking={stopSpeaking}
+        />
       </main>
     </div>
   );
