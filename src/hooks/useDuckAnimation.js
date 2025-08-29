@@ -56,6 +56,11 @@ export const useDuckAnimation = ({
   isSpeaking,
   conversationContext 
 }) => {
+  // Safety check for required parameters
+  if (typeof initialAnimation !== 'string') {
+    console.warn('useDuckAnimation: initialAnimation must be a string, falling back to "idle"');
+    initialAnimation = 'idle';
+  }
   const [currentAnimation, setCurrentAnimation] = useState(initialAnimation);
   const [animationQueue, setAnimationQueue] = useState([]);
   const [triggerCount, setTriggerCount] = useState(0);
@@ -64,25 +69,30 @@ export const useDuckAnimation = ({
 
   // Determine target animation based on current state
   const getTargetAnimation = useCallback(() => {
-    // Priority 1: Speech states
-    if (isSpeaking) return 'talk';
-    if (isListening) return 'idle'; // Calm while listening
-    
-    // Priority 2: Detected emotion from speech
-    if (emotion?.emotion && emotion.emotion !== lastEmotionRef.current) {
-      const emotionKey = emotion.emotion.toLowerCase();
-      if (EMOTION_TO_ANIMATION[emotionKey]) {
-        return EMOTION_TO_ANIMATION[emotionKey];
+    try {
+      // Priority 1: Speech states
+      if (isSpeaking) return 'talk';
+      if (isListening) return 'idle'; // Calm while listening
+      
+      // Priority 2: Detected emotion from speech
+      if (emotion?.emotion && emotion.emotion !== lastEmotionRef.current) {
+        const emotionKey = emotion.emotion.toLowerCase();
+        if (EMOTION_TO_ANIMATION[emotionKey]) {
+          return EMOTION_TO_ANIMATION[emotionKey];
+        }
       }
+      
+      // Priority 3: Conversation context
+      if (conversationContext && EMOTION_TO_ANIMATION[conversationContext]) {
+        return EMOTION_TO_ANIMATION[conversationContext];
+      }
+      
+      // Default: idle
+      return 'idle';
+    } catch (error) {
+      console.error('Error in getTargetAnimation:', error);
+      return 'idle';
     }
-    
-    // Priority 3: Conversation context
-    if (conversationContext && EMOTION_TO_ANIMATION[conversationContext]) {
-      return EMOTION_TO_ANIMATION[conversationContext];
-    }
-    
-    // Default: idle
-    return 'idle';
   }, [emotion, isListening, isSpeaking, conversationContext]);
 
   // Queue animation with priority system

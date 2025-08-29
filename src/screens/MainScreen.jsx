@@ -20,14 +20,7 @@ export const MainScreen = ({
     "안녕! 나는 덕키야. 오늘 기분은 어때? 나를 터치하고 말해봐!"
   );
   
-  // 앱 시작시 환영 애니메이션
-  useEffect(() => {
-    const welcomeTimer = setTimeout(() => {
-      triggerAnimation('happy', true);
-    }, 1000);
-    
-    return () => clearTimeout(welcomeTimer);
-  }, [triggerAnimation]);
+  // 앱 시작시 환영 애니메이션 - 훅 정의 후에 이동
   const [userText, setUserText] = useState("");
   const [showFloatingEmojis, setShowFloatingEmojis] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -62,6 +55,17 @@ export const MainScreen = ({
     isSpeaking,
     conversationContext
   });
+
+  // 앱 시작시 환영 애니메이션
+  useEffect(() => {
+    const welcomeTimer = setTimeout(() => {
+      if (triggerAnimation) {
+        triggerAnimation('happy', true);
+      }
+    }, 1000);
+    
+    return () => clearTimeout(welcomeTimer);
+  }, [triggerAnimation]);
 
   const handleUserInput = (input, emotion) => {
     const lowerInput = input.toLowerCase();

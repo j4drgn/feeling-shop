@@ -79,49 +79,70 @@ const AnimatedDuckCharacter = ({
 
   // Get current frame image path
   const getCurrentFramePath = useCallback(() => {
-    const animConfig = DUCK_ANIMATIONS[currentAnimation];
-    if (!animConfig) return null;
-    
-    const { path, prefix, format, frameLength = 2 } = animConfig;
-    const frameNumber = currentFrame.toString().padStart(frameLength, '0');
-    return `${path}/${prefix}${frameNumber}${format}`;
+    try {
+      const animConfig = DUCK_ANIMATIONS[currentAnimation];
+      if (!animConfig) {
+        console.warn(`Animation config not found for: ${currentAnimation}, falling back to idle`);
+        const idleConfig = DUCK_ANIMATIONS['idle'];
+        if (!idleConfig) return null;
+        const { path, prefix, format, frameLength = 2 } = idleConfig;
+        const frameNumber = Math.min(currentFrame, idleConfig.frames - 1).toString().padStart(frameLength, '0');
+        return `${path}/${prefix}${frameNumber}${format}`;
+      }
+      
+      const { path, prefix, format, frameLength = 2 } = animConfig;
+      const frameNumber = currentFrame.toString().padStart(frameLength, '0');
+      return `${path}/${prefix}${frameNumber}${format}`;
+    } catch (error) {
+      console.error('Error getting current frame path:', error);
+      return null;
+    }
   }, [currentAnimation, currentFrame]);
 
   // Animation loop
   useEffect(() => {
-    const animConfig = DUCK_ANIMATIONS[currentAnimation];
-    if (!animConfig || !isPlaying) return;
+    try {
+      const animConfig = DUCK_ANIMATIONS[currentAnimation];
+      if (!animConfig || !isPlaying) return;
 
-    // Preload images
-    preloadImages(animConfig);
+      // Preload images
+      preloadImages(animConfig);
 
-    const frameInterval = 1000 / animConfig.fps;
-    
-    intervalRef.current = setInterval(() => {
-      setCurrentFrame(prev => {
-        const nextFrame = prev + 1;
-        
-        // Check if animation is complete
-        if (nextFrame >= animConfig.frames) {
-          if (animConfig.loop) {
-            return 0; // Loop back to start
-          } else {
-            // Animation finished
-            setIsPlaying(false);
-            onAnimationComplete?.(currentAnimation);
-            return prev; // Stay on last frame
+      const frameInterval = Math.max(1000 / animConfig.fps, 16); // At least 16ms (60fps max)
+      
+      intervalRef.current = setInterval(() => {
+        setCurrentFrame(prev => {
+          const nextFrame = prev + 1;
+          
+          // Check if animation is complete
+          if (nextFrame >= animConfig.frames) {
+            if (animConfig.loop) {
+              return 0; // Loop back to start
+            } else {
+              // Animation finished
+              setIsPlaying(false);
+              if (onAnimationComplete && typeof onAnimationComplete === 'function') {
+                onAnimationComplete(currentAnimation);
+              }
+              return prev; // Stay on last frame
+            }
           }
-        }
-        
-        return nextFrame;
-      });
-    }, frameInterval);
+          
+          return nextFrame;
+        });
+      }, frameInterval);
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
+      return () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+      };
+    } catch (error) {
+      console.error('Error in animation loop:', error);
+      // Reset to idle on error
+      setCurrentAnimation('idle');
+      setCurrentFrame(0);
+    }
   }, [currentAnimation, isPlaying, onAnimationComplete, preloadImages]);
 
   // Handle animation changes
