@@ -39,7 +39,8 @@ export const ChatInterface = ({
     error,
     result,
     startListening,
-    stopListening
+    stopListening,
+    resetResult
   } = useSpeechRecognition();
 
   const scrollToBottom = () => {
@@ -55,8 +56,10 @@ export const ChatInterface = ({
     if (result) {
       onSendMessage(result.transcript, result.emotion);
       setShowProductsPrompt(false);
+      // 결과 처리 후 리셋
+      resetResult();
     }
-  }, [result, onSendMessage]);
+  }, [result, onSendMessage, resetResult]);
 
   // 음성 인식 시작/종료 처리
   const handleVoiceRecognition = () => {

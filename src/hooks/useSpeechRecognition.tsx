@@ -30,7 +30,7 @@ export const useSpeechRecognition = () => {
   // 브라우저 호환성 확인
   useEffect(() => {
     const SpeechRecognition = 
-      window.SpeechRecognition || 
+      (window as any).SpeechRecognition || 
       (window as any).webkitSpeechRecognition;
     
     if (SpeechRecognition && navigator.mediaDevices?.getUserMedia) {
@@ -126,7 +126,7 @@ export const useSpeechRecognition = () => {
 
   // 음성 인식 시작
   const startListening = useCallback(async () => {
-    if (!isSupported) return;
+    if (!isSupported || isListening) return;
 
     try {
       setError(null);
@@ -146,7 +146,7 @@ export const useSpeechRecognition = () => {
       audioDataRef.current = new Float32Array(analyserRef.current.frequencyBinCount);
       
       // Speech Recognition 설정
-      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
@@ -156,14 +156,21 @@ export const useSpeechRecognition = () => {
         setIsListening(true);
       };
       
-      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+      recognitionRef.current.onresult = (event: any) => {
+        if (!event.results || event.results.length === 0) return;
+        
         const transcript = event.results[0][0].transcript;
         const speechConfidence = event.results[0][0].confidence;
+        
+        // 중복 방지: 이전 결과와 같으면 무시
+        if (result && result.transcript === transcript) {
+          return;
+        }
         
         // 오디오 특징 추출
         if (analyserRef.current && audioDataRef.current) {
           analyserRef.current.getFloatTimeDomainData(audioDataRef.current);
-          const audioFeatures = analyzeAudioFeatures(audioDataRef.current);
+          const audioFeatures = analyzeAudioFeatures(audioDataRef.current as Float32Array);
           const emotion = analyzeEmotion(transcript, audioFeatures);
           
           setResult({
@@ -186,9 +193,14 @@ export const useSpeechRecognition = () => {
             confidence: speechConfidence
           });
         }
+        
+        // 음성 인식 완료 후 즉시 중지
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+        }
       };
       
-      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
+      recognitionRef.current.onerror = (event: any) => {
         setError(`음성 인식 오류: ${event.error}`);
         setIsListening(false);
       };
@@ -234,12 +246,19 @@ export const useSpeechRecognition = () => {
     return cleanup;
   }, [cleanup]);
 
+  // 결과 리셋
+  const resetResult = useCallback(() => {
+    setResult(null);
+    setError(null);
+  }, []);
+
   return {
     isListening,
     isSupported,
     error,
     result,
     startListening,
-    stopListening
+    stopListening,
+    resetResult
   };
 };
