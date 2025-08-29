@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { User, Brain, Heart, Ear } from "lucide-react";
+import { User, Brain, Heart, Ear, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThumbSwitch } from "@/components/ui/ThumbSwitch";
 import { DuckCharacter } from "@/components/DuckCharacter";
@@ -7,6 +7,7 @@ import { ChatInterface } from "@/components/ChatInterface";
 import { cn } from "@/lib/utils";
 import { useThemeContext } from "@/context/ThemeContext";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 export const MainScreen = ({
   isChatActive,
   chatMessages,
@@ -20,6 +21,7 @@ export const MainScreen = ({
 
   // 텍스트 표시 상태 관리
   const [showWelcomeText, setShowWelcomeText] = useState(true);
+  const [isInConversation, setIsInConversation] = useState(false);
   
   // 음성 인식 훅 사용
   const {
@@ -32,26 +34,61 @@ export const MainScreen = ({
     resetResult
   } = useSpeechRecognition();
 
+  // 음성 합성 훅 사용
+  const {
+    isSpeaking,
+    isSupported: isSpeechSupported,
+    speak,
+    stopSpeaking
+  } = useSpeechSynthesis();
+
   // 음성 인식 결과 처리
   React.useEffect(() => {
     if (result) {
       // 채팅이 시작되지 않았으면 시작
       if (!isChatActive) {
         onStartChat();
+        setIsInConversation(true);
       }
-      // 음성 메시지 전송
-      onSendMessage(result.transcript, result.emotion);
+      
+      // 음성 메시지 전송 (응답 완료 콜백 포함)
+      onSendMessage(result.transcript, result.emotion, (response) => {
+        // 음성으로 응답 재생
+        if (isSpeechSupported && response) {
+          // 이모지 제거하고 음성으로 읽기
+          const cleanResponse = response.replace(/[🦆😊😏]/g, '').trim();
+          speak(cleanResponse, {
+            rate: 1.0,
+            pitch: 1.1,
+            volume: 0.8
+          });
+        }
+      });
+      
       // 결과 리셋
       resetResult();
     }
-  }, [result, isChatActive, onStartChat, onSendMessage, resetResult]);
+  }, [result, isChatActive, onStartChat, onSendMessage, resetResult, isSpeechSupported, speak]);
 
   const handleDuckClick = () => {
-    if (!isChatActive && !isListening) {
-      // 환영 텍스트 숨기기
+    // 이전 음성이 재생 중이면 중지
+    if (isSpeaking) {
+      stopSpeaking();
+      return;
+    }
+
+    // 첫 번째 클릭: 대화 시작
+    if (!isChatActive && !isListening && !isInConversation) {
       setShowWelcomeText(false);
-      // 실제 음성 인식 시작
+      setIsInConversation(true);
       startListening();
+      return;
+    }
+
+    // 대화 중: 연속 음성 인식
+    if (isInConversation && !isListening && !isSpeaking) {
+      startListening();
+      return;
     }
   };
 
@@ -111,11 +148,13 @@ export const MainScreen = ({
           <div className="relative">
             <DuckCharacter
               size="xxl"
-              onClick={!isChatActive ? handleDuckClick : undefined}
+              onClick={handleDuckClick}
               className={cn(
                 "transition-all duration-300 mb-6",
                 isChatActive && "scale-75",
-                isListening && "listening-glow"
+                isListening && "listening-glow",
+                isSpeaking && "speaking-pulse",
+                isInConversation && "cursor-pointer hover:scale-105"
               )}
               circleColor={colors.circle}
             />
@@ -124,6 +163,14 @@ export const MainScreen = ({
                 <div className="inline-flex items-center gap-1 bg-white/90 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-white/60 shadow-md animate-pulse">
                   <Ear className="h-5 w-5 text-blue-500" />
                   <span className="font-bold">듣고 있어요...</span>
+                </div>
+              </div>
+            )}
+            {isSpeaking && (
+              <div className="absolute -bottom-12 left-0 right-0 text-center">
+                <div className="inline-flex items-center gap-1 bg-green-100/90 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-green-200/60 shadow-md animate-pulse">
+                  <Volume2 className="h-5 w-5 text-green-600" />
+                  <span className="font-bold text-green-800">말하고 있어요...</span>
                 </div>
               </div>
             )}
@@ -146,10 +193,21 @@ export const MainScreen = ({
           {!isChatActive && showWelcomeText && (
             <div className="text-center space-y-3 mb-8 animate-fade-in">
               <h1 className="text-2xl font-bold text-foreground">
-                덕키랑 대화하려면 날 클릭해!
+                덕키랑 음성으로 대화해봐요!
               </h1>
               <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">
-                오리를 클릭하면 대화를 시작!
+                오리를 클릭하고 말해주세요. 음성으로 답해드릴게요!
+              </p>
+            </div>
+          )}
+
+          {isInConversation && !isChatActive && !isListening && !isSpeaking && (
+            <div className="text-center space-y-3 mb-8 animate-fade-in">
+              <h1 className="text-xl font-bold text-foreground">
+                계속 대화하려면 다시 클릭하세요!
+              </h1>
+              <p className="text-muted-foreground max-w-sm text-xs leading-relaxed">
+                음성으로 자연스럽게 대화를 이어가세요
               </p>
             </div>
           )}
@@ -161,11 +219,28 @@ export const MainScreen = ({
             <ChatInterface
               messages={chatMessages}
               onSendMessage={(message, emotion) => {
-                onSendMessage(message, emotion);
+                onSendMessage(message, emotion, (response) => {
+                  // 채팅 인터페이스에서도 음성 응답 재생
+                  if (isSpeechSupported && response) {
+                    const cleanResponse = response.replace(/[🦆😊😏]/g, '').trim();
+                    speak(cleanResponse, {
+                      rate: 1.0,
+                      pitch: 1.1,
+                      volume: 0.8
+                    });
+                  }
+                });
               }}
-              onEndChat={onEndChat}
+              onEndChat={() => {
+                onEndChat();
+                setIsInConversation(false);
+                setShowWelcomeText(true);
+                stopSpeaking(); // 대화 종료 시 음성도 중지
+              }}
               isActive={isChatActive}
               onNavigateToProducts={onNavigateToProducts}
+              isSpeaking={isSpeaking}
+              onStopSpeaking={stopSpeaking}
             />
           </div>
         )}

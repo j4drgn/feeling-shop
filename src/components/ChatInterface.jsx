@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowLeft, Volume2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 export const ChatInterface = ({
   messages,
@@ -8,6 +8,8 @@ export const ChatInterface = ({
   onEndChat,
   isActive,
   onNavigateToProducts,
+  isSpeaking,
+  onStopSpeaking,
 }) => {
   const [showProductsPrompt, setShowProductsPrompt] = useState(false);
   const messagesEndRef = useRef(null);
@@ -35,8 +37,8 @@ export const ChatInterface = ({
 
   return (
     <div className="w-full max-w-lg mx-auto relative">
-      {/* Cancel Button - 좌측 상단에 위치하고 여백 추가 */}
-      <div className="flex justify-start mb-3 mt-2 ml-2">
+      {/* Control Buttons - 좌측에 뒤로가기, 우측에 음성 제어 */}
+      <div className="flex justify-between items-center mb-3 mt-2 px-2">
         <Button
           onClick={handleCancel}
           variant="ghost"
@@ -45,6 +47,17 @@ export const ChatInterface = ({
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
+        
+        {isSpeaking && (
+          <Button
+            onClick={onStopSpeaking}
+            variant="ghost"
+            size="icon"
+            className="rounded-full glassmorphism-button bg-green-100/50 hover:bg-green-200/60"
+          >
+            <VolumeX className="h-5 w-5 text-green-700" />
+          </Button>
+        )}
       </div>
       
       {/* Chat Messages - 더 크게 조정하고 아래로 위치 조정 */}
@@ -109,7 +122,14 @@ export const ChatInterface = ({
       <div className="flex flex-col items-center gap-4">
         {!showProductsPrompt && (
           <div className="text-center text-sm text-muted-foreground">
-            <span>오리를 다시 클릭하여 말해보세요</span>
+            {isSpeaking ? (
+              <div className="flex items-center gap-2">
+                <Volume2 className="h-4 w-4 text-green-600 animate-pulse" />
+                <span>음성으로 응답 중... (터치하면 중지)</span>
+              </div>
+            ) : (
+              <span>오리를 클릭하고 계속 대화해보세요!</span>
+            )}
           </div>
         )}
       </div>
