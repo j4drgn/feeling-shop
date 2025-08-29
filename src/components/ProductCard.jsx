@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -6,6 +6,11 @@ export const ProductCard = ({ product, onSwipe }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  // 터치 이벤트 관련 상태 추가
+  const touchStartRef = useRef({ x: 0, y: 0 });
+  const touchModeRef = useRef("none"); // "none", "swipe", "scroll"
+  const cardRef = useRef(null);
 
   const handleMouseDown = (e) => {
     e.preventDefault(); // 기본 동작 방지
@@ -40,59 +45,54 @@ export const ProductCard = ({ product, onSwipe }) => {
     document.addEventListener("mouseup", handleMouseUp);
   };
 
+  // 터치 이벤트 핸들러
   const handleTouchStart = (e) => {
-    e.stopPropagation(); // 이벤트 전파 방지
-    const startX = e.touches[0].clientX;
-    const startY = e.touches[0].clientY;
-    let isSwiping = false;
-    let isScrolling = false;
-
-    const handleTouchMove = (e) => {
-      if (isScrolling) return; // 스크롤 중이면 스와이프 처리 안함
-      
-      const deltaX = e.touches[0].clientX - startX;
-      const deltaY = e.touches[0].clientY - startY;
-      
-      // 수직 스크롤인지 수평 스와이프인지 판단
-      if (!isSwiping && !isScrolling) {
-        if (Math.abs(deltaX) > Math.abs(deltaY) + 10) {
-          isSwiping = true;
-          e.preventDefault(); // 스와이프로 판단되면 기본 동작 방지
-        } else if (Math.abs(deltaY) > Math.abs(deltaX) + 10) {
-          isScrolling = true;
-          return; // 스크롤로 판단되면 여기서 종료
-        }
-      }
-      
-      if (isSwiping) {
-        e.preventDefault(); // 스와이프 중일 때만 기본 동작 방지
-        e.stopPropagation();
-        setDragX(deltaX);
-      }
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
     };
+    touchModeRef.current = "none";
+    setDragX(0);
+  };
 
-    const handleTouchEnd = (e) => {
-      e.stopPropagation(); // 이벤트 전파 방지
-      
-      if (isSwiping && Math.abs(dragX) > 80) { // 임계값을 80으로 낮춤
-        const direction = dragX > 0 ? "right" : "left";
-        setIsAnimating(true);
-        onSwipe(direction, product.id);
-      } else {
-        // 스와이프가 충분하지 않으면 원래 위치로 부드럽게 돌아감
-        setDragX(0);
+  const handleTouchMove = (e) => {
+    const touchX = e.touches[0].clientX;
+    const touchY = e.touches[0].clientY;
+    const deltaX = touchX - touchStartRef.current.x;
+    const deltaY = touchY - touchStartRef.current.y;
+
+    // 처음 움직임이 감지되면 스와이프인지 스크롤인지 결정
+    if (touchModeRef.current === "none") {
+      if (Math.abs(deltaX) > Math.abs(deltaY) + 10) {
+        touchModeRef.current = "swipe";
+        e.preventDefault(); // 스와이프로 판단되면 기본 동작 방지
+      } else if (Math.abs(deltaY) > Math.abs(deltaX) + 10) {
+        touchModeRef.current = "scroll";
+        return; // 스크롤로 판단되면 여기서 종료
       }
+    }
 
-      document.removeEventListener("touchmove", handleTouchMove);
-      document.removeEventListener("touchend", handleTouchEnd);
-    };
+    if (touchModeRef.current === "swipe") {
+      e.preventDefault();
+      setDragX(deltaX);
+    }
+  };
 
-    document.addEventListener("touchmove", handleTouchMove, { passive: false });
-    document.addEventListener("touchend", handleTouchEnd);
+  const handleTouchEnd = (e) => {
+    if (touchModeRef.current === "swipe" && Math.abs(dragX) > 80) {
+      const direction = dragX > 0 ? "right" : "left";
+      setIsAnimating(true);
+      onSwipe(direction, product.id);
+    } else {
+      setDragX(0);
+    }
+
+    touchModeRef.current = "none";
   };
 
   return (
     <div
+      ref={cardRef}
       className={cn(
         "product-card w-[350px] h-[520px] rounded-3xl p-6 cursor-grab active:cursor-grabbing select-none relative overflow-hidden glassmorphism-card",
         isAnimating && dragX > 80 && "product-card-swipe-right",
@@ -101,10 +101,12 @@ export const ProductCard = ({ product, onSwipe }) => {
       )}
       style={{
         transform: `translateX(${dragX}px) rotate(${dragX * 0.1}deg)`,
-        transition: isDragging ? 'none' : 'transform 0.3s ease'
+        transition: isDragging ? "none" : "transform 0.3s ease",
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Category Badge */}
       <Badge className="absolute top-4 left-4 bg-primary/10 text-primary hover:bg-primary/20">

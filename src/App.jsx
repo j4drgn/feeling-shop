@@ -9,7 +9,9 @@ import { HistoryScreen } from "@/screens/HistoryScreen";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { FadeTransition } from "@/components/ui/page-transitions";
+
 const queryClient = new QueryClient();
+
 const App = () => {
   const {
     currentScreen,
@@ -41,7 +43,7 @@ const App = () => {
   const handleSendMessage = (message, emotion, onResponseComplete) => {
     addMessage("user", message, emotion);
 
-    // 간단하고 실용적인 응답 생성
+    // Simulate assistant response after user message
     setTimeout(() => {
       let responses = [];
       

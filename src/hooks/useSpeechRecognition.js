@@ -1,37 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-export interface EmotionAnalysis {
-  confidence: number;
-  emotion: 'neutral' | 'happy' | 'sad' | 'angry' | 'sarcastic' | 'excited' | 'frustrated';
-  pitch: number;
-  speed: number;
-  volume: number;
-  description: string;
-}
-
-export interface SpeechResult {
-  transcript: string;
-  emotion: EmotionAnalysis;
-  confidence: number;
-}
-
 export const useSpeechRecognition = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<SpeechResult | null>(null);
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
   
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const audioDataRef = useRef<Float32Array | null>(null);
+  const recognitionRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const mediaStreamRef = useRef(null);
+  const audioDataRef = useRef(null);
 
   // 브라우저 호환성 확인
   useEffect(() => {
     const SpeechRecognition = 
-      (window as any).SpeechRecognition || 
-      (window as any).webkitSpeechRecognition;
+      window.SpeechRecognition || 
+      window.webkitSpeechRecognition;
     
     if (SpeechRecognition && navigator.mediaDevices?.getUserMedia) {
       setIsSupported(true);
@@ -41,7 +26,7 @@ export const useSpeechRecognition = () => {
   }, []);
 
   // 음성 특징 분석 함수
-  const analyzeAudioFeatures = useCallback((audioData: Float32Array): Omit<EmotionAnalysis, 'emotion' | 'description'> => {
+  const analyzeAudioFeatures = useCallback((audioData) => {
     // 음량 계산
     const volume = audioData.reduce((sum, sample) => sum + Math.abs(sample), 0) / audioData.length;
     
@@ -79,10 +64,7 @@ export const useSpeechRecognition = () => {
   }, []);
 
   // 감정 분석 함수
-  const analyzeEmotion = useCallback((
-    transcript: string, 
-    audioFeatures: Omit<EmotionAnalysis, 'emotion' | 'description'>
-  ): EmotionAnalysis => {
+  const analyzeEmotion = useCallback((transcript, audioFeatures) => {
     const { pitch, speed, volume, confidence } = audioFeatures;
     
     // 텍스트 패턴 분석
@@ -91,7 +73,7 @@ export const useSpeechRecognition = () => {
     const exclamationCount = (transcript.match(/[!?~]/g) || []).length;
     
     // 감정 규칙 기반 분석
-    let emotion: EmotionAnalysis['emotion'] = 'neutral';
+    let emotion = 'neutral';
     let description = '중립적인 톤';
     
     if (hasElongation && pitch > 200 && exclamationCount > 0) {
@@ -136,7 +118,7 @@ export const useSpeechRecognition = () => {
       mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       // Web Audio API 설정
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 2048;
@@ -146,7 +128,7 @@ export const useSpeechRecognition = () => {
       audioDataRef.current = new Float32Array(analyserRef.current.frequencyBinCount);
       
       // Speech Recognition 설정
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
@@ -156,7 +138,7 @@ export const useSpeechRecognition = () => {
         setIsListening(true);
       };
       
-      recognitionRef.current.onresult = (event: any) => {
+      recognitionRef.current.onresult = (event) => {
         if (!event.results || event.results.length === 0) return;
         
         const transcript = event.results[0][0].transcript;
@@ -170,7 +152,7 @@ export const useSpeechRecognition = () => {
         // 오디오 특징 추출
         if (analyserRef.current && audioDataRef.current) {
           analyserRef.current.getFloatTimeDomainData(audioDataRef.current);
-          const audioFeatures = analyzeAudioFeatures(audioDataRef.current as Float32Array);
+          const audioFeatures = analyzeAudioFeatures(audioDataRef.current);
           const emotion = analyzeEmotion(transcript, audioFeatures);
           
           setResult({
@@ -200,7 +182,7 @@ export const useSpeechRecognition = () => {
         }
       };
       
-      recognitionRef.current.onerror = (event: any) => {
+      recognitionRef.current.onerror = (event) => {
         setError(`음성 인식 오류: ${event.error}`);
         setIsListening(false);
       };
