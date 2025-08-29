@@ -6,21 +6,11 @@ const SpeechBubble = ({ text, className }) => {
   }
 
   return (
-    <div className={cn("relative", className)}>
-      <div className="relative">
-        {/* Clean flat speech bubble */}
-        <div className="relative bg-white rounded-2xl px-6 py-4 border border-gray-100 max-w-md mx-auto shadow-sm">
-          {/* Text with title typography (20px bold) */}
-          <p className="text-title text-ducky-neutral leading-relaxed text-center font-pretendard">
-            {text}
-          </p>
-        </div>
-        
-        {/* Simple speech bubble tail */}
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
-          <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[12px] border-l-transparent border-r-transparent border-t-white drop-shadow-sm" />
-        </div>
-      </div>
+    <div className={cn("relative max-w-[540px] rounded-surface bg-layer-surface px-5 py-4 shadow-surface", className)}>
+      <p className="text-title text-layer-content leading-[1.4] text-center font-pretendard">
+        {text}
+      </p>
+      <span className="absolute left-1/2 -bottom-3 h-4 w-4 -translate-x-1/2 rotate-45 bg-layer-surface shadow-surface"></span>
     </div>
   );
 };

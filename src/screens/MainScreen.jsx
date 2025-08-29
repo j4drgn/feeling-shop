@@ -135,178 +135,177 @@ export const MainScreen = ({
   }, [characterText, isMuted, speak]);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-white">
-      {/* Clean White AppBar */}
-      <header className="absolute top-0 left-0 right-0 z-20 p-4">
-        <div className="max-w-md mx-auto">
-          <div className="bg-white border-b border-gray-100 rounded-t-2xl px-4 py-3 flex justify-between items-center">
-            {/* MBTI Toggle - Clean flat design */}
-            <div className="flex items-center gap-3 bg-gray-50 rounded-full px-4 py-2">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-ducky-secondary rounded-full flex items-center justify-center">
-                  <Brain className="h-3 w-3 text-white" />
+    <div className="min-h-[100dvh] bg-layer-background overflow-hidden overscroll-none">
+      <main className="relative grid min-h-[100dvh] grid-rows-[auto,1fr,auto]">
+        {/* Clean AppBar with warm background */}
+        <header className="sticky top-0 z-10 bg-layer-background/90 backdrop-blur">
+          <div className="mx-auto max-w-[560px] px-4 py-3 border-b border-layer-surface/40">
+            <div className="flex justify-between items-center">
+              {/* MBTI Toggle - Simplified */}
+              <div className="flex items-center gap-3 bg-layer-surface/80 rounded-surface px-4 py-2 shadow-surface">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-layer-muted rounded-full flex items-center justify-center">
+                    <Brain className="h-3 w-3 text-layer-surface" />
+                  </div>
+                  <span className="text-caption text-layer-content">T</span>
                 </div>
-                <span className="text-subtext text-ducky-neutral">T</span>
+                
+                <ThumbSwitch
+                  checked={!isThinking}
+                  onCheckedChange={toggleTheme}
+                  aria-label="Toggle between T and F"
+                  thumbColor={!isThinking ? "#6B7280" : "#6B7280"}
+                  borderColor="#E5E7EB"
+                  backgroundColor="#FFFFFF"
+                  trackColor="#E5E7EB"
+                />
+                
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-layer-muted rounded-full flex items-center justify-center">
+                    <Heart className="h-3 w-3 text-layer-surface" />
+                  </div>
+                  <span className="text-caption text-layer-content">F</span>
+                </div>
               </div>
+
+              {/* Minimal action buttons */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleMute}
+                  className="w-8 h-8 rounded-surface bg-layer-surface/80 hover:bg-layer-surface shadow-surface transition-colors"
+                >
+                  {isMuted ? (
+                    <VolumeX className="h-4 w-4 text-layer-muted" />
+                  ) : (
+                    <Volume2 className="h-4 w-4 text-layer-muted" />
+                  )}
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onNavigateToHistory}
+                  className="w-8 h-8 rounded-surface bg-layer-surface/80 hover:bg-layer-surface text-layer-muted shadow-surface transition-colors"
+                >
+                  <User className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Content Section */}
+        <section className="mx-auto w-full max-w-[560px] px-4 py-5 flex flex-col items-center gap-6">
+          {/* Duck Character - White Surface Container */}
+          <div 
+            ref={characterRef}
+            className="relative"
+          >
+            <div className={cn(
+              "w-[280px] h-[280px] rounded-full bg-layer-surface shadow-surface grid place-items-center transition-all duration-300",
+              isListening && "scale-105 shadow-glow",
+              isSpeaking && "scale-102"
+            )}>
+              {/* Subtle glow for states */}
+              <div className={cn(
+                "absolute inset-0 rounded-full transition-all duration-500 opacity-0",
+                isListening && "opacity-100 bg-accent-ducky/10",
+                isSpeaking && "opacity-100 bg-accent-ducky/5"
+              )} />
               
-              <ThumbSwitch
-                checked={!isThinking}
-                onCheckedChange={toggleTheme}
-                aria-label="Toggle between T and F"
-                thumbColor={!isThinking ? "#9C6ADE" : "#4DA3FF"}
-                borderColor="#E5E7EB"
-                backgroundColor="#F8F9FA"
-                trackColor="#E5E7EB"
+              <DuckCharacter
+                size="xl"
+                onClick={handleCharacterClick}
+                className="w-[180px] h-[180px] select-none cursor-pointer relative z-10 transition-all duration-200 hover:scale-105 active:scale-95"
               />
               
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-ducky-accent rounded-full flex items-center justify-center">
-                  <Heart className="h-3 w-3 text-white" />
-                </div>
-                <span className="text-subtext text-ducky-neutral">F</span>
+              {/* Status indicators */}
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
+                {isListening && (
+                  <div className="flex items-center gap-2 bg-layer-surface text-layer-content px-3 py-1 rounded-surface text-caption font-medium shadow-surface border border-layer-border">
+                    <Mic className="h-3 w-3 text-accent-ducky" />
+                    <span>듣는 중...</span>
+                  </div>
+                )}
+                {isSpeaking && !isListening && (
+                  <div className="flex items-center gap-2 bg-layer-surface text-layer-content px-3 py-1 rounded-surface text-caption font-medium shadow-surface border border-layer-border">
+                    <Volume2 className="h-3 w-3 text-accent-ducky" />
+                    <span>말하는 중...</span>
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Simple action buttons */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleMute}
-                className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                {isMuted ? (
-                  <VolumeX className="h-4 w-4 text-ducky-neutral" />
-                ) : (
-                  <Volume2 className="h-4 w-4 text-ducky-neutral" />
-                )}
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onNavigateToHistory}
-                className="w-8 h-8 rounded-lg bg-gray-50 hover:bg-gray-100 text-ducky-neutral transition-colors"
-              >
-                <User className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
-        </div>
-      </header>
 
-      {/* Main Content - Clean centered layout */}
-      <div className="flex flex-col items-center justify-center h-full px-6 pt-20">
-        {/* Large Duck Character - Flat simple design */}
-        <div 
-          ref={characterRef}
-          className="relative mb-8"
-        >
-          <div className={cn(
-            "relative transition-all duration-300",
-            isListening && "scale-105",
-            isSpeaking && "animate-pulse"
-          )}>
-            {/* Minimal glow effect */}
-            <div className={cn(
-              "absolute inset-0 rounded-full transition-all duration-500 opacity-0",
-              isListening && "opacity-100 bg-ducky-primary/20 scale-110",
-              isSpeaking && "opacity-100 bg-ducky-primary/10 scale-105"
-            )} />
-            
-            <DuckCharacter
-              size="xl"
-              onClick={handleCharacterClick}
-              className={cn(
-                "relative z-10 cursor-pointer transition-all duration-200",
-                "hover:scale-102 active:scale-95"
-              )}
-            />
-            
-            {/* Simple status indicators */}
-            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2">
-              {isListening && (
-                <div className="flex items-center gap-1 bg-ducky-primary text-black px-3 py-1 rounded-full text-subtext font-medium">
-                  <Mic className="h-3 w-3" />
-                  <span>듣는 중...</span>
-                </div>
-              )}
-              {isSpeaking && !isListening && (
-                <div className="flex items-center gap-1 bg-ducky-primary text-black px-3 py-1 rounded-full text-subtext font-medium">
-                  <Volume2 className="h-3 w-3" />
-                  <span>말하는 중...</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* White Speech Bubble - Clean flat design */}
-        <div className="relative w-full max-w-sm mb-6">
+          {/* Speech Bubble - White Surface */}
           <SpeechBubble 
             text={characterText}
-            className="bg-white border border-gray-100 shadow-sm"
           />
-        </div>
 
-        {/* User Response Display - Clean design */}
-        {userText && !isListening && (
-          <div className="space-y-3 w-full max-w-sm">
-            <div className="bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100">
-              <p className="text-body text-ducky-neutral">
-                {userText}
-              </p>
-            </div>
-            
-            {/* Emotion info - simplified */}
-            {result?.emotion && (
-              <div className="bg-gray-50 rounded-xl px-3 py-2 border border-gray-100">
-                <p className="text-subtext text-ducky-neutral">
-                  <span className="font-medium">감정:</span> {result.emotion.description}
+          {/* User Response Display */}
+          {userText && !isListening && (
+            <div className="space-y-4 w-full max-w-[540px]">
+              <div className="bg-layer-surface rounded-surface px-4 py-3 shadow-surface border border-layer-border">
+                <p className="text-body text-layer-content">
+                  {userText}
                 </p>
-                <div className="flex gap-3 mt-1">
-                  <span className="text-subtext text-ducky-neutral/70">
-                    음량 {Math.round(result.emotion.volume * 100)}%
-                  </span>
-                  <span className="text-subtext text-ducky-neutral/70">
-                    피치 {Math.round(result.emotion.pitch)}Hz
-                  </span>
+              </div>
+              
+              {/* Emotion info */}
+              {result?.emotion && (
+                <div className="bg-layer-surface rounded-surface px-4 py-3 shadow-surface border border-layer-border">
+                  <p className="text-caption text-layer-muted">
+                    <span className="font-medium">감정:</span> {result.emotion.description}
+                  </p>
+                  <div className="flex gap-4 mt-1">
+                    <span className="text-caption text-layer-muted/70">
+                      음량 {Math.round(result.emotion.volume * 100)}%
+                    </span>
+                    <span className="text-caption text-layer-muted/70">
+                      피치 {Math.round(result.emotion.pitch)}Hz
+                    </span>
+                  </div>
                 </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* Bottom CTA - Fixed position */}
+        <footer className="sticky bottom-0 z-10">
+          <div className="mx-auto max-w-[560px] px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-4">
+            {/* CTA Button - Only show when user has spoken */}
+            {userText && !isListening && (
+              <Button
+                onClick={onNavigateToProducts}
+                className="w-full rounded-surface bg-layer-surface text-layer-content text-body font-bold py-4 shadow-surface border border-layer-border active:scale-[0.98] transition-all duration-150 hover:shadow-glow"
+              >
+                시작하기
+              </Button>
+            )}
+            
+            {/* Tutorial hint */}
+            {!userText && !isListening && !error && (
+              <div className="text-center">
+                <p className="text-caption text-layer-muted bg-layer-surface/80 px-4 py-2 rounded-surface border border-layer-border">
+                  덕키를 터치하고 말해보세요
+                </p>
+              </div>
+            )}
+
+            {/* Error display */}
+            {error && (
+              <div className="text-center">
+                <p className="text-caption text-red-600 bg-red-50 px-4 py-2 rounded-surface border border-red-200">
+                  오류: {error}
+                </p>
               </div>
             )}
           </div>
-        )}
-
-        {/* Single Yellow CTA Button */}
-        {userText && !isListening && (
-          <div className="mt-8">
-            <Button
-              onClick={onNavigateToProducts}
-              className="rounded-full px-8 py-3 bg-ducky-primary hover:bg-ducky-primary/90 text-black font-bold text-body shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              시작하기
-            </Button>
-          </div>
-        )}
-
-        {/* Simple tutorial hint */}
-        {!userText && !isListening && !error && (
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2">
-            <p className="text-subtext text-ducky-neutral bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
-              덕키를 터치하고 말해보세요
-            </p>
-          </div>
-        )}
-
-        {/* Simple error display */}
-        {error && (
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2">
-            <p className="text-subtext text-red-600 bg-red-50 px-4 py-2 rounded-full border border-red-200">
-              오류: {error}
-            </p>
-          </div>
-        )}
-      </div>
+        </footer>
+      </main>
     </div>
   );
 };

@@ -170,7 +170,7 @@ All colors MUST be HSL.
 
   html,
   body {
-    @apply bg-white text-ducky-neutral;
+    @apply bg-layer-background text-layer-content;
     font-family: 'PretendardVariable', 'Pretendard', system-ui, -apple-system, sans-serif;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
@@ -178,17 +178,17 @@ All colors MUST be HSL.
 
   /* Clean mobile app styling */
   body {
-    @apply overflow-hidden touch-manipulation bg-white;
+    @apply overflow-hidden touch-manipulation bg-layer-background;
     position: fixed;
     width: 100%;
     height: 100%;
     overscroll-behavior: none;
-    max-height: 100vh;
+    max-height: 100dvh;
   }
 
   #root {
-    @apply h-full overflow-hidden bg-white;
-    max-height: 100vh;
+    @apply h-full overflow-hidden bg-layer-background;
+    max-height: 100dvh;
   }
 }
 
