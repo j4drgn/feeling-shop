@@ -2,6 +2,7 @@ import duckImage from "@/assets/duck-character.png";
 import { cn } from "@/lib/utils";
 
 export const DuckCharacter = ({
+  src = duckImage,
   size = "lg",
   onClick,
   className,
@@ -31,7 +32,7 @@ export const DuckCharacter = ({
     >
       <div className="w-full h-full rounded-full bg-white/50 backdrop-blur-md flex items-center justify-center overflow-hidden shadow-inner border border-white/60">
         <img
-          src={duckImage}
+          src={src}
           alt="Friendly duck assistant"
           className="w-4/5 h-4/5 object-contain"
         />
