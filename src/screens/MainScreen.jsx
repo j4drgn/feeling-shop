@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { DuckCharacter } from "@/components/DuckCharacter";
+import AnimatedDuckCharacter from "@/components/AnimatedDuckCharacter";
 import SpeechBubble from "@/components/SpeechBubble";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
+import { useDuckAnimation } from "@/hooks/useDuckAnimation";
 import { User, Mic, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThumbSwitch } from "@/components/ui/ThumbSwitch";
@@ -18,9 +19,19 @@ export const MainScreen = ({
   const [characterText, setCharacterText] = useState(
     "안녕! 나는 덕키야. 오늘 기분은 어때? 나를 터치하고 말해봐!"
   );
+  
+  // 앱 시작시 환영 애니메이션
+  useEffect(() => {
+    const welcomeTimer = setTimeout(() => {
+      triggerAnimation('happy', true);
+    }, 1000);
+    
+    return () => clearTimeout(welcomeTimer);
+  }, [triggerAnimation]);
   const [userText, setUserText] = useState("");
   const [showFloatingEmojis, setShowFloatingEmojis] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [conversationContext, setConversationContext] = useState(null);
   const characterRef = useRef(null);
 
   const {
@@ -38,33 +49,67 @@ export const MainScreen = ({
     },
   });
 
+  // Duck animation management
+  const { 
+    currentAnimation, 
+    triggerCount, 
+    triggerAnimation, 
+    handleAnimationComplete,
+    isAnimating 
+  } = useDuckAnimation({
+    emotion: result?.emotion,
+    isListening,
+    isSpeaking,
+    conversationContext
+  });
+
   const handleUserInput = (input, emotion) => {
     const lowerInput = input.toLowerCase();
     let response = "";
+    let context = null;
     
     // 감정 기반 응답 추가
     const emotionContext = emotion?.emotion || 'neutral';
     
-    if (lowerInput.includes("안녕") || lowerInput.includes("하이")) {
+    if (lowerInput.includes("안녕") || lowerInput.includes("하이") || lowerInput.includes("헬로")) {
       response = "반가워! 오늘 뭐 하고 싶어? 쇼핑? 아니면 그냥 수다?";
+      context = 'greeting';
+      triggerAnimation('happy', true);
       setShowFloatingEmojis(true);
       setTimeout(() => setShowFloatingEmojis(false), 3000);
-    } else if (lowerInput.includes("쇼핑") || lowerInput.includes("상품")) {
+    } else if (lowerInput.includes("쇼핑") || lowerInput.includes("상품") || lowerInput.includes("추천")) {
       response = "좋아! 내가 너한테 딱 맞는 걸 찾아줄게! 잠깐만 기다려~";
-      setTimeout(() => onNavigateToProducts(), 2000);
+      context = 'shopping';
+      triggerAnimation('gift', true);
+      setTimeout(() => onNavigateToProducts(), 3000);
     } else if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
       if (emotionContext === 'happy' || emotionContext === 'excited') {
         response = "와! 정말 기분이 좋아 보여! 나도 기뻐~";
+        context = 'happy';
       } else if (emotionContext === 'sad' || emotionContext === 'frustrated') {
         response = "괜찮아... 내가 여기 있을게. 힘내!";
+        context = 'sad';
       } else {
         response = "너의 기분을 이해해! 내가 여기 있어줄게~";
+        context = 'neutral';
       }
+    } else if (lowerInput.includes("고마워") || lowerInput.includes("감사") || lowerInput.includes("thanks")) {
+      response = "천만에! 또 도움이 필요하면 언제든지 말해~";
+      context = 'thanking';
+      triggerAnimation('happy', true);
+    } else if (lowerInput.includes("싫어") || lowerInput.includes("짜증") || lowerInput.includes("화나")) {
+      response = "어? 뭔가 마음에 안 드는 게 있어? 괜찮아, 다른 걸 찾아보자!";
+      context = 'frustrated';
+      triggerAnimation('mad', true);
     } else {
       const responses = emotionContext === 'sarcastic' ? [
         "어머~ 재밌는 얘기네!",
         "그래~ 그래~ 알겠어~",
         "와~ 정말 대단하다~"
+      ] : emotionContext === 'excited' ? [
+        "우와! 신난다! 더 얘기해줘!",
+        "정말 재밌겠다! 계속 들려줘!",
+        "대박! 완전 좋은데?!"
       ] : [
         "흥미로운 얘기야! 더 들려줘~",
         "정말? 신기하다! 계속 말해봐~",
@@ -72,9 +117,11 @@ export const MainScreen = ({
         "좋은 생각이야! 나도 그렇게 생각해~"
       ];
       response = responses[Math.floor(Math.random() * responses.length)];
+      context = emotionContext;
     }
     
     setCharacterText(response);
+    setConversationContext(context);
   };
 
   const handleCharacterClick = () => {
@@ -96,6 +143,11 @@ export const MainScreen = ({
     if (isListening) {
       stopListening();
     } else {
+      // 클릭할 때마다 살짝 기뻐하는 애니메이션
+      if (currentAnimation === 'idle') {
+        triggerAnimation('happy');
+      }
+      
       startListening();
       setCharacterText("듣고 있어요...");
       setUserText(""); // 이전 텍스트 초기화
@@ -215,10 +267,13 @@ export const MainScreen = ({
                 isSpeaking && "opacity-100 bg-accent-ducky/5"
               )} />
               
-              <DuckCharacter
+              <AnimatedDuckCharacter
+                animation={currentAnimation}
+                trigger={triggerCount}
                 size="xl"
                 onClick={handleCharacterClick}
-                className="w-[180px] h-[180px] select-none cursor-pointer relative z-10 transition-all duration-200 hover:scale-105 active:scale-95"
+                onAnimationComplete={handleAnimationComplete}
+                className="relative z-10"
               />
               
               {/* Status indicators */}
