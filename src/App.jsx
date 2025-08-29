@@ -38,7 +38,7 @@ const App = () => {
     }
   }, [currentScreen, prevScreen]);
 
-  const handleSendMessage = (message, emotion) => {
+  const handleSendMessage = (message, emotion, onResponseComplete) => {
     addMessage("user", message, emotion);
 
     // 간단하고 실용적인 응답 생성
@@ -50,57 +50,67 @@ const App = () => {
       
       if (lowerMessage.includes('안녕') || lowerMessage.includes('하이') || lowerMessage.includes('헬로')) {
         responses = [
-          "안녕하세요! 오늘 어떤 상품을 찾고 계신가요?",
+          "안녕하세요! 오늘 기분은 어떠세요?",
           "반가워요! 무엇을 도와드릴까요?",
-          "안녕하세요! 쇼핑을 도와드릴게요 🦆"
+          "안녕하세요! 오늘도 좋은 하루 되세요!"
         ];
       } else if (lowerMessage.includes('옷') || lowerMessage.includes('의류') || lowerMessage.includes('패션')) {
         responses = [
-          "패션 아이템을 찾고 계시는군요! 어떤 스타일을 원하시나요?",
-          "의류 쇼핑이네요! 계절이나 용도를 알려주시면 더 좋은 추천을 드릴 수 있어요.",
-          "멋진 옷들을 찾아드릴게요! 상품 페이지로 이동해볼까요?"
+          "패션에 관심이 있으시군요! 어떤 스타일을 좋아하세요?",
+          "옷 쇼핑을 도와드릴게요! 어떤 걸 찾고 계신가요?",
+          "멋진 스타일을 찾아드릴게요!"
         ];
       } else if (lowerMessage.includes('음식') || lowerMessage.includes('먹을것') || lowerMessage.includes('맛있')) {
         responses = [
-          "맛있는 음식을 찾고 계시는군요! 어떤 종류의 음식을 원하시나요?",
-          "음식 관련 상품들이 궁금하시군요! 간식이나 요리 재료 등 다양해요.",
-          "먹거리 추천 드릴게요! 상품을 구경해보세요!"
+          "맛있는 걸 좋아하시는군요! 어떤 음식이 좋으세요?",
+          "먹거리 얘기하니 배가 고파지네요!",
+          "맛있는 음식 추천해드릴게요!"
         ];
       } else if (lowerMessage.includes('전자제품') || lowerMessage.includes('컴퓨터') || lowerMessage.includes('폰')) {
         responses = [
-          "전자제품에 관심이 있으시군요! 어떤 기기를 찾고 계신가요?",
-          "IT 제품들도 많아요! 구체적으로 어떤 것이 필요하신지 알려주세요.",
-          "전자제품 카테고리를 확인해보세요!"
+          "기술에 관심이 많으시군요! 어떤 기기를 찾고 계신가요?",
+          "전자제품도 많이 알고 있어요! 뭘 도와드릴까요?",
+          "최신 기기들 궁금하시죠?"
         ];
       } else if (lowerMessage.includes('추천') || lowerMessage.includes('뭐가 좋')) {
         responses = [
-          "추천을 원하시는군요! 상품 페이지에서 인기 아이템들을 확인해보세요!",
-          "좋은 상품들이 많아요! 어떤 분야의 추천을 원하시나요?",
-          "인기 상품들을 보여드릴게요! 상품 목록으로 이동해볼까요?"
+          "추천을 원하시는군요! 제가 도움을 드릴게요!",
+          "좋은 걸 찾아드릴게요! 어떤 분야에 관심이 있으세요?",
+          "맞춤 추천해드릴게요!"
         ];
       } else {
         // 감정 기반 기본 응답
         if (emotion?.emotion === 'sarcastic') {
           responses = [
-            "아하~ 그렇게 말씀하시는군요! 😏 상품들을 구경해보시는 것은 어떨까요?",
-            "재미있는 톤이네요! 뭔가 특별한 걸 찾아드릴게요!"
+            "재미있는 톤이네요! 뭔가 특별한 걸 도와드릴까요?",
+            "유머러스하시네요! 어떤 도움이 필요하세요?"
           ];
         } else if (emotion?.emotion === 'happy') {
           responses = [
-            "좋은 기분이 전해져요! 😊 행복한 쇼핑 도와드릴게요!",
-            "밝은 에너지가 좋네요! 멋진 상품들을 찾아드릴게요!"
+            "좋은 기분이 전해져요! 저도 기뻐요!",
+            "밝은 에너지가 좋네요! 오늘 하루 어떠셨어요?"
+          ];
+        } else if (emotion?.emotion === 'sad') {
+          responses = [
+            "조금 우울해 보이시네요. 괜찮으신가요?",
+            "무슨 일 있으셨나요? 제가 도움이 될 수 있을까요?"
           ];
         } else {
           responses = [
-            "네, 들었어요! 어떤 상품을 찾고 계신가요?",
-            "무엇을 도와드릴까요? 상품을 구경해보세요!",
-            "쇼핑을 도와드릴게요! 궁금한 게 있으시면 말씀해주세요."
+            "네, 잘 들었어요! 더 이야기해 주세요.",
+            "흥미로운 얘기네요! 계속 들려주세요.",
+            "그렇군요! 어떤 도움이 필요하신가요?"
           ];
         }
       }
       
       const response = responses[Math.floor(Math.random() * responses.length)];
       addMessage("assistant", response);
+      
+      // 응답 완료 콜백 호출
+      if (onResponseComplete) {
+        onResponseComplete(response);
+      }
     }, 800);
   };
 
