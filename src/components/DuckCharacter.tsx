@@ -17,18 +17,18 @@ export const DuckCharacter = ({ size = 'lg', onClick, className }: DuckCharacter
   return (
     <div 
       className={cn(
-        "duck-container rounded-full bg-gradient-primary p-2 cursor-pointer interactive-scale",
+        "duck-container rounded-full gradient-duck p-3 cursor-pointer interactive-scale",
         sizeClasses[size],
         onClick && "hover:shadow-glow",
         className
       )}
       onClick={onClick}
     >
-      <div className="w-full h-full rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden">
+      <div className="w-full h-full rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center overflow-hidden shadow-inner">
         <img 
           src={duckImage} 
           alt="Friendly duck assistant" 
-          className="w-3/4 h-3/4 object-contain"
+          className="w-4/5 h-4/5 object-contain"
         />
       </div>
     </div>

@@ -30,52 +30,50 @@ export const MainScreen = ({
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+      <div className="absolute inset-0 gradient-background" />
       
       {/* Header with profile icon */}
-      <header className="relative z-10 flex justify-end p-4">
+      <header className="relative z-10 flex justify-end p-4 absolute top-0 right-0">
         <Button
           variant="ghost"
           size="icon"
           onClick={onNavigateToHistory}
-          className="rounded-full hover:bg-primary/10"
+          className="rounded-full hover:bg-accent/20 text-muted-foreground hover:text-accent"
         >
-          <User className="h-5 w-5 text-muted-foreground" />
+          <User className="h-5 w-5" />
         </Button>
       </header>
 
-      {/* Main content area - STATIC LAYOUT */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
-        {/* Duck character area - always visible */}
-        <div className="mb-8">
+      {/* Main content area - PERFECT CENTER LAYOUT */}
+      <main className="h-screen flex flex-col items-center justify-center px-6 relative z-10">
+        {/* Duck character - perfectly centered */}
+        <div className="flex flex-col items-center justify-center">
           <DuckCharacter
             size="lg"
             onClick={!isChatActive ? onStartChat : undefined}
             className={cn(
-              "transition-all duration-300",
-              isChatActive && "mb-4"
+              "transition-all duration-300 mb-6"
             )}
           />
           
           {!isChatActive && (
-            <div className="text-center mt-6 space-y-2">
+            <div className="text-center space-y-3 mb-8">
               <h1 className="text-2xl font-bold text-foreground">
                 Meet Your Shopping Duck
               </h1>
-              <p className="text-muted-foreground max-w-sm">
+              <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">
                 Tap the duck to start a conversation and get personalized product recommendations!
               </p>
             </div>
           )}
         </div>
 
-        {/* Chat interface area - appears below duck when active */}
+        {/* Chat interface area - appears below duck when active, keeping duck centered */}
         {isChatActive && (
-          <div className="w-full max-w-lg animate-fade-in">
+          <div className="w-full max-w-lg animate-fade-in -mt-4">
             <ChatInterface
               messages={chatMessages}
               onSendMessage={(message) => {
-                // Add user message
                 onSendMessage(message);
               }}
               onEndChat={onEndChat}
@@ -84,9 +82,6 @@ export const MainScreen = ({
           </div>
         )}
       </main>
-
-      {/* Footer space */}
-      <div className="h-16" />
     </div>
   );
 };
