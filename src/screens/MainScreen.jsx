@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { DuckCharacter } from "@/components/DuckCharacter";
+import AnimatedDuckCharacter from "@/components/AnimatedDuckCharacter";
 import SpeechBubble from "@/components/SpeechBubble";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
-import { User, Mic, Volume2, VolumeX } from "lucide-react";
+import { useDuckAnimation } from "@/hooks/useDuckAnimation";
+import { User, Mic, Volume2, VolumeX, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ThumbSwitch } from "@/components/ui/ThumbSwitch";
-import { Brain, Heart, Sparkles } from "lucide-react";
+import { Brain, Heart } from "lucide-react";
 import { useThemeContext } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +20,13 @@ export const MainScreen = ({
   const [characterText, setCharacterText] = useState(
     "안녕! 나는 덕키야. 오늘 기분은 어때? 나를 터치하고 말해봐!"
   );
+  
+  // 앱 시작시 환영 애니메이션 - 훅 정의 후에 이동
   const [userText, setUserText] = useState("");
   const [showFloatingEmojis, setShowFloatingEmojis] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [conversationContext, setConversationContext] = useState(null);
+  const [textInput, setTextInput] = useState("");
   const characterRef = useRef(null);
 
   const {
@@ -32,39 +38,89 @@ export const MainScreen = ({
     error,
   } = useSpeechRecognition();
 
-  const { speak, isSpeaking, stop: stopSpeaking } = useSpeechSynthesis({
+  const { speak, isSpeaking, stopSpeaking } = useSpeechSynthesis({
     onEnd: () => {
-      // 음성 출력이 끝났을 때의 처리
+      // 음성 출력이 끝났을 때 애니메이션을 idle로 복원
+      if (currentAnimation !== 'idle' && !isListening) {
+        triggerAnimation('idle');
+      }
     },
   });
+
+  // Duck animation management
+  const { 
+    currentAnimation, 
+    triggerCount, 
+    triggerAnimation, 
+    handleAnimationComplete,
+    isAnimating 
+  } = useDuckAnimation({
+    emotion: result?.emotion,
+    isListening,
+    isSpeaking,
+    conversationContext
+  });
+
+  // 앱 시작시 환영 애니메이션
+  useEffect(() => {
+    const welcomeTimer = setTimeout(() => {
+      if (triggerAnimation) {
+        triggerAnimation('happy', true);
+      }
+    }, 1000);
+    
+    return () => clearTimeout(welcomeTimer);
+  }, [triggerAnimation]);
 
   const handleUserInput = (input, emotion) => {
     const lowerInput = input.toLowerCase();
     let response = "";
+    let context = null;
     
     // 감정 기반 응답 추가
     const emotionContext = emotion?.emotion || 'neutral';
     
-    if (lowerInput.includes("안녕") || lowerInput.includes("하이")) {
+    if (lowerInput.includes("안녕") || lowerInput.includes("하이") || lowerInput.includes("헬로")) {
       response = "반가워! 오늘 뭐 하고 싶어? 쇼핑? 아니면 그냥 수다?";
+      context = 'greeting';
+      triggerAnimation('happy', true);
       setShowFloatingEmojis(true);
       setTimeout(() => setShowFloatingEmojis(false), 3000);
-    } else if (lowerInput.includes("쇼핑") || lowerInput.includes("상품")) {
+    } else if (lowerInput.includes("쇼핑") || lowerInput.includes("상품") || lowerInput.includes("추천")) {
       response = "좋아! 내가 너한테 딱 맞는 걸 찾아줄게! 잠깐만 기다려~";
-      setTimeout(() => onNavigateToProducts(), 2000);
+      context = 'shopping';
+      triggerAnimation('gift', true);
+      setTimeout(() => onNavigateToProducts(), 3000);
     } else if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
       if (emotionContext === 'happy' || emotionContext === 'excited') {
         response = "와! 정말 기분이 좋아 보여! 나도 기뻐~";
+        context = 'happy';
       } else if (emotionContext === 'sad' || emotionContext === 'frustrated') {
         response = "괜찮아... 내가 여기 있을게. 힘내!";
+        context = 'sad';
       } else {
         response = "너의 기분을 이해해! 내가 여기 있어줄게~";
+        context = 'neutral';
       }
+    } else if (lowerInput.includes("고마워") || lowerInput.includes("감사") || lowerInput.includes("thanks")) {
+      response = "천만에! 또 도움이 필요하면 언제든지 말해~";
+      context = 'thanking';
+      triggerAnimation('happy', true);
+      setShowFloatingEmojis(true);
+      setTimeout(() => setShowFloatingEmojis(false), 3000);
+    } else if (lowerInput.includes("싫어") || lowerInput.includes("짜증") || lowerInput.includes("화나")) {
+      response = "어? 뭔가 마음에 안 드는 게 있어? 괜찮아, 다른 걸 찾아보자!";
+      context = 'frustrated';
+      triggerAnimation('mad', true);
     } else {
       const responses = emotionContext === 'sarcastic' ? [
         "어머~ 재밌는 얘기네!",
         "그래~ 그래~ 알겠어~",
         "와~ 정말 대단하다~"
+      ] : emotionContext === 'excited' ? [
+        "우와! 신난다! 더 얘기해줘!",
+        "정말 재밌겠다! 계속 들려줘!",
+        "대박! 완전 좋은데?!"
       ] : [
         "흥미로운 얘기야! 더 들려줘~",
         "정말? 신기하다! 계속 말해봐~",
@@ -72,32 +128,45 @@ export const MainScreen = ({
         "좋은 생각이야! 나도 그렇게 생각해~"
       ];
       response = responses[Math.floor(Math.random() * responses.length)];
+      context = emotionContext;
     }
     
     setCharacterText(response);
+    setConversationContext(context);
   };
 
   const handleCharacterClick = () => {
     if (!isSupported) {
-      setCharacterText("음성 인식이 지원되지 않는 브라우저예요");
+      setCharacterText("음성 인식이 지원되지 않는 브라우저예요. 아래 텍스트 입력을 사용해보세요!");
       return;
     }
     
     if (error) {
-      setCharacterText(`오류가 발생했어요: ${error}`);
+      if (error.includes("마이크 접근")) {
+        setCharacterText("마이크 접근 권한을 허용해주세요! 브라우저에서 마이크 권한을 확인해보세요.");
+      } else {
+        setCharacterText(`오류가 발생했어요: ${error}`);
+      }
       return;
     }
     
     if (isSpeaking) {
       stopSpeaking();
+      setCharacterText("말하기를 멈췄어요. 다시 터치해서 대화해보세요!");
       return;
     }
 
     if (isListening) {
       stopListening();
+      setCharacterText("듣기를 멈췄어요. 다시 터치해서 말해보세요!");
     } else {
+      // 클릭할 때마다 살짝 기뻐하는 애니메이션
+      if (currentAnimation === 'idle') {
+        triggerAnimation('happy');
+      }
+      
       startListening();
-      setCharacterText("듣고 있어요...");
+      setCharacterText("듣고 있어요... 편안하게 말해보세요!");
       setUserText(""); // 이전 텍스트 초기화
     }
   };
@@ -107,6 +176,25 @@ export const MainScreen = ({
     if (isSpeaking && !isMuted) {
       stopSpeaking();
     }
+  };
+
+  const handleTextSubmit = (e) => {
+    e.preventDefault();
+    if (!textInput.trim()) return;
+    
+    setUserText(textInput);
+    
+    // 텍스트 입력의 경우 기본 neutral 감정으로 처리
+    const mockEmotion = {
+      emotion: 'neutral',
+      confidence: 0.5,
+      description: '텍스트 입력'
+    };
+    
+    setTimeout(() => {
+      handleUserInput(textInput, mockEmotion);
+      setTextInput("");
+    }, 500);
   };
 
   // 음성 인식 결과 처리
@@ -203,10 +291,20 @@ export const MainScreen = ({
             ref={characterRef}
             className="relative"
           >
+            {/* Floating emojis */}
+            {showFloatingEmojis && (
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-4 left-4 animate-bounce delay-0 text-2xl">💕</div>
+                <div className="absolute top-8 right-6 animate-bounce delay-200 text-xl">✨</div>
+                <div className="absolute bottom-12 left-8 animate-bounce delay-400 text-lg">🌟</div>
+                <div className="absolute top-1/2 right-4 animate-bounce delay-600 text-xl">💫</div>
+              </div>
+            )}
             <div className={cn(
               "w-[280px] h-[280px] rounded-full bg-layer-surface shadow-surface grid place-items-center transition-all duration-300",
               isListening && "scale-105 shadow-glow",
-              isSpeaking && "scale-102"
+              isSpeaking && "scale-102",
+              isAnimating && !isListening && !isSpeaking && "scale-101"
             )}>
               {/* Subtle glow for states */}
               <div className={cn(
@@ -215,23 +313,32 @@ export const MainScreen = ({
                 isSpeaking && "opacity-100 bg-accent-ducky/5"
               )} />
               
-              <DuckCharacter
+              <AnimatedDuckCharacter
+                animation={currentAnimation}
+                trigger={triggerCount}
                 size="xl"
                 onClick={handleCharacterClick}
-                className="w-[180px] h-[180px] select-none cursor-pointer relative z-10 transition-all duration-200 hover:scale-105 active:scale-95"
+                onAnimationComplete={handleAnimationComplete}
+                className="relative z-10"
               />
               
               {/* Status indicators */}
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
                 {isListening && (
                   <div className="flex items-center gap-2 bg-layer-surface text-layer-content px-3 py-1 rounded-surface text-caption font-medium shadow-surface border border-layer-border">
-                    <Mic className="h-3 w-3 text-accent-ducky" />
+                    <div className="relative">
+                      <Mic className="h-3 w-3 text-accent-ducky" />
+                      <div className="absolute -inset-1 bg-accent-ducky/20 rounded-full animate-pulse" />
+                    </div>
                     <span>듣는 중...</span>
                   </div>
                 )}
                 {isSpeaking && !isListening && (
                   <div className="flex items-center gap-2 bg-layer-surface text-layer-content px-3 py-1 rounded-surface text-caption font-medium shadow-surface border border-layer-border">
-                    <Volume2 className="h-3 w-3 text-accent-ducky" />
+                    <div className="relative">
+                      <Volume2 className="h-3 w-3 text-accent-ducky" />
+                      <div className="absolute -inset-1 bg-accent-ducky/20 rounded-full animate-pulse" />
+                    </div>
                     <span>말하는 중...</span>
                   </div>
                 )}
@@ -286,8 +393,28 @@ export const MainScreen = ({
               </Button>
             )}
             
+            {/* Text input for unsupported browsers */}
+            {!isSupported && !userText && (
+              <form onSubmit={handleTextSubmit} className="w-full max-w-[540px] space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder="덕키에게 메시지를 입력하세요..."
+                    className="flex-1"
+                  />
+                  <Button type="submit" size="icon" disabled={!textInput.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-caption text-layer-muted text-center">
+                  음성 인식을 지원하지 않는 브라우저입니다. 텍스트로 대화해보세요!
+                </p>
+              </form>
+            )}
+
             {/* Tutorial hint */}
-            {!userText && !isListening && !error && (
+            {!userText && !isListening && !error && isSupported && (
               <div className="text-center">
                 <p className="text-caption text-layer-muted bg-layer-surface/80 px-4 py-2 rounded-surface border border-layer-border">
                   덕키를 터치하고 말해보세요
