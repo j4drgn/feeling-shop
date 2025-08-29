@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-export const useSpeechSynthesis = () => {
+export const useSpeechSynthesis = (options = {}) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [error, setError] = useState(null);
@@ -43,6 +43,9 @@ export const useSpeechSynthesis = () => {
     utterance.onend = () => {
       setIsSpeaking(false);
       utteranceRef.current = null;
+      if (options.onEnd) {
+        options.onEnd();
+      }
     };
 
     utterance.onerror = (event) => {

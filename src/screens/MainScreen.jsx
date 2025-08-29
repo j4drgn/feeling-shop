@@ -4,10 +4,11 @@ import SpeechBubble from "@/components/SpeechBubble";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useDuckAnimation } from "@/hooks/useDuckAnimation";
-import { User, Mic, Volume2, VolumeX } from "lucide-react";
+import { User, Mic, Volume2, VolumeX, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ThumbSwitch } from "@/components/ui/ThumbSwitch";
-import { Brain, Heart, Sparkles } from "lucide-react";
+import { Brain, Heart } from "lucide-react";
 import { useThemeContext } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ export const MainScreen = ({
   const [showFloatingEmojis, setShowFloatingEmojis] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [conversationContext, setConversationContext] = useState(null);
+  const [textInput, setTextInput] = useState("");
   const characterRef = useRef(null);
 
   const {
@@ -36,9 +38,12 @@ export const MainScreen = ({
     error,
   } = useSpeechRecognition();
 
-  const { speak, isSpeaking, stop: stopSpeaking } = useSpeechSynthesis({
+  const { speak, isSpeaking, stopSpeaking } = useSpeechSynthesis({
     onEnd: () => {
-      // 음성 출력이 끝났을 때의 처리
+      // 음성 출력이 끝났을 때 애니메이션을 idle로 복원
+      if (currentAnimation !== 'idle' && !isListening) {
+        triggerAnimation('idle');
+      }
     },
   });
 
@@ -101,6 +106,8 @@ export const MainScreen = ({
       response = "천만에! 또 도움이 필요하면 언제든지 말해~";
       context = 'thanking';
       triggerAnimation('happy', true);
+      setShowFloatingEmojis(true);
+      setTimeout(() => setShowFloatingEmojis(false), 3000);
     } else if (lowerInput.includes("싫어") || lowerInput.includes("짜증") || lowerInput.includes("화나")) {
       response = "어? 뭔가 마음에 안 드는 게 있어? 괜찮아, 다른 걸 찾아보자!";
       context = 'frustrated';
@@ -130,22 +137,28 @@ export const MainScreen = ({
 
   const handleCharacterClick = () => {
     if (!isSupported) {
-      setCharacterText("음성 인식이 지원되지 않는 브라우저예요");
+      setCharacterText("음성 인식이 지원되지 않는 브라우저예요. 아래 텍스트 입력을 사용해보세요!");
       return;
     }
     
     if (error) {
-      setCharacterText(`오류가 발생했어요: ${error}`);
+      if (error.includes("마이크 접근")) {
+        setCharacterText("마이크 접근 권한을 허용해주세요! 브라우저에서 마이크 권한을 확인해보세요.");
+      } else {
+        setCharacterText(`오류가 발생했어요: ${error}`);
+      }
       return;
     }
     
     if (isSpeaking) {
       stopSpeaking();
+      setCharacterText("말하기를 멈췄어요. 다시 터치해서 대화해보세요!");
       return;
     }
 
     if (isListening) {
       stopListening();
+      setCharacterText("듣기를 멈췄어요. 다시 터치해서 말해보세요!");
     } else {
       // 클릭할 때마다 살짝 기뻐하는 애니메이션
       if (currentAnimation === 'idle') {
@@ -153,7 +166,7 @@ export const MainScreen = ({
       }
       
       startListening();
-      setCharacterText("듣고 있어요...");
+      setCharacterText("듣고 있어요... 편안하게 말해보세요!");
       setUserText(""); // 이전 텍스트 초기화
     }
   };
@@ -163,6 +176,25 @@ export const MainScreen = ({
     if (isSpeaking && !isMuted) {
       stopSpeaking();
     }
+  };
+
+  const handleTextSubmit = (e) => {
+    e.preventDefault();
+    if (!textInput.trim()) return;
+    
+    setUserText(textInput);
+    
+    // 텍스트 입력의 경우 기본 neutral 감정으로 처리
+    const mockEmotion = {
+      emotion: 'neutral',
+      confidence: 0.5,
+      description: '텍스트 입력'
+    };
+    
+    setTimeout(() => {
+      handleUserInput(textInput, mockEmotion);
+      setTextInput("");
+    }, 500);
   };
 
   // 음성 인식 결과 처리
@@ -259,10 +291,20 @@ export const MainScreen = ({
             ref={characterRef}
             className="relative"
           >
+            {/* Floating emojis */}
+            {showFloatingEmojis && (
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-4 left-4 animate-bounce delay-0 text-2xl">💕</div>
+                <div className="absolute top-8 right-6 animate-bounce delay-200 text-xl">✨</div>
+                <div className="absolute bottom-12 left-8 animate-bounce delay-400 text-lg">🌟</div>
+                <div className="absolute top-1/2 right-4 animate-bounce delay-600 text-xl">💫</div>
+              </div>
+            )}
             <div className={cn(
               "w-[280px] h-[280px] rounded-full bg-layer-surface shadow-surface grid place-items-center transition-all duration-300",
               isListening && "scale-105 shadow-glow",
-              isSpeaking && "scale-102"
+              isSpeaking && "scale-102",
+              isAnimating && !isListening && !isSpeaking && "scale-101"
             )}>
               {/* Subtle glow for states */}
               <div className={cn(
@@ -284,13 +326,19 @@ export const MainScreen = ({
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
                 {isListening && (
                   <div className="flex items-center gap-2 bg-layer-surface text-layer-content px-3 py-1 rounded-surface text-caption font-medium shadow-surface border border-layer-border">
-                    <Mic className="h-3 w-3 text-accent-ducky" />
+                    <div className="relative">
+                      <Mic className="h-3 w-3 text-accent-ducky" />
+                      <div className="absolute -inset-1 bg-accent-ducky/20 rounded-full animate-pulse" />
+                    </div>
                     <span>듣는 중...</span>
                   </div>
                 )}
                 {isSpeaking && !isListening && (
                   <div className="flex items-center gap-2 bg-layer-surface text-layer-content px-3 py-1 rounded-surface text-caption font-medium shadow-surface border border-layer-border">
-                    <Volume2 className="h-3 w-3 text-accent-ducky" />
+                    <div className="relative">
+                      <Volume2 className="h-3 w-3 text-accent-ducky" />
+                      <div className="absolute -inset-1 bg-accent-ducky/20 rounded-full animate-pulse" />
+                    </div>
                     <span>말하는 중...</span>
                   </div>
                 )}
@@ -345,8 +393,28 @@ export const MainScreen = ({
               </Button>
             )}
             
+            {/* Text input for unsupported browsers */}
+            {!isSupported && !userText && (
+              <form onSubmit={handleTextSubmit} className="w-full max-w-[540px] space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder="덕키에게 메시지를 입력하세요..."
+                    className="flex-1"
+                  />
+                  <Button type="submit" size="icon" disabled={!textInput.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-caption text-layer-muted text-center">
+                  음성 인식을 지원하지 않는 브라우저입니다. 텍스트로 대화해보세요!
+                </p>
+              </form>
+            )}
+
             {/* Tutorial hint */}
-            {!userText && !isListening && !error && (
+            {!userText && !isListening && !error && isSupported && (
               <div className="text-center">
                 <p className="text-caption text-layer-muted bg-layer-surface/80 px-4 py-2 rounded-surface border border-layer-border">
                   덕키를 터치하고 말해보세요
