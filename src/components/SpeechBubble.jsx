@@ -8,10 +8,10 @@ const SpeechBubble = ({ text, className }) => {
   return (
     <div className={cn("relative", className)}>
       <div className="relative">
-        {/* Clean, minimal speech bubble */}
-        <div className="relative bg-white rounded-2xl px-6 py-4 shadow-lg border border-gray-200 max-w-md mx-auto">
-          {/* Text content with typography hierarchy */}
-          <p className="text-gray-800 text-lg font-semibold leading-relaxed text-center font-pretendard">
+        {/* Clean flat speech bubble */}
+        <div className="relative bg-white rounded-2xl px-6 py-4 border border-gray-100 max-w-md mx-auto shadow-sm">
+          {/* Text with title typography (20px bold) */}
+          <p className="text-title text-ducky-neutral leading-relaxed text-center font-pretendard">
             {text}
           </p>
         </div>

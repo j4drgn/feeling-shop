@@ -160,8 +160,8 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <div className="min-h-screen max-w-md mx-auto w-full relative overflow-hidden max-h-screen bg-background">
-            <div className="absolute inset-0 pointer-events-none border-x border-border/30"></div>
+          <div className="min-h-screen max-w-md mx-auto w-full relative overflow-hidden max-h-screen bg-white">
+            <div className="absolute inset-0 pointer-events-none border-x border-gray-100"></div>
             <FadeTransition isActive={!isTransitioning} duration={150}>
               {renderScreen(currentScreen)}
             </FadeTransition>

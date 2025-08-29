@@ -18,12 +18,11 @@ export default {
 		},
 		extend: {
 			colors: {
-				// Design System Colors (UI Redesign 2025)
-				'brand-primary': '#FFD43B', // Yellow - Main CTA/Brand
-				'brand-secondary': '#4DA3FF', // Sky Blue - Supporting accent
-				'brand-accent': '#9C6ADE', // Soft Purple - Interaction highlight
-				'neutral-bg': '#F8F9FA', // Background
-				'neutral-text': '#6B7280', // Secondary text
+				// Clean & Cute Design System (Limited to 3 colors max per screen)
+				'ducky-primary': '#FFD43B', // Yellow - Duck & Primary CTA 
+				'ducky-neutral': '#6B7280', // Gray - Text & Secondary elements
+				'ducky-secondary': '#4DA3FF', // Sky Blue - Optional accent (use sparingly)
+				'ducky-accent': '#9C6ADE', // Soft Purple - Optional accent (use sparingly)
 				
 				// Shadcn colors (keeping compatibility)
 				border: 'hsl(var(--border))',
@@ -78,7 +77,12 @@ export default {
 				}
 			},
 			fontFamily: {
-				'pretendard': ['Pretendard', 'system-ui', 'sans-serif'],
+				'pretendard': ['PretendardVariable', 'Pretendard', 'system-ui', 'sans-serif'],
+			},
+			fontSize: {
+				'title': ['20px', { lineHeight: '1.4', fontWeight: '700' }], // Duck messages
+				'body': ['16px', { lineHeight: '1.5', fontWeight: '400' }],   // User input/general text  
+				'subtext': ['14px', { lineHeight: '1.4', fontWeight: '500' }], // Secondary info
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
