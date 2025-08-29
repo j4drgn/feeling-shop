@@ -25,45 +25,27 @@ export const DuckCharacter = ({
 
   return (
     <div className="relative">
-      {/* Floating decorative elements */}
-      <div className="absolute -top-4 -right-4 animate-float-hearts">
-        <span className="text-2xl">💛</span>
-      </div>
-      <div className="absolute -bottom-4 -left-4 animate-float-hearts delay-150">
-        <span className="text-2xl">⭐</span>
-      </div>
-      
-      {/* Main duck container with kawaii style */}
+      {/* Clean, minimal duck container */}
       <div
         className={cn(
-          "relative rounded-full p-4 cursor-pointer transition-all duration-300",
-          "bg-gradient-to-br from-yellow-200 via-yellow-300 to-orange-200",
-          "shadow-2xl border-4 border-white",
+          "relative rounded-full p-6 cursor-pointer transition-all duration-300",
+          "bg-white border-2 border-gray-200",
+          "shadow-lg hover:shadow-xl",
           sizeClasses[size],
           isClicked && "scale-95",
-          !isClicked && "hover:scale-110 hover:rotate-3",
-          "hover:shadow-[0_20px_50px_rgba(255,200,0,0.4)]",
+          !isClicked && "hover:scale-105",
           className
         )}
         onClick={handleClick}
         style={{
-          background: circleColor
-            ? `linear-gradient(135deg, ${circleColor}, ${circleColor})`
-            : undefined,
+          background: circleColor || "white",
         }}
       >
-        {/* Inner glow effect */}
-        <div className="absolute inset-2 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-md" />
-        
-        {/* Duck image container */}
-        <div className="relative w-full h-full rounded-full bg-gradient-to-br from-white/80 to-yellow-50/80 backdrop-blur-sm flex items-center justify-center overflow-hidden border-3 border-yellow-100 shadow-inner">
-          {/* Cute sparkle effects */}
-          <div className="absolute top-2 right-2 w-3 h-3 bg-white rounded-full animate-pulse" />
-          <div className="absolute bottom-4 left-3 w-2 h-2 bg-white rounded-full animate-pulse delay-75" />
-          
+        {/* Duck image container - simplified */}
+        <div className="relative w-full h-full rounded-full bg-neutral-bg flex items-center justify-center overflow-hidden">
           <img
             src={src}
-            alt="Cute duck friend"
+            alt="Duck character"
             className={cn(
               "w-4/5 h-4/5 object-contain",
               isClicked && "animate-wiggle"
@@ -71,14 +53,14 @@ export const DuckCharacter = ({
           />
         </div>
         
-        {/* Click effect ripple */}
+        {/* Click effect - subtle */}
         {isClicked && (
-          <div className="absolute inset-0 rounded-full bg-yellow-300/30 animate-ping" />
+          <div className="absolute inset-0 rounded-full bg-brand-primary/20 animate-ping" />
         )}
       </div>
       
-      {/* Cute shadow blob */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-3/4 h-4 bg-gray-300/30 rounded-full blur-xl" />
+      {/* Minimal shadow */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-2 w-1/2 h-2 bg-gray-200 rounded-full blur-sm opacity-40" />
     </div>
   );
 };
