@@ -1,9 +1,15 @@
 import { useState } from "react";
 
+const INITIAL_GREETING = {
+  role: "assistant",
+  content: "안녕하세요! 덕키에요. 오늘 어떤 이야기를 나누고 싶으세요?",
+  id: 'initial-greeting',
+};
+
 export const useAppNavigation = () => {
   const [currentScreen, setCurrentScreen] = useState("main");
   const [isChatActive, setIsChatActive] = useState(false);
-  const [chatHistory, setChatHistory] = useState([]);
+  const [chatHistory, setChatHistory] = useState([INITIAL_GREETING]);
 
   const navigateToProducts = () => {
     setCurrentScreen("products");
@@ -16,20 +22,12 @@ export const useAppNavigation = () => {
 
   const navigateToMain = () => {
     setCurrentScreen("main");
-    setIsChatActive(false);
   };
 
   const startChat = () => {
     setIsChatActive(true);
     if (chatHistory.length === 0) {
-      setChatHistory([
-        {
-          role: "assistant",
-          content:
-            "Hi there! I'm your friendly shopping duck 🦆 What are you looking for today?",
-          id: Date.now().toString(),
-        },
-      ]);
+      setChatHistory([INITIAL_GREETING]);
     }
   };
 
@@ -45,9 +43,9 @@ export const useAppNavigation = () => {
   };
 
   const endChat = () => {
-    // 취소 버튼 클릭 시 전체 메인 화면(헤더, 토글 버튼 등)이 보이도록 메인 화면으로 이동
     setIsChatActive(false);
-    navigateToMain(); // 메인 화면으로 이동하여 전체 UI가 보이도록 함
+    setChatHistory([INITIAL_GREETING]); 
+    navigateToMain();
   };
 
   return {
