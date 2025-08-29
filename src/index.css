@@ -8,36 +8,45 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* 카카오프렌즈 스타일 파스텔 색상 팔레트 */
-    --background: 50 100% 98% 100%; /* 크림색 배경 */
-    --foreground: 20 50% 20% 100%; /* 부드러운 브라운 텍스트 */
+    /* UI Redesign 2025 - Design System Colors */
+    --color-primary: #FFD43B; /* Yellow - Main CTA/Brand */
+    --color-secondary: #4DA3FF; /* Sky Blue - Supporting accent */
+    --color-accent: #9C6ADE; /* Soft Purple - Interaction highlight */
+    --color-neutral-bg: #F8F9FA; /* Background */
+    --color-neutral-text: #6B7280; /* Secondary text */
+    
+    /* Updated color mappings to design system */
+    --background: 210 8% 97%; /* #F8F9FA converted to HSL */
+    --foreground: 215 16% 47%; /* #6B7280 converted to HSL */
 
-    --card: 0 0% 100% 100%; /* 순백색 카드 */
-    --card-foreground: 20 50% 20% 100%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 215 16% 47%;
 
-    --popover: 0 0% 100% 100%;
-    --popover-foreground: 20 50% 20% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 16% 47%;
 
-    /* 귀여운 파스텔 노란색 */
-    --primary: 48 95% 65% 100%; /* 파스텔 노란색 */
-    --primary-foreground: 20 50% 20% 100%;
-    --primary-glow: 48 100% 80% 100%; /* 부드러운 노란색 글로우 */
+    /* Primary updated to design system yellow */
+    --primary: 51 100% 64%; /* #FFD43B converted to HSL */
+    --primary-foreground: 0 0% 0%; /* Black text on yellow */
+    --primary-glow: 51 100% 74%;
 
-    --secondary: 340 100% 95% 100%; /* 파스텔 핑크 */
-    --secondary-foreground: 20 50% 20% 100%;
+    /* Secondary updated to design system blue */
+    --secondary: 211 100% 65%; /* #4DA3FF converted to HSL */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 30 30% 96% 100%; /* 베이지 */
-    --muted-foreground: 20 30% 40% 100%;
+    --muted: 210 8% 97%; /* Neutral background */
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 25 100% 70% 100%; /* 파스텔 오렌지 */
-    --accent-foreground: 0 0% 100% 100%;
+    /* Accent updated to design system purple */
+    --accent: 258 56% 64%; /* #9C6ADE converted to HSL */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 70% 65% 100%;
-    --destructive-foreground: 0 0% 100% 100%;
+    --destructive: 0 70% 65%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 30 30% 92% 100%; /* 베이지 테두리 */
-    --input: 0 0% 98% 100%;
-    --ring: 48 95% 65% 100%;
+    --border: 214 15% 91%; /* Light border */
+    --input: 210 8% 97%;
+    --ring: 51 100% 64%;
 
     /* 채팅 색상 */
     --chat-user: 200 100% 95% 100%; /* 파스텔 블루 (사용자) */
@@ -136,6 +145,15 @@ All colors MUST be HSL.
   }
 }
 
+/* Pretendard Font Setup */
+@font-face {
+  font-family: 'Pretendard';
+  font-weight: 400 900; /* Variable font weights */
+  font-style: normal;
+  font-display: swap;
+  src: url('/public/Pretendard/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -144,6 +162,7 @@ All colors MUST be HSL.
   html,
   body {
     @apply bg-background text-foreground;
+    font-family: 'Pretendard', system-ui, -apple-system, sans-serif;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }

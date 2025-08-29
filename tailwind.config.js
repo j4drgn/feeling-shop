@@ -18,6 +18,14 @@ export default {
 		},
 		extend: {
 			colors: {
+				// Design System Colors (UI Redesign 2025)
+				'brand-primary': '#FFD43B', // Yellow - Main CTA/Brand
+				'brand-secondary': '#4DA3FF', // Sky Blue - Supporting accent
+				'brand-accent': '#9C6ADE', // Soft Purple - Interaction highlight
+				'neutral-bg': '#F8F9FA', // Background
+				'neutral-text': '#6B7280', // Secondary text
+				
+				// Shadcn colors (keeping compatibility)
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -68,6 +76,9 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				}
+			},
+			fontFamily: {
+				'pretendard': ['Pretendard', 'system-ui', 'sans-serif'],
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
