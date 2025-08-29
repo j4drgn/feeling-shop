@@ -6,18 +6,20 @@ import { DuckCharacter } from "@/components/DuckCharacter";
 import { ChatInterface } from "@/components/ChatInterface";
 import { cn } from "@/lib/utils";
 import { useThemeContext } from "@/context/ThemeContext";
+import { EmotionAnalysis } from "@/hooks/useSpeechRecognition";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   id: string;
+  emotion?: EmotionAnalysis;
 }
 
 interface MainScreenProps {
   isChatActive: boolean;
   chatMessages: Message[];
   onStartChat: () => void;
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, emotion?: EmotionAnalysis) => void;
   onEndChat: () => void;
   onNavigateToHistory: () => void;
   onNavigateToProducts: () => void;
@@ -143,12 +145,14 @@ export const MainScreen = ({
           <div className="w-full max-w-lg animate-fade-in -mt-4">
             <ChatInterface
               messages={chatMessages}
-              onSendMessage={(message) => {
-                onSendMessage(message);
+              onSendMessage={(message, emotion) => {
+                onSendMessage(message, emotion);
               }}
               onEndChat={onEndChat}
               isActive={isChatActive}
               onNavigateToProducts={onNavigateToProducts}
+              onStartListening={() => setIsListening(true)}
+              onStopListening={() => setIsListening(false)}
             />
           </div>
         )}
