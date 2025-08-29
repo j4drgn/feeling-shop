@@ -26,6 +26,19 @@ const App = () => {
   } = useAppNavigation();
 
   const [likedProducts, setLikedProducts] = useState([]);
+  const [prevScreen, setPrevScreen] = useState(currentScreen);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    if (prevScreen !== currentScreen) {
+      setIsTransitioning(true);
+      const timer = setTimeout(() => {
+        setPrevScreen(currentScreen);
+        setIsTransitioning(false);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [currentScreen, prevScreen]);
 
   const handleSendMessage = (message) => {
     addMessage("user", message);
@@ -46,21 +59,6 @@ const App = () => {
   const handleProductLiked = (product) => {
     setLikedProducts((prev) => [...prev, product]);
   };
-
-  // 화면 전환 애니메이션을 위한 상태 관리
-  const [prevScreen, setPrevScreen] = useState(currentScreen);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
-  useEffect(() => {
-    if (prevScreen !== currentScreen) {
-      setIsTransitioning(true);
-      const timer = setTimeout(() => {
-        setPrevScreen(currentScreen);
-        setIsTransitioning(false);
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [currentScreen, prevScreen]);
 
   const renderScreen = (screenType) => {
     switch (screenType) {
