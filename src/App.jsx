@@ -9,25 +9,7 @@ import { HistoryScreen } from "@/screens/HistoryScreen";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { FadeTransition } from "@/components/ui/page-transitions";
-import { EmotionAnalysis } from "@/hooks/useSpeechRecognition";
-
 const queryClient = new QueryClient();
-
-interface Product {
-  id: string;
-  name: string;
-  price: string;
-  category: string;
-  image: string;
-}
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  id: string;
-  emotion?: EmotionAnalysis;
-}
-
 const App = () => {
   const {
     currentScreen,
@@ -41,10 +23,10 @@ const App = () => {
     endChat,
   } = useAppNavigation();
 
-  const [likedProducts, setLikedProducts] = useState<Product[]>([]);
-  const [prevScreen, setPrevScreen] = useState<string>(currentScreen);
+  const [likedProducts, setLikedProducts] = useState([]);
+  const [prevScreen, setPrevScreen] = useState(currentScreen);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  
+
   useEffect(() => {
     if (prevScreen !== currentScreen) {
       setIsTransitioning(true);
@@ -56,12 +38,12 @@ const App = () => {
     }
   }, [currentScreen, prevScreen]);
 
-  const handleSendMessage = (message: string, emotion?: EmotionAnalysis) => {
+  const handleSendMessage = (message, emotion) => {
     addMessage("user", message, emotion);
 
     // 간단하고 실용적인 응답 생성
     setTimeout(() => {
-      let responses: string[] = [];
+      let responses = [];
       
       // 메시지 내용 기반 키워드 매칭
       const lowerMessage = message.toLowerCase();
@@ -122,11 +104,11 @@ const App = () => {
     }, 800);
   };
 
-  const handleProductLiked = (product: Product) => {
+  const handleProductLiked = (product) => {
     setLikedProducts((prev) => [...prev, product]);
   };
 
-  const renderScreen = (screenType: string) => {
+  const renderScreen = (screenType) => {
     switch (screenType) {
       case "main":
         return (

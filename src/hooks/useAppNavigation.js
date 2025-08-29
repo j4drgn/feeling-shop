@@ -1,19 +1,9 @@
 import { useState } from "react";
-import { EmotionAnalysis } from "./useSpeechRecognition";
-
-export type AppScreen = "main" | "products" | "history";
 
 export const useAppNavigation = () => {
-  const [currentScreen, setCurrentScreen] = useState<AppScreen>("main");
+  const [currentScreen, setCurrentScreen] = useState("main");
   const [isChatActive, setIsChatActive] = useState(false);
-  const [chatHistory, setChatHistory] = useState<
-    Array<{ 
-      role: "user" | "assistant"; 
-      content: string; 
-      id: string;
-      emotion?: EmotionAnalysis;
-    }>
-  >([]);
+  const [chatHistory, setChatHistory] = useState([]);
 
   const navigateToProducts = () => {
     setCurrentScreen("products");
@@ -43,7 +33,7 @@ export const useAppNavigation = () => {
     }
   };
 
-  const addMessage = (role: "user" | "assistant", content: string, emotion?: EmotionAnalysis) => {
+  const addMessage = (role, content, emotion) => {
     setChatHistory((prev) => [
       ...prev,
       {

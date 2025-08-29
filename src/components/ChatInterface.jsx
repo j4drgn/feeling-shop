@@ -2,32 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowLeft, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EmotionAnalysis } from "@/hooks/useSpeechRecognition";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  id: string;
-  emotion?: EmotionAnalysis;
-}
-
-interface ChatInterfaceProps {
-  messages: Message[];
-  onSendMessage: (message: string, emotion?: EmotionAnalysis) => void;
-  onEndChat: () => void;
-  isActive: boolean;
-  onNavigateToProducts?: () => void;
-}
-
 export const ChatInterface = ({
   messages,
   onSendMessage,
   onEndChat,
   isActive,
   onNavigateToProducts,
-}: ChatInterfaceProps) => {
+}) => {
   const [showProductsPrompt, setShowProductsPrompt] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -1,19 +1,12 @@
 import duckImage from "@/assets/duck-character.png";
 import { cn } from "@/lib/utils";
 
-interface DuckCharacterProps {
-  size?: "sm" | "md" | "lg" | "xl";
-  onClick?: () => void;
-  className?: string;
-  circleColor?: string; // 오리 캐릭터 원형 배경 색상
-}
-
 export const DuckCharacter = ({
   size = "lg",
   onClick,
   className,
   circleColor,
-}: DuckCharacterProps) => {
+}) => {
   const sizeClasses = {
     sm: "w-12 h-12",
     md: "w-24 h-24",

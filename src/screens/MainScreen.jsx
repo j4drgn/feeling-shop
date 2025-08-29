@@ -6,25 +6,7 @@ import { DuckCharacter } from "@/components/DuckCharacter";
 import { ChatInterface } from "@/components/ChatInterface";
 import { cn } from "@/lib/utils";
 import { useThemeContext } from "@/context/ThemeContext";
-import { EmotionAnalysis, useSpeechRecognition } from "@/hooks/useSpeechRecognition";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  id: string;
-  emotion?: EmotionAnalysis;
-}
-
-interface MainScreenProps {
-  isChatActive: boolean;
-  chatMessages: Message[];
-  onStartChat: () => void;
-  onSendMessage: (message: string, emotion?: EmotionAnalysis) => void;
-  onEndChat: () => void;
-  onNavigateToHistory: () => void;
-  onNavigateToProducts: () => void;
-}
-
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 export const MainScreen = ({
   isChatActive,
   chatMessages,
@@ -33,7 +15,7 @@ export const MainScreen = ({
   onEndChat,
   onNavigateToHistory,
   onNavigateToProducts,
-}: MainScreenProps) => {
+}) => {
   const { isThinking, colors, toggleTheme } = useThemeContext();
 
   // 텍스트 표시 상태 관리
