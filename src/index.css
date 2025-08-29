@@ -8,59 +8,59 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* 오리에 어울리는 노란색 계열 색상 팔레트 */
-    --background: 48 100% 97% 100%; /* 밝은 노란색 배경 */
-    --foreground: 36 30% 30% 100%; /* 따뜻한 갈색 텍스트 */
+    /* 카카오프렌즈 스타일 파스텔 색상 팔레트 */
+    --background: 50 100% 98% 100%; /* 크림색 배경 */
+    --foreground: 20 50% 20% 100%; /* 부드러운 브라운 텍스트 */
 
-    --card: 48 100% 99% 100%; /* 밝은 노란색 카드 */
-    --card-foreground: 36 30% 30% 100%;
+    --card: 0 0% 100% 100%; /* 순백색 카드 */
+    --card-foreground: 20 50% 20% 100%;
 
-    --popover: 48 100% 99% 100%;
-    --popover-foreground: 36 30% 30% 100%;
+    --popover: 0 0% 100% 100%;
+    --popover-foreground: 20 50% 20% 100%;
 
-    /* 밝은 오리 노란색을 주요 색상으로 */
-    --primary: 45 100% 50% 100%; /* 밝은 노란색 */
-    --primary-foreground: 36 30% 30% 100%;
-    --primary-glow: 45 100% 75% 100%; /* 노란색 글로우 */
+    /* 귀여운 파스텔 노란색 */
+    --primary: 48 95% 65% 100%; /* 파스텔 노란색 */
+    --primary-foreground: 20 50% 20% 100%;
+    --primary-glow: 48 100% 80% 100%; /* 부드러운 노란색 글로우 */
 
-    --secondary: 43 100% 85% 100%; /* 연한 노란색 */
-    --secondary-foreground: 36 30% 30% 100%;
+    --secondary: 340 100% 95% 100%; /* 파스텔 핑크 */
+    --secondary-foreground: 20 50% 20% 100%;
 
-    --muted: 45 70% 90% 100%; /* 부드러운 노란색 */
-    --muted-foreground: 36 30% 50% 100%; /* 중간 갈색 */
+    --muted: 30 30% 96% 100%; /* 베이지 */
+    --muted-foreground: 20 30% 40% 100%;
 
-    --accent: 35 100% 55% 100%; /* 주황빛 노란색 */
-    --accent-foreground: 255 255 255 100%;
+    --accent: 25 100% 70% 100%; /* 파스텔 오렌지 */
+    --accent-foreground: 0 0% 100% 100%;
 
-    --destructive: 0 84% 60% 100%;
-    --destructive-foreground: 255 255 255 100%;
+    --destructive: 0 70% 65% 100%;
+    --destructive-foreground: 0 0% 100% 100%;
 
-    --border: 45 70% 80% 100%; /* 노란색 테두리 */
-    --input: 45 70% 95% 100%;
-    --ring: 45 100% 50% 100%;
+    --border: 30 30% 92% 100%; /* 베이지 테두리 */
+    --input: 0 0% 98% 100%;
+    --ring: 48 95% 65% 100%;
 
     /* 채팅 색상 */
-    --chat-user: 35 100% 55% 100%; /* 주황빛 노란색 (사용자) */
-    --chat-user-foreground: 255 255 255 100%;
-    --chat-assistant: 45 70% 90% 100%; /* 부드러운 노란색 (어시스턴트) */
-    --chat-assistant-foreground: 36 30% 30% 100%;
+    --chat-user: 200 100% 95% 100%; /* 파스텔 블루 (사용자) */
+    --chat-user-foreground: 20 50% 20% 100%;
+    --chat-assistant: 48 100% 95% 100%; /* 파스텔 노란색 (어시스턴트) */
+    --chat-assistant-foreground: 20 50% 20% 100%;
 
-    /* 그라디언트 */
+    /* 귀여운 그라디언트 */
     --gradient-primary: linear-gradient(
       135deg,
-      hsl(45 100% 50%),
-      hsl(45 100% 75%)
+      hsl(48 95% 65%),
+      hsl(340 100% 85%)
     );
     --gradient-duck: linear-gradient(
       135deg,
-      hsl(45 100% 50%),
-      hsl(35 100% 55%)
+      hsl(48 100% 70%),
+      hsl(25 100% 75%)
     );
-    --gradient-card: linear-gradient(135deg, hsl(48 100% 99%), hsl(45 70% 95%));
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(48 100% 98%));
     --gradient-background: linear-gradient(
-      135deg,
-      hsl(48 100% 97%),
-      hsl(45 70% 95%)
+      180deg,
+      hsl(50 100% 98%),
+      hsl(340 100% 98%)
     );
 
     /* Shadows */
@@ -402,5 +402,161 @@ All colors MUST be HSL.
 
   .speaking-pulse {
     animation: speaking-pulse 1.2s infinite alternate;
+  }
+
+  /* Speech Bubble Animations */
+  @keyframes bubble-float {
+    0%, 100% {
+      transform: translateY(0) rotate(-0.5deg);
+    }
+    33% {
+      transform: translateY(-8px) rotate(0.5deg);
+    }
+    66% {
+      transform: translateY(-4px) rotate(-0.5deg);
+    }
+  }
+  
+  @keyframes text-appear {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  .animate-bubble-float {
+    animation: bubble-float 4s ease-in-out infinite;
+  }
+  
+  .animate-text-appear {
+    animation: text-appear 0.3s ease-out;
+  }
+  
+  .delay-75 {
+    animation-delay: 75ms;
+  }
+  
+  .delay-150 {
+    animation-delay: 150ms;
+  }
+
+  /* MainScreen Animations */
+  @keyframes float-up {
+    0% {
+      transform: translateY(100vh) rotate(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100vh) rotate(360deg);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  .animate-float-up {
+    animation: float-up 3s ease-in-out forwards;
+  }
+  
+  .animate-spin-slow {
+    animation: spin-slow 20s linear infinite;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out;
+  }
+
+  /* Kawaii animations */
+  @keyframes float-hearts {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: translateY(-10px) scale(1.1);
+      opacity: 1;
+    }
+  }
+
+  .animate-float-hearts {
+    animation: float-hearts 2s ease-in-out infinite;
+  }
+
+  /* Cute bounce animation */
+  @keyframes cute-bounce {
+    0%, 100% {
+      transform: translateY(0) rotate(-2deg);
+    }
+    25% {
+      transform: translateY(-15px) rotate(2deg);
+    }
+    75% {
+      transform: translateY(-5px) rotate(-1deg);
+    }
+  }
+
+  .animate-cute-bounce {
+    animation: cute-bounce 2s ease-in-out infinite;
+  }
+
+  /* Wiggle animation for duck */
+  @keyframes wiggle {
+    0%, 100% {
+      transform: rotate(-5deg);
+    }
+    25% {
+      transform: rotate(5deg);
+    }
+    50% {
+      transform: rotate(-5deg);
+    }
+    75% {
+      transform: rotate(5deg);
+    }
+  }
+
+  .animate-wiggle {
+    animation: wiggle 0.3s ease-in-out;
   }
 }

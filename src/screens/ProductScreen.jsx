@@ -6,18 +6,13 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useThemeContext } from "@/context/ThemeContext";
 
-// Import product images
-import headphonesImg from "@/assets/product-headphones.jpg";
-import watchImg from "@/assets/product-watch.jpg";
-import phoneImg from "@/assets/product-phone.jpg";
-
 const sampleProducts = [
   {
     id: "1",
     name: "Premium Wireless Headphones",
     price: "$199.99",
     category: "Electronics",
-    image: headphonesImg,
+    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop",
     aiRecommendation:
       "당신의 음악 취향과 높은 음질 선호도를 고려했을 때 이 헤드폰이 완벽한 선택입니다. 노이즈 캔슬링 기능과 30시간 배터리 수명이 특징입니다.",
   },
@@ -26,7 +21,7 @@ const sampleProducts = [
     name: "Classic Leather Watch",
     price: "$129.99",
     category: "Accessories",
-    image: watchImg,
+    image: "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=500&h=500&fit=crop",
     aiRecommendation:
       "클래식한 디자인을 선호하는 당신의 스타일에 맞춰 추천합니다. 어떤 옷에도 잘 어울리며 방수 기능도 갖추고 있습니다.",
   },
@@ -35,7 +30,7 @@ const sampleProducts = [
     name: "Rose Gold Smartphone",
     price: "$899.99",
     category: "Electronics",
-    image: phoneImg,
+    image: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&h=500&fit=crop",
     aiRecommendation:
       "사진 촬영과 소셜 미디어 활동을 즐기는 당신에게 최적화된 카메라와 성능을 갖춘 스마트폰입니다. 배터리 수명도 우수합니다.",
   },
