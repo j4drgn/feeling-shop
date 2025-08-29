@@ -33,13 +33,14 @@ export const useAppNavigation = () => {
     }
   };
 
-  const addMessage = (role, content) => {
+  const addMessage = (role, content, emotion) => {
     setChatHistory((prev) => [
       ...prev,
       {
         role,
         content,
         id: Date.now().toString(),
+        emotion,
       },
     ]);
   };

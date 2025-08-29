@@ -9,9 +9,7 @@ import { HistoryScreen } from "@/screens/HistoryScreen";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { FadeTransition } from "@/components/ui/page-transitions";
-
 const queryClient = new QueryClient();
-
 const App = () => {
   const {
     currentScreen,
@@ -40,20 +38,70 @@ const App = () => {
     }
   }, [currentScreen, prevScreen]);
 
-  const handleSendMessage = (message) => {
-    addMessage("user", message);
+  const handleSendMessage = (message, emotion) => {
+    addMessage("user", message, emotion);
 
-    // Simulate assistant response after user message
+    // 간단하고 실용적인 응답 생성
     setTimeout(() => {
-      const responses = [
-        "Great choice! Let me find some perfect options for you.",
-        "I understand exactly what you're looking for! Give me a moment.",
-        "Perfect! I have some amazing recommendations coming up.",
-        "Excellent taste! Let me show you what I found.",
-      ];
+      let responses = [];
+      
+      // 메시지 내용 기반 키워드 매칭
+      const lowerMessage = message.toLowerCase();
+      
+      if (lowerMessage.includes('안녕') || lowerMessage.includes('하이') || lowerMessage.includes('헬로')) {
+        responses = [
+          "안녕하세요! 오늘 어떤 상품을 찾고 계신가요?",
+          "반가워요! 무엇을 도와드릴까요?",
+          "안녕하세요! 쇼핑을 도와드릴게요 🦆"
+        ];
+      } else if (lowerMessage.includes('옷') || lowerMessage.includes('의류') || lowerMessage.includes('패션')) {
+        responses = [
+          "패션 아이템을 찾고 계시는군요! 어떤 스타일을 원하시나요?",
+          "의류 쇼핑이네요! 계절이나 용도를 알려주시면 더 좋은 추천을 드릴 수 있어요.",
+          "멋진 옷들을 찾아드릴게요! 상품 페이지로 이동해볼까요?"
+        ];
+      } else if (lowerMessage.includes('음식') || lowerMessage.includes('먹을것') || lowerMessage.includes('맛있')) {
+        responses = [
+          "맛있는 음식을 찾고 계시는군요! 어떤 종류의 음식을 원하시나요?",
+          "음식 관련 상품들이 궁금하시군요! 간식이나 요리 재료 등 다양해요.",
+          "먹거리 추천 드릴게요! 상품을 구경해보세요!"
+        ];
+      } else if (lowerMessage.includes('전자제품') || lowerMessage.includes('컴퓨터') || lowerMessage.includes('폰')) {
+        responses = [
+          "전자제품에 관심이 있으시군요! 어떤 기기를 찾고 계신가요?",
+          "IT 제품들도 많아요! 구체적으로 어떤 것이 필요하신지 알려주세요.",
+          "전자제품 카테고리를 확인해보세요!"
+        ];
+      } else if (lowerMessage.includes('추천') || lowerMessage.includes('뭐가 좋')) {
+        responses = [
+          "추천을 원하시는군요! 상품 페이지에서 인기 아이템들을 확인해보세요!",
+          "좋은 상품들이 많아요! 어떤 분야의 추천을 원하시나요?",
+          "인기 상품들을 보여드릴게요! 상품 목록으로 이동해볼까요?"
+        ];
+      } else {
+        // 감정 기반 기본 응답
+        if (emotion?.emotion === 'sarcastic') {
+          responses = [
+            "아하~ 그렇게 말씀하시는군요! 😏 상품들을 구경해보시는 것은 어떨까요?",
+            "재미있는 톤이네요! 뭔가 특별한 걸 찾아드릴게요!"
+          ];
+        } else if (emotion?.emotion === 'happy') {
+          responses = [
+            "좋은 기분이 전해져요! 😊 행복한 쇼핑 도와드릴게요!",
+            "밝은 에너지가 좋네요! 멋진 상품들을 찾아드릴게요!"
+          ];
+        } else {
+          responses = [
+            "네, 들었어요! 어떤 상품을 찾고 계신가요?",
+            "무엇을 도와드릴까요? 상품을 구경해보세요!",
+            "쇼핑을 도와드릴게요! 궁금한 게 있으시면 말씀해주세요."
+          ];
+        }
+      }
+      
       const response = responses[Math.floor(Math.random() * responses.length)];
       addMessage("assistant", response);
-    }, 1000); // 시간을 1초로 줄여 더 빠르게 응답
+    }, 800);
   };
 
   const handleProductLiked = (product) => {
