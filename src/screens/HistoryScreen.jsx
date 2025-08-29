@@ -4,29 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useThemeContext } from "@/context/ThemeContext";
 
-interface Product {
-  id: string;
-  name: string;
-  price: string;
-  category: string;
-  image: string;
-}
-
-interface HistoryScreenProps {
-  onNavigateToMain: () => void;
-  likedProducts: Product[];
-  chatHistory: Array<{
-    role: "user" | "assistant";
-    content: string;
-    id: string;
-  }>;
-}
-
 export const HistoryScreen = ({
   onNavigateToMain,
   likedProducts,
   chatHistory,
-}: HistoryScreenProps) => {
+}) => {
   const { colors } = useThemeContext();
   return (
     <div className="min-h-screen relative">
@@ -63,7 +45,10 @@ export const HistoryScreen = ({
             <CardTitle className="flex items-center gap-2 text-lg">
               <Heart className="h-5 w-5 text-red-500" />
               Liked Products
-              <Badge variant="secondary" className="ml-auto bg-white/50 text-foreground">
+              <Badge
+                variant="secondary"
+                className="ml-auto bg-white/50 text-foreground"
+              >
                 {likedProducts.length}
               </Badge>
             </CardTitle>
@@ -161,7 +146,10 @@ export const HistoryScreen = ({
             <CardTitle className="flex items-center gap-2 text-lg">
               <ShoppingBag className="h-5 w-5 text-green-600" />
               Purchase History
-              <Badge variant="secondary" className="ml-auto bg-white/50 text-foreground">
+              <Badge
+                variant="secondary"
+                className="ml-auto bg-white/50 text-foreground"
+              >
                 0
               </Badge>
             </CardTitle>

@@ -150,7 +150,7 @@ All colors MUST be HSL.
 
   /* 모바일 앱 스타일 */
   body {
-    @apply overflow-hidden touch-manipulation;
+    @apply overflow-hidden touch-manipulation bg-background;
     position: fixed;
     width: 100%;
     height: 100%;
@@ -159,7 +159,7 @@ All colors MUST be HSL.
   }
 
   #root {
-    @apply h-full overflow-hidden;
+    @apply h-full overflow-hidden bg-background;
     max-height: 100vh;
   }
 }

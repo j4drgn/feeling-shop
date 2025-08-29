@@ -12,14 +12,6 @@ import { FadeTransition } from "@/components/ui/page-transitions";
 
 const queryClient = new QueryClient();
 
-interface Product {
-  id: string;
-  name: string;
-  price: string;
-  category: string;
-  image: string;
-}
-
 const App = () => {
   const {
     currentScreen,
@@ -33,9 +25,9 @@ const App = () => {
     endChat,
   } = useAppNavigation();
 
-  const [likedProducts, setLikedProducts] = useState<Product[]>([]);
+  const [likedProducts, setLikedProducts] = useState([]);
 
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = (message) => {
     addMessage("user", message);
 
     // Simulate assistant response after user message
@@ -51,61 +43,55 @@ const App = () => {
     }, 1000); // 시간을 1초로 줄여 더 빠르게 응답
   };
 
-  const handleProductLiked = (product: Product) => {
+  const handleProductLiked = (product) => {
     setLikedProducts((prev) => [...prev, product]);
   };
 
   // 화면 전환 애니메이션을 위한 상태 관리
-  const [prevScreen, setPrevScreen] = useState<string>(currentScreen);
+  const [prevScreen, setPrevScreen] = useState(currentScreen);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  
+
   useEffect(() => {
     if (prevScreen !== currentScreen) {
       setIsTransitioning(true);
       const timer = setTimeout(() => {
         setPrevScreen(currentScreen);
         setIsTransitioning(false);
-      }, 300); // 애니메이션 지속 시간과 일치시킴
+      }, 150);
       return () => clearTimeout(timer);
     }
   }, [currentScreen, prevScreen]);
 
-  const renderCurrentScreen = () => {
-    switch (currentScreen) {
+  const renderScreen = (screenType) => {
+    switch (screenType) {
       case "main":
         return (
-          <FadeTransition isActive={!isTransitioning || prevScreen === currentScreen}>
-            <MainScreen
-              isChatActive={isChatActive}
-              chatMessages={chatHistory}
-              onStartChat={startChat}
-              onSendMessage={(message) => {
-                handleSendMessage(message);
-              }}
-              onEndChat={endChat}
-              onNavigateToHistory={navigateToHistory}
-              onNavigateToProducts={navigateToProducts}
-            />
-          </FadeTransition>
+          <MainScreen
+            isChatActive={isChatActive}
+            chatMessages={chatHistory}
+            onStartChat={startChat}
+            onSendMessage={(message) => {
+              handleSendMessage(message);
+            }}
+            onEndChat={endChat}
+            onNavigateToHistory={navigateToHistory}
+            onNavigateToProducts={navigateToProducts}
+          />
         );
       case "products":
         return (
-          <FadeTransition isActive={!isTransitioning || prevScreen === currentScreen}>
-            <ProductScreen
-              onNavigateToMain={navigateToMain}
-              onProductLiked={handleProductLiked}
-            />
-          </FadeTransition>
+          <ProductScreen
+            onNavigateToMain={navigateToMain}
+            onProductLiked={handleProductLiked}
+          />
         );
       case "history":
         return (
-          <FadeTransition isActive={!isTransitioning || prevScreen === currentScreen}>
-            <HistoryScreen
-              onNavigateToMain={navigateToMain}
-              likedProducts={likedProducts}
-              chatHistory={chatHistory}
-            />
-          </FadeTransition>
+          <HistoryScreen
+            onNavigateToMain={navigateToMain}
+            likedProducts={likedProducts}
+            chatHistory={chatHistory}
+          />
         );
       default:
         return null;
@@ -118,9 +104,11 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <div className="min-h-screen max-w-md mx-auto w-full relative overflow-hidden max-h-screen">
+          <div className="min-h-screen max-w-md mx-auto w-full relative overflow-hidden max-h-screen bg-background">
             <div className="absolute inset-0 pointer-events-none border-x border-border/30"></div>
-            {renderCurrentScreen()}
+            <FadeTransition isActive={!isTransitioning} duration={150}>
+              {renderScreen(currentScreen)}
+            </FadeTransition>
           </div>
         </TooltipProvider>
       </ThemeProvider>

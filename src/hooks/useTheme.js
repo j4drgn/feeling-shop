@@ -1,26 +1,14 @@
 import { useState, useEffect } from "react";
 
-export type MbtiTheme = "T" | "F";
-
-interface ThemeColors {
-  background: string;
-  secondary: string;
-  circle: string;
-  thumbColor: string;
-  borderColor: string;
-  toggleBackground: string;
-  trackColor: string;
-}
-
 export const useTheme = () => {
   // 로컬 스토리지에서 저장된 테마 불러오기 (기본값: F)
-  const [theme, setTheme] = useState<MbtiTheme>(() => {
+  const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem("mbtiTheme");
     return savedTheme === "T" || savedTheme === "F" ? savedTheme : "F";
   });
 
   // T/F 테마에 따른 색상 값 반환
-  const getThemeColors = (): ThemeColors => {
+  const getThemeColors = () => {
     return theme === "T"
       ? {
           background: "#FFE4A1", // T(사고형) 배경
@@ -50,7 +38,7 @@ export const useTheme = () => {
   };
 
   // 테마 직접 설정 함수
-  const setMbtiTheme = (newTheme: MbtiTheme) => {
+  const setMbtiTheme = (newTheme) => {
     setTheme(newTheme);
     localStorage.setItem("mbtiTheme", newTheme);
   };

@@ -11,21 +11,7 @@ import headphonesImg from "@/assets/product-headphones.jpg";
 import watchImg from "@/assets/product-watch.jpg";
 import phoneImg from "@/assets/product-phone.jpg";
 
-interface Product {
-  id: string;
-  name: string;
-  price: string;
-  category: string;
-  image: string;
-  aiRecommendation?: string; // AI가 추천한 이유
-}
-
-interface ProductScreenProps {
-  onNavigateToMain: () => void;
-  onProductLiked: (product: Product) => void;
-}
-
-const sampleProducts: Product[] = [
+const sampleProducts = [
   {
     id: "1",
     name: "Premium Wireless Headphones",
@@ -58,7 +44,7 @@ const sampleProducts: Product[] = [
 export const ProductScreen = ({
   onNavigateToMain,
   onProductLiked,
-}: ProductScreenProps) => {
+}) => {
   const [currentProductIndex, setCurrentProductIndex] = useState(0);
   const [products, setProducts] = useState(sampleProducts);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -67,7 +53,7 @@ export const ProductScreen = ({
 
   const currentProduct = products[currentProductIndex];
 
-  const handleSwipe = (direction: "left" | "right", productId: string) => {
+  const handleSwipe = (direction, productId) => {
     setIsAnimating(true);
 
     if (direction === "right") {

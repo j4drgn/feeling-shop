@@ -3,30 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Mic, X, ArrowRight, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  id: string;
-}
-
-interface ChatInterfaceProps {
-  messages: Message[];
-  onSendMessage: (message: string) => void;
-  onEndChat: () => void;
-  isActive: boolean;
-  onNavigateToProducts?: () => void;
-}
-
 export const ChatInterface = ({
   messages,
   onSendMessage,
   onEndChat,
   isActive,
   onNavigateToProducts,
-}: ChatInterfaceProps) => {
+}) => {
   const [isRecording, setIsRecording] = useState(false);
   const [showProductsPrompt, setShowProductsPrompt] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

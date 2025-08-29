@@ -7,22 +7,6 @@ import { ChatInterface } from "@/components/ChatInterface";
 import { cn } from "@/lib/utils";
 import { useThemeContext } from "@/context/ThemeContext";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  id: string;
-}
-
-interface MainScreenProps {
-  isChatActive: boolean;
-  chatMessages: Message[];
-  onStartChat: () => void;
-  onSendMessage: (message: string) => void;
-  onEndChat: () => void;
-  onNavigateToHistory: () => void;
-  onNavigateToProducts: () => void;
-}
-
 export const MainScreen = ({
   isChatActive,
   chatMessages,
@@ -31,7 +15,7 @@ export const MainScreen = ({
   onEndChat,
   onNavigateToHistory,
   onNavigateToProducts,
-}: MainScreenProps) => {
+}) => {
   const { isThinking, colors, toggleTheme } = useThemeContext();
 
   const [isListening, setIsListening] = useState(false);

@@ -2,31 +2,17 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-interface Product {
-  id: string;
-  name: string;
-  price: string;
-  category: string;
-  image: string;
-  aiRecommendation?: string;
-}
-
-interface ProductCardProps {
-  product: Product;
-  onSwipe: (direction: "left" | "right", productId: string) => void;
-}
-
-export const ProductCard = ({ product, onSwipe }: ProductCardProps) => {
+export const ProductCard = ({ product, onSwipe }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e) => {
     e.preventDefault(); // 기본 동작 방지
     setIsDragging(true);
     const startX = e.clientX;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e) => {
       e.preventDefault(); // 기본 동작 방지
       if (isDragging) {
         const deltaX = e.clientX - startX;
@@ -34,7 +20,7 @@ export const ProductCard = ({ product, onSwipe }: ProductCardProps) => {
       }
     };
 
-    const handleMouseUp = (e: MouseEvent) => {
+    const handleMouseUp = (e) => {
       e.preventDefault(); // 기본 동작 방지
       setIsDragging(false);
 
@@ -54,14 +40,14 @@ export const ProductCard = ({ product, onSwipe }: ProductCardProps) => {
     document.addEventListener("mouseup", handleMouseUp);
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = (e) => {
     e.stopPropagation(); // 이벤트 전파 방지
     const startX = e.touches[0].clientX;
     const startY = e.touches[0].clientY;
     let isSwiping = false;
     let isScrolling = false;
 
-    const handleTouchMove = (e: TouchEvent) => {
+    const handleTouchMove = (e) => {
       if (isScrolling) return; // 스크롤 중이면 스와이프 처리 안함
       
       const deltaX = e.touches[0].clientX - startX;
@@ -85,7 +71,7 @@ export const ProductCard = ({ product, onSwipe }: ProductCardProps) => {
       }
     };
 
-    const handleTouchEnd = (e: TouchEvent) => {
+    const handleTouchEnd = (e) => {
       e.stopPropagation(); // 이벤트 전파 방지
       
       if (isSwiping && Math.abs(dragX) > 80) { // 임계값을 80으로 낮춤

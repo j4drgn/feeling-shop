@@ -1,13 +1,9 @@
 import { useState } from "react";
 
-export type AppScreen = "main" | "products" | "history";
-
 export const useAppNavigation = () => {
-  const [currentScreen, setCurrentScreen] = useState<AppScreen>("main");
+  const [currentScreen, setCurrentScreen] = useState("main");
   const [isChatActive, setIsChatActive] = useState(false);
-  const [chatHistory, setChatHistory] = useState<
-    Array<{ role: "user" | "assistant"; content: string; id: string }>
-  >([]);
+  const [chatHistory, setChatHistory] = useState([]);
 
   const navigateToProducts = () => {
     setCurrentScreen("products");
@@ -37,7 +33,7 @@ export const useAppNavigation = () => {
     }
   };
 
-  const addMessage = (role: "user" | "assistant", content: string) => {
+  const addMessage = (role, content) => {
     setChatHistory((prev) => [
       ...prev,
       {
