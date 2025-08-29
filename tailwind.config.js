@@ -18,12 +18,13 @@ export default {
 		},
 		extend: {
 			colors: {
-				// Design System Colors (UI Redesign 2025)
-				'brand-primary': '#FFD43B', // Yellow - Main CTA/Brand
-				'brand-secondary': '#4DA3FF', // Sky Blue - Supporting accent
-				'brand-accent': '#9C6ADE', // Soft Purple - Interaction highlight
-				'neutral-bg': '#F8F9FA', // Background
-				'neutral-text': '#6B7280', // Secondary text
+				// Professional 3-Layer Design System
+				'layer-background': '#FFE4A1', // Warm yellow background
+				'layer-surface': '#FFFFFF',    // White cards/containers
+				'layer-content': '#1F2937',    // Dark text content
+				'layer-muted': '#6B7280',      // Secondary text
+				'layer-border': '#E5E7EB',     // Subtle borders
+				'accent-ducky': '#FFD43B',     // Duck yellow (minimal use)
 				
 				// Shadcn colors (keeping compatibility)
 				border: 'hsl(var(--border))',
@@ -78,7 +79,24 @@ export default {
 				}
 			},
 			fontFamily: {
-				'pretendard': ['Pretendard', 'system-ui', 'sans-serif'],
+				'pretendard': ['PretendardVariable', 'Pretendard', 'system-ui', 'sans-serif'],
+			},
+			fontSize: {
+				'title': ['20px', { lineHeight: '1.4', fontWeight: '700' }], // Duck messages
+				'body': ['16px', { lineHeight: '1.6', fontWeight: '400' }],   // User input/general text  
+				'caption': ['14px', { lineHeight: '1.4', fontWeight: '500' }], // Secondary info
+			},
+			spacing: {
+				'4.5': '18px', // 18px for 8px grid system
+				'18': '72px',  // 72px
+				'22': '88px',  // 88px
+			},
+			boxShadow: {
+				'surface': '0 6px 24px rgba(0, 0, 0, 0.06)',
+				'glow': '0 0 24px rgba(255, 212, 59, 0.15)',
+			},
+			borderRadius: {
+				'surface': '12px',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
