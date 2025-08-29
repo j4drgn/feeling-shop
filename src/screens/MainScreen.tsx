@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { User, Brain, Heart, Ear } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThumbSwitch } from "@/components/ui/ThumbSwitch";
@@ -6,7 +6,7 @@ import { DuckCharacter } from "@/components/DuckCharacter";
 import { ChatInterface } from "@/components/ChatInterface";
 import { cn } from "@/lib/utils";
 import { useThemeContext } from "@/context/ThemeContext";
-import { EmotionAnalysis } from "@/hooks/useSpeechRecognition";
+import { EmotionAnalysis, useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 interface Message {
   role: "user" | "assistant";
@@ -36,21 +36,40 @@ export const MainScreen = ({
 }: MainScreenProps) => {
   const { isThinking, colors, toggleTheme } = useThemeContext();
 
-  const [isListening, setIsListening] = useState(false);
-
   // 텍스트 표시 상태 관리
   const [showWelcomeText, setShowWelcomeText] = useState(true);
+  
+  // 음성 인식 훅 사용
+  const {
+    isListening,
+    isSupported,
+    error,
+    result,
+    startListening,
+    stopListening,
+    resetResult
+  } = useSpeechRecognition();
+
+  // 음성 인식 결과 처리
+  React.useEffect(() => {
+    if (result) {
+      // 채팅이 시작되지 않았으면 시작
+      if (!isChatActive) {
+        onStartChat();
+      }
+      // 음성 메시지 전송
+      onSendMessage(result.transcript, result.emotion);
+      // 결과 리셋
+      resetResult();
+    }
+  }, [result, isChatActive, onStartChat, onSendMessage, resetResult]);
 
   const handleDuckClick = () => {
-    if (!isChatActive) {
+    if (!isChatActive && !isListening) {
       // 환영 텍스트 숨기기
       setShowWelcomeText(false);
-      setIsListening(true);
-      // 1.5초 후에 채팅 시작 (듣고 있어요 메시지 표시 효과)
-      setTimeout(() => {
-        setIsListening(false);
-        onStartChat();
-      }, 1500);
+      // 실제 음성 인식 시작
+      startListening();
     }
   };
 
@@ -126,6 +145,20 @@ export const MainScreen = ({
                 </div>
               </div>
             )}
+            {!isSupported && !isChatActive && (
+              <div className="absolute -bottom-12 left-0 right-0 text-center">
+                <div className="inline-flex items-center gap-1 bg-red-100 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-red-200 shadow-md">
+                  <span className="text-red-600 font-bold">음성 인식을 지원하지 않는 브라우저입니다</span>
+                </div>
+              </div>
+            )}
+            {error && !isChatActive && (
+              <div className="absolute -bottom-12 left-0 right-0 text-center">
+                <div className="inline-flex items-center gap-1 bg-yellow-100 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm border border-yellow-200 shadow-md">
+                  <span className="text-yellow-700 font-bold">{error}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {!isChatActive && showWelcomeText && (
@@ -151,8 +184,6 @@ export const MainScreen = ({
               onEndChat={onEndChat}
               isActive={isChatActive}
               onNavigateToProducts={onNavigateToProducts}
-              onStartListening={() => setIsListening(true)}
-              onStopListening={() => setIsListening(false)}
             />
           </div>
         )}
