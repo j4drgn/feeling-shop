@@ -29,7 +29,7 @@ export const ChatInterface = ({
       setIsRecording(false);
       // 실제 구현에서는 여기서 녹음된 음성을 텍스트로 변환하여 onSendMessage 호출
       onSendMessage("음성 메시지가 여기에 표시됩니다"); // 실제 구현 시 이 부분을 실제 음성 인식 결과로 대체
-      
+
       // 이제 상품 화면 이동 프롬프트를 표시하지 않고, 대신 응답 메시지에 화살표 버튼을 표시함
       // 프롬프트 상태를 false로 유지
       setShowProductsPrompt(false);
@@ -70,7 +70,7 @@ export const ChatInterface = ({
           <ArrowLeft className="h-5 w-5" />
         </Button>
       </div>
-      
+
       {/* Chat Messages - 더 크게 조정하고 아래로 위치 조정 */}
       <div className="h-80 overflow-y-auto mb-8 space-y-3 px-2 glassmorphism-card p-4 rounded-xl">
         {messages.map((message, index) => (
@@ -97,17 +97,22 @@ export const ChatInterface = ({
               >
                 {message.content}
               </p>
-              
+
               {/* 상품 추천 화면으로 이동하는 버튼 - 마지막 응답 메시지의 우측 하단에 표시 */}
-              {message.role === "assistant" && index === messages.length - 1 && !isRecording && !showProductsPrompt && (
-                <Button
-                  onClick={() => onNavigateToProducts && onNavigateToProducts()}
-                  size="icon"
-                  className="absolute -bottom-3 -right-3 rounded-full w-8 h-8 p-0 bg-white hover:bg-gray-100 shadow-md border border-gray-200"
-                >
-                  <ArrowRight className="h-4 w-4 text-black" />
-                </Button>
-              )}
+              {message.role === "assistant" &&
+                index === messages.length - 1 &&
+                !isRecording &&
+                !showProductsPrompt && (
+                  <Button
+                    onClick={() =>
+                      onNavigateToProducts && onNavigateToProducts()
+                    }
+                    size="icon"
+                    className="absolute -bottom-3 -right-3 rounded-full w-8 h-8 p-0 bg-white hover:bg-gray-100 shadow-md border border-gray-200"
+                  >
+                    <ArrowRight className="h-4 w-4 text-black" />
+                  </Button>
+                )}
             </div>
           </div>
         ))}
@@ -123,7 +128,7 @@ export const ChatInterface = ({
                 <span>오리에게 말하는 중...</span>
               </div>
             )}
-            
+
             {/* 음성으로 말하기 버튼 제거 */}
           </>
         ) : (
