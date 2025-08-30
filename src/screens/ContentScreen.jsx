@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Heart,
@@ -15,6 +15,7 @@ import contentApi from "@/api/contentApi";
 
 export const ContentScreen = ({ selectedContent = null, onContentLiked, onNavigateToMain }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [personalizedContents, setPersonalizedContents] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -25,13 +26,17 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
   const [likedContents, setLikedContents] = useState([]);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
+  const [watchedContents, setWatchedContents] = useState(new Set());
 
-  // 개인화된 콘텐츠 또는 선택된 콘텐츠 사용
+  // 추천 콘텐츠 또는 선택된 콘텐츠 사용
+  const recommendedContents = location.state?.contents || [];
   const currentContents = selectedContent
     ? [selectedContent]
-    : personalizedContents.length > 0
-      ? personalizedContents
-      : [];
+    : recommendedContents.length > 0
+      ? recommendedContents
+      : personalizedContents.length > 0
+        ? personalizedContents
+        : [];
   const currentContent = currentContents[currentIndex];
 
   // 개인화된 추천 로드
@@ -39,6 +44,13 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
     const loadPersonalizedRecommendations = async () => {
       try {
         setIsLoading(true);
+
+        // 추천 콘텐츠가 있으면 그것을 사용
+        if (recommendedContents.length > 0) {
+          setPersonalizedContents(recommendedContents);
+          setIsLoading(false);
+          return;
+        }
 
         // 선택된 콘텐츠가 있으면 그것만 사용
         if (selectedContent) {
@@ -49,25 +61,37 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
 
         // API를 통해 콘텐츠 가져오기
         const response = await contentApi.getAllContents();
-        if (response.success && response.data.length > 0) {
+        if (response.success && response.data && response.data.length > 0) {
           setPersonalizedContents(response.data);
         } else {
-          // API 호출이 정상적이지 않음 — 로컬 폴백을 사용하지 않음
-          const msg = '콘텐츠 API 호출에 실패했습니다.';
+          // API 호출이 정상적이지 않음 — 빈 데이터이거나 에러
+          const msg = response.data && response.data.length === 0 
+            ? '추천할 콘텐츠가 아직 준비되지 않았어요. 잠시 후 다시 시도해 주세요!' 
+            : '콘텐츠를 불러오는 중 문제가 발생했어요. 다시 시도해 주세요.';
           console.error(msg, response);
           setLoadError(msg);
         }
       } catch (error) {
         console.error("Failed to load personalized recommendations:", error);
-        // 로컬 폴백 제거: 에러 상태로 표시
-        setLoadError(error.message || String(error));
+        // 네트워크 에러나 기타 에러 처리
+        let errorMessage = '콘텐츠를 불러오는 중 오류가 발생했어요.';
+        
+        if (error.message && error.message.includes('ERR_INSUFFICIENT_RESOURCES')) {
+          errorMessage = '브라우저 리소스가 부족해요. 페이지를 새로고침 해 주세요.';
+        } else if (error.message && error.message.includes('Failed to fetch')) {
+          errorMessage = '네트워크 연결을 확인해 주세요.';
+        } else if (error.message) {
+          errorMessage = `오류: ${error.message}`;
+        }
+        
+        setLoadError(errorMessage);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadPersonalizedRecommendations();
-  }, [selectedContent]);
+  }, [selectedContent, recommendedContents]);
 
   // 터치 스와이프 핸들러
   const onTouchStart = (e) => {
@@ -100,6 +124,11 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
     setCurrentIndex((prev) => (prev + 1) % currentContents.length);
     setIsLiked(false);
 
+    // 현재 콘텐츠를 본 것으로 기록
+    if (currentContent) {
+      setWatchedContents(prev => new Set([...prev, currentContent.id]));
+    }
+
     // 콘텐츠 조회 기록
     if (currentContent) {
       userProfileService.recordContentInteraction("view", {
@@ -118,6 +147,11 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
       (prev) => (prev - 1 + currentContents.length) % currentContents.length
     );
     setIsLiked(false);
+
+    // 현재 콘텐츠를 본 것으로 기록
+    if (currentContent) {
+      setWatchedContents(prev => new Set([...prev, currentContent.id]));
+    }
 
     // 콘텐츠 조회 기록
     if (currentContent) {
@@ -154,6 +188,11 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
     // 콘텐츠 체험 시작
     setIsRedirecting(true);
 
+    // 현재 콘텐츠를 본 것으로 기록
+    if (currentContent) {
+      setWatchedContents(prev => new Set([...prev, currentContent.id]));
+    }
+
     // 콘텐츠 체험 기록
     userProfileService.recordContentInteraction("experience", {
       id: currentContent.id,
@@ -162,16 +201,43 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
       creator: currentContent.creator,
     });
 
-    // 3초 후 피드백 프롬프트 표시 (실제로는 콘텐츠 체험 후)
-    setTimeout(() => {
-      setIsRedirecting(false);
-      setShowFeedbackPrompt(true);
-    }, 3000);
+    // 모든 콘텐츠를 다 봤는지 확인
+    const allWatched = currentContents.every(content => watchedContents.has(content.id) || content.id === currentContent.id);
+    
+    if (allWatched && currentContents.length > 1) {
+      // 모든 콘텐츠를 다 봤으면 캐릭터 화면으로 돌아감
+      setTimeout(() => {
+        setIsRedirecting(false);
+        navigate('/', { state: { fromContent: true } });
+      }, 3000);
+    } else {
+      // 아직 다 보지 않았으면 다음 콘텐츠로 이동
+      setTimeout(() => {
+        setIsRedirecting(false);
+        if (currentIndex < currentContents.length - 1) {
+          handleNext();
+        } else {
+          // 마지막 콘텐츠면 캐릭터 화면으로 돌아감
+          navigate('/', { state: { fromContent: true } });
+        }
+      }, 3000);
+    }
   };
 
   const handleReturnToChat = () => {
     // 채팅으로 돌아가기
-    onNavigateToMain();
+    navigate('/');
+  };
+
+  const handleViewNextContent = () => {
+    // 다음 콘텐츠 보기
+    setShowFeedbackPrompt(false);
+    if (currentIndex < currentContents.length - 1) {
+      handleNext();
+    } else {
+      // 마지막 콘텐츠면 첫 번째로 돌아감
+      setCurrentIndex(0);
+    }
   };
 
   if (isLoading) {
@@ -180,7 +246,10 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-white text-lg">
-            너에게 딱 맞는 콘텐츠를 찾고 있어...
+            🦆 너에게 딱 맞는 콘텐츠를 찾고 있어...
+          </p>
+          <p className="text-white/70 text-sm mt-2">
+            잠시만 기다려 주세요!
           </p>
         </div>
       </div>
@@ -238,7 +307,7 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
             대화로 돌아가기
           </button>
           <button
-            onClick={() => setShowFeedbackPrompt(false)}
+            onClick={handleViewNextContent}
             className="w-full py-3 bg-white/20 text-white rounded-full"
           >
             다른 콘텐츠 보기
@@ -251,16 +320,32 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
   if (!currentContent) {
     return (
       <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white text-lg mb-4">
+        <div className="text-center px-6">
+          <div className="w-20 h-20 mx-auto mb-6">
+            <img
+              src="/duck-character.png"
+              alt="덕키"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <h2 className="text-white text-xl font-bold mb-4">
             😅 추천할 콘텐츠를 찾지 못했어!
+          </h2>
+          <p className="text-white/80 mb-6">
+            아직 준비 중이거나 네 취향에 맞는 콘텐츠가 없어. 
+            덕키와 더 대화해서 취향을 알려주면 더 좋은 추천을 해줄게!
           </p>
-          <p className="text-white/70">덕키와 더 대화해서 취향을 알려줘!</p>
           <button
             onClick={() => navigate('/')}
-            className="mt-4 px-6 py-2 bg-white/20 text-white rounded-full"
+            className="w-full py-3 bg-white text-black rounded-full font-medium mb-4"
           >
-            대화하러 가기
+            덕키와 대화하기
+          </button>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-3 bg-white/20 text-white rounded-full"
+          >
+            다시 시도하기
           </button>
         </div>
       </div>
@@ -278,9 +363,29 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
         return "🎵";
       case "playlist":
         return "🎧";
+      case "YOUTUBE_SHORTS":
+        return "📱"; // Shorts 아이콘
       default:
         return "🎭";
     }
+  };
+
+  // 유튜브 쇼츠 URL에서 video ID 추출
+  const getYouTubeVideoId = (url) => {
+    const match = url.match(/(?:youtube\.com\/(?:shorts\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    return match ? match[1] : null;
+  };
+
+  // 유튜브 임베드 URL 생성
+  const getYouTubeEmbedUrl = (url) => {
+    const videoId = getYouTubeVideoId(url);
+    if (!videoId) return null;
+    const baseUrl = `https://www.youtube.com/embed/${videoId}`;
+    // Shorts의 경우 autoplay와 mute 추가
+    if (url.includes('/shorts/')) {
+      return `${baseUrl}?autoplay=1&mute=1&loop=1&playlist=${videoId}`;
+    }
+    return baseUrl;
   };
 
   // 콘텐츠 타입별 경험 버튼 텍스트
@@ -294,6 +399,8 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
         return "듣기";
       case "playlist":
         return "재생하기";
+      case "YOUTUBE_SHORTS":
+        return "시청하기";
       default:
         return "체험하기";
     }
@@ -306,15 +413,28 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-        {/* 배경 이미지 */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${currentContent.coverImage})` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/80"></div>
-        </div>
+        {/* 배경을 검은색으로 설정 */}
+        <div className="absolute inset-0 bg-black"></div>
 
-        {/* 상단 헤더 */}
+        {/* 유튜브 iframe */}
+        {currentContent.externalLink && getYouTubeEmbedUrl(currentContent.externalLink) && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <iframe
+              src={getYouTubeEmbedUrl(currentContent.externalLink)}
+              title={currentContent.title}
+              className={cn(
+                "rounded-lg",
+                currentContent.type === "YOUTUBE_SHORTS"
+                  ? "w-full h-full max-w-[315px] max-h-[560px]" // 9:16 for Shorts
+                  : "w-full h-full max-w-[560px] max-h-[315px]" // 16:9 for regular videos
+              )}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              loading="lazy"
+            ></iframe>
+          </div>
+        )}        {/* 상단 헤더 */}
         <div className="absolute top-0 left-0 right-0 z-20 pt-12 px-4">
           <div className="flex items-center justify-between">
             <button
@@ -330,7 +450,9 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
                   ? "영화"
                   : currentContent.type === "music"
                     ? "음악"
-                    : "플레이리스트"}
+                    : currentContent.type === "YOUTUBE_SHORTS"
+                      ? "YouTube Shorts"
+                      : "플레이리스트"}
             </div>
             <div className="w-10 h-10"></div>
           </div>
