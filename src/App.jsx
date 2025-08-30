@@ -16,10 +16,9 @@ import { FadeTransition } from "@/components/ui/page-transitions";
 
 const queryClient = new QueryClient();
 
-// 인증이 필요한 라우트를 위한 컴포넌트
+// 인증이 필요한 라우트를 위한 컴포넌트 (현재는 인증 검사를 하지 않음)
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
+  const { isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -29,11 +28,7 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (!isAuthenticated) {
-    // 현재 위치를 state로 전달하여 로그인 후 리디렉션 가능하게 함
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
+  // 인증 여부와 상관없이 항상 자식 컴포넌트 렌더링
   return children;
 };
 

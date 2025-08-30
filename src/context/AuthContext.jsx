@@ -113,46 +113,22 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       setIsLoading(true);
       try {
-        // 로컬 스토리지에서 인증 상태 확인
-        const isAuthenticatedFromStorage = localStorage.getItem("isAuthenticated");
+        // 기본 사용자 정보 설정 (자동 로그인)
+        const defaultUser = {
+          id: 1,
+          email: "test@example.com",
+          nickname: "테스트 사용자",
+          profileImageUrl: null
+        };
         
-        if (isAuthenticatedFromStorage === "true") {
-          // 로컬 스토리지에서 현재 사용자 정보 가져오기
-          const currentUserString = localStorage.getItem("currentUser");
-          const currentUser = currentUserString ? JSON.parse(currentUserString) : {
-            id: 1,
-            email: "test@example.com",
-            nickname: "테스트 사용자",
-            profileImageUrl: null
-          };
-          
-          setIsAuthenticated(true);
-          setUser(currentUser);
-          setIsLoading(false);
-          return;
-        }
+        // 자동으로 인증 상태를 true로 설정
+        localStorage.setItem("isAuthenticated", "true");
+        localStorage.setItem("currentUser", JSON.stringify(defaultUser));
         
-        const { accessToken } = getTokens();
-
-        if (accessToken) {
-          // 토큰이 있으면 사용자 정보 가져오기
-          const userInfo = await fetchUserInfo(accessToken);
-          setUser(userInfo);
-          setIsAuthenticated(true);
-        }
+        setIsAuthenticated(true);
+        setUser(defaultUser);
       } catch (error) {
         console.error("인증 초기화 오류:", error);
-        // 토큰이 유효하지 않으면 리프레시 시도
-        try {
-          await refreshToken();
-          const { accessToken } = getTokens();
-          const userInfo = await fetchUserInfo(accessToken);
-          setUser(userInfo);
-          setIsAuthenticated(true);
-        } catch (refreshError) {
-          // 리프레시도 실패하면 로그아웃
-          logout();
-        }
       } finally {
         setIsLoading(false);
       }
