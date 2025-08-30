@@ -322,6 +322,10 @@ export class UserProfileService {
       } else if (key === "livingType" && value) {
         this.userProfile.demographics.livingType = value;
       } else if (key === "hobbies" && Array.isArray(value)) {
+        // hobbies가 undefined일 경우를 대비하여 안전하게 처리
+        if (!this.userProfile.lifestyle.hobbies) {
+          this.userProfile.lifestyle.hobbies = [];
+        }
         this.userProfile.lifestyle.hobbies = [
           ...new Set([...this.userProfile.lifestyle.hobbies, ...value]),
         ];
@@ -330,14 +334,26 @@ export class UserProfileService {
       } else if (key === "shoppingStyle" && value) {
         this.userProfile.lifestyle.shoppingStyle = value;
       } else if (key === "problems" && Array.isArray(value)) {
+        // problems가 undefined일 경우를 대비하여 안전하게 처리
+        if (!this.userProfile.context.problems) {
+          this.userProfile.context.problems = [];
+        }
         this.userProfile.context.problems = [
           ...new Set([...this.userProfile.context.problems, ...value]),
         ];
       } else if (key === "contentTypes" && Array.isArray(value)) {
+        // contentTypes가 undefined일 경우를 대비하여 안전하게 처리
+        if (!this.userProfile.preferences.contentTypes) {
+          this.userProfile.preferences.contentTypes = [];
+        }
         this.userProfile.preferences.contentTypes = [
           ...new Set([...this.userProfile.preferences.contentTypes, ...value]),
         ];
       } else if (key === "genres" && Array.isArray(value)) {
+        // genres가 undefined일 경우를 대비하여 안전하게 처리
+        if (!this.userProfile.preferences.genres) {
+          this.userProfile.preferences.genres = [];
+        }
         this.userProfile.preferences.genres = [
           ...new Set([...this.userProfile.preferences.genres, ...value]),
         ];
