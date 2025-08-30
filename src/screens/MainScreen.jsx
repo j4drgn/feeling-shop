@@ -42,6 +42,8 @@ export const MainScreen = () => {
   const [chatSessionId, setChatSessionId] = useState(null);
   const [contentRecommendations, setContentRecommendations] = useState([]);
   const characterRef = useRef(null);
+  const lastSpokenTextRef = useRef(null);
+  const speakTimeoutRef = useRef(null);
 
   // 서버 헬스체크 함수
   const checkServerHealth = async () => {
@@ -798,10 +800,6 @@ export const MainScreen = () => {
     }
   }, [result]);
 
-  // 캐릭터 텍스트가 변경되면 음성 출력 (특정 메시지 제외)
-  const lastSpokenTextRef = useRef(null);
-  const speakTimeoutRef = useRef(null);
-
   useEffect(() => {
     // 이전에 말한 텍스트와 같으면 스킵
     if (lastSpokenTextRef.current === characterText) {
@@ -816,6 +814,7 @@ export const MainScreen = () => {
     if (
       characterText &&
       !isMuted &&
+      hasUserInteracted &&
       !characterText.includes("듣고 있어요") &&
       !characterText.includes("생각하고 있어요") &&
       !characterText.includes("잘 들리지 않았어요") &&
@@ -835,7 +834,7 @@ export const MainScreen = () => {
         clearTimeout(speakTimeoutRef.current);
       }
     };
-  }, [characterText, isMuted]); // speak 함수를 의존성에서 제거
+  }, [characterText, isMuted, hasUserInteracted]); // hasUserInteracted 추가
 
   return (
     <div className="min-h-[100dvh] bg-layer-background">

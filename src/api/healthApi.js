@@ -1,6 +1,7 @@
-// API 기본 URL: Vite 환경변수 VITE_API_BASE_URL 사용
-const API_HOST = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'http://localhost:8090';
-const API_BASE_URL = `${API_HOST.replace(/\/+$/, '')}/api`;
+// API 기본 URL: Vite 환경변수 VITE_API_BASE_URL 사용 (예: http://localhost:8090/api)
+// 빌드/개발 환경에서 .env 파일에 VITE_API_BASE_URL을 설정하세요.
+const API_HOST = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'http://localhost:8090/api';
+const API_BASE_URL = API_HOST.replace(/\/+$/, '');
 
 // 건강 체크 관련 API 함수들
 const healthApi = {

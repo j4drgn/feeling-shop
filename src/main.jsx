@@ -43,12 +43,12 @@ const router = createBrowserRouter(
   ],
   {
     future: {
-      v7_startTransition: false,
-      v7_relativeSplatPath: false,
-      v7_fetcherPersist: false,
-      v7_normalizeFormMethod: false,
-      v7_partialHydration: false,
-      v7_skipActionErrorRevalidation: false,
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+      v7_fetcherPersist: true,
+      v7_normalizeFormMethod: true,
+      v7_partialHydration: true,
+      v7_skipActionErrorRevalidation: true,
     },
   }
 );
