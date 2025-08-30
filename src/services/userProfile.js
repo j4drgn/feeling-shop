@@ -15,7 +15,6 @@ export class UserProfileService {
       const saved = localStorage.getItem(this.storageKey);
       return saved ? JSON.parse(saved) : this.getDefaultProfile();
     } catch (error) {
-      console.error("Failed to load user profile:", error);
       return this.getDefaultProfile();
     }
   }
@@ -106,7 +105,6 @@ export class UserProfileService {
         feedback: []
       };
     } catch (error) {
-      console.error("Failed to load interactions:", error);
       return {
         conversations: [],
         contentViews: [],
@@ -122,7 +120,6 @@ export class UserProfileService {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.userProfile));
     } catch (error) {
-      console.error("Failed to save user profile:", error);
     }
   }
 
@@ -134,7 +131,6 @@ export class UserProfileService {
         JSON.stringify(this.interactions)
       );
     } catch (error) {
-      console.error("Failed to save interactions:", error);
     }
   }
 

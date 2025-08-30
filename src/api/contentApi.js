@@ -14,7 +14,6 @@ const contentApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('콘텐츠 목록 가져오기 오류:', error);
       throw error;
     }
   },
@@ -30,7 +29,6 @@ const contentApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('콘텐츠 상세 정보 가져오기 오류:', error);
       throw error;
     }
   },
@@ -46,7 +44,6 @@ const contentApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('유형별 콘텐츠 목록 가져오기 오류:', error);
       throw error;
     }
   },
@@ -62,7 +59,6 @@ const contentApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('장르별 콘텐츠 목록 가져오기 오류:', error);
       throw error;
     }
   },
@@ -78,7 +74,6 @@ const contentApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('크리에이터별 콘텐츠 목록 가져오기 오류:', error);
       throw error;
     }
   },
@@ -94,7 +89,6 @@ const contentApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('콘텐츠 검색 오류:', error);
       throw error;
     }
   },
@@ -110,7 +104,6 @@ const contentApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('감정 태그별 콘텐츠 가져오기 오류:', error);
       throw error;
     }
   },
@@ -126,7 +119,6 @@ const contentApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('인기 콘텐츠 가져오기 오류:', error);
       throw error;
     }
   },
@@ -144,7 +136,6 @@ const contentApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('콘텐츠 추천 오류:', error);
       throw error;
     }
   },
@@ -160,7 +151,6 @@ const contentApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('최신 콘텐츠 목록 가져오기 오류:', error);
       throw error;
     }
   },

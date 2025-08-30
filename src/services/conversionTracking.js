@@ -35,7 +35,6 @@ export class ConversionTrackingSystem {
       const saved = localStorage.getItem(this.storageKey);
       return saved ? JSON.parse(saved) : this.getDefaultConversionData();
     } catch (error) {
-      console.error('Failed to load conversion data:', error);
       return this.getDefaultConversionData();
     }
   }
@@ -336,7 +335,6 @@ export class ConversionTrackingSystem {
       localStorage.setItem(this.storageKey, JSON.stringify(this.conversionData));
       sessionStorage.setItem(this.sessionKey, JSON.stringify(this.currentSession));
     } catch (error) {
-      console.error('Failed to save conversion data:', error);
     }
   }
 

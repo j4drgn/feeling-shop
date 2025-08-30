@@ -10,7 +10,6 @@ const productApi = {
       if (!response.ok) {
         if (response.status === 404) {
           // 백엔드 서버가 실행되지 않는 경우, 개발 모드에서 모킹 데이터 사용
-          console.warn("백엔드 서버가 실행되지 않아 상품 목록 모킹 데이터를 사용합니다.");
           return {
             success: true,
             message: "상품 목록을 성공적으로 가져왔습니다.",
@@ -23,7 +22,6 @@ const productApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('상품 목록 가져오기 오류:', error);
       throw error;
     }
   },
@@ -39,7 +37,6 @@ const productApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('상품 상세 정보 가져오기 오류:', error);
       throw error;
     }
   },
@@ -55,7 +52,6 @@ const productApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('카테고리별 상품 목록 가져오기 오류:', error);
       throw error;
     }
   },
@@ -71,7 +67,6 @@ const productApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('상품 검색 오류:', error);
       throw error;
     }
   },

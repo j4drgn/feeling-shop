@@ -14,7 +14,6 @@ const healthApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('서버 상태 확인 오류:', error);
       throw error;
     }
   },

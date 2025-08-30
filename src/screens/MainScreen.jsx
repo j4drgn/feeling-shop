@@ -97,12 +97,9 @@ export const MainScreen = () => {
       try {
         const healthResponse = await healthApi.checkHealth();
         if (healthResponse.success) {
-          console.log("서버 상태 확인: 정상");
         } else {
-          console.warn("서버 상태 확인 실패:", healthResponse.message);
         }
       } catch (error) {
-        console.warn("서버 헬스체크 실패:", error);
       }
     };
 
@@ -115,9 +112,7 @@ export const MainScreen = () => {
         const isValid = await validateChatSession(parseInt(storedSessionId, 10));
         if (isValid) {
           setChatSessionId(parseInt(storedSessionId, 10));
-          console.log("기존 세션 유효성 확인됨:", storedSessionId);
         } else {
-          console.log("기존 세션이 유효하지 않아 새 세션 생성");
           localStorage.removeItem("currentChatSessionId");
           await createNewChatSession();
         }
@@ -154,19 +149,14 @@ export const MainScreen = () => {
         if (sessionId) {
           setChatSessionId(sessionId);
           localStorage.setItem("currentChatSessionId", sessionId.toString());
-          console.log("새 채팅 세션이 생성되었습니다:", sessionId);
         } else {
-          console.error("세션 생성 응답에서 ID를 찾을 수 없음:", response);
           throw new Error("세션 ID를 찾을 수 없습니다.");
         }
       } else {
-        console.error("세션 생성 응답이 올바르지 않음:", response);
         throw new Error("세션 생성 실패");
       }
     } catch (error) {
-      console.error("채팅 세션 생성 오류:", error);
       // 세션 생성 실패 시 세션 없이 진행 (ChatGPT API는 정상 작동)
-      console.log("세션 없이 ChatGPT와 대화합니다.");
     }
   };
 
@@ -178,7 +168,6 @@ export const MainScreen = () => {
       await chatApi.getSessionMessages(sessionId, accessToken);
       return true;
     } catch (error) {
-      console.error("세션 유효성 검증 실패:", error);
       // 404 오류 또는 세션 관련 오류는 세션이 존재하지 않는다는 의미
       if (error.message.includes("404") || 
           error.message.includes("세션 메시지를 가져오는데 실패했습니다") ||
@@ -233,7 +222,6 @@ export const MainScreen = () => {
         // 세션 ID가 있으면 세션 기반 API 호출, 없으면 일반 API 호출
         let apiResponse;
         if (chatSessionId) {
-          console.log("세션 기반 메시지 전송:", chatSessionId);
           try {
             apiResponse = await chatApi.sendSessionMessage(
               chatSessionId,
@@ -243,11 +231,9 @@ export const MainScreen = () => {
               accessToken
             );
           } catch (sessionError) {
-            console.error("세션 메시지 전송 실패:", sessionError);
             // 세션이 존재하지 않거나 만료된 경우 새 세션 생성
             if (sessionError.message.includes("채팅 세션을 찾을 수 없습니다") || 
                 sessionError.message.includes("400")) {
-              console.log("세션이 유효하지 않아 새 세션 생성 후 재시도");
               try {
                 const sessionTitle = `대화 ${new Date().toLocaleString("ko-KR")}`;
                 const newSessionResponse = await chatApi.createChatSession(
@@ -267,7 +253,6 @@ export const MainScreen = () => {
                 if (newSessionId) {
                   setChatSessionId(newSessionId);
                   localStorage.setItem("currentChatSessionId", newSessionId.toString());
-                  console.log("새 채팅 세션이 생성되었습니다:", newSessionId);
                   // 새 세션으로 메시지 전송
                   apiResponse = await chatApi.sendSessionMessage(
                     newSessionId,
@@ -280,7 +265,6 @@ export const MainScreen = () => {
                   throw new Error("새 세션 생성 실패");
                 }
               } catch (createError) {
-                console.error("새 세션 생성 실패, 일반 메시지로 폴백:", createError);
                 // 세션 ID를 null로 설정
                 setChatSessionId(null);
                 localStorage.removeItem("currentChatSessionId");
@@ -299,7 +283,6 @@ export const MainScreen = () => {
               }
             } else {
               // 다른 오류의 경우 일반 메시지로 폴백
-              console.error("세션 메시지 전송 실패, 일반 메시지로 폴백:", sessionError);
               setChatSessionId(null);
               localStorage.removeItem("currentChatSessionId");
               apiResponse = await chatApi.sendChatMessage(
@@ -317,8 +300,6 @@ export const MainScreen = () => {
             }
           }
         } else {
-          console.log("일반 메시지 전송");
-          console.log("현재 chatSessionId:", chatSessionId);
           apiResponse = await chatApi.sendChatMessage(
             input,
             emotionType,
@@ -357,8 +338,6 @@ export const MainScreen = () => {
             context = "recommendation";
             triggerAnimation("product_recommendation", true);
 
-            console.log("🎁 상품 추천 애니메이션 시작:", currentAnimation);
-
             // 추천 콘텐츠 데이터 가져오기
             const personalizedRecs =
               await contentRecommendationEngine.getPersonalizedContentRecommendations(
@@ -396,8 +375,6 @@ export const MainScreen = () => {
           throw new Error("API 응답이 올바르지 않습니다.");
         }
       } catch (apiError) {
-        console.error("OpenAI API 호출 오류:", apiError);
-
         // API 호출 실패 시 기존 로직으로 폴백
         // 3. 문화 콘텐츠 추천 요청 감지
         if (
@@ -681,12 +658,10 @@ export const MainScreen = () => {
   // 음성 인식 결과 처리
   useEffect(() => {
     if (result && result.transcript) {
-      console.log("음성 인식 결과:", result);
       setUserText(result.transcript);
 
       // 감정 분석 정보 표시
       if (result.emotion) {
-        console.log("감정 분석:", result.emotion);
       }
 
       // AI 응답 생성 중 표시

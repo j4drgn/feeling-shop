@@ -17,7 +17,6 @@ const authApi = {
       if (!response.ok) {
         if (response.status === 404) {
           // 백엔드 서버가 실행되지 않는 경우, 개발 모드에서 모킹 데이터 사용
-          console.warn("백엔드 서버가 실행되지 않아 모킹 데이터를 사용합니다.");
           return {
             success: true,
             message: "회원가입이 완료되었습니다.",
@@ -31,7 +30,6 @@ const authApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('회원가입 오류:', error);
       throw error;
     }
   },
@@ -50,7 +48,6 @@ const authApi = {
       if (!response.ok) {
         if (response.status === 404) {
           // 백엔드 서버가 실행되지 않는 경우, 개발 모드에서 모킹 데이터 사용
-          console.warn("백엔드 서버가 실행되지 않아 모킹 데이터를 사용합니다.");
           return {
             success: true,
             message: "로그인이 완료되었습니다.",
@@ -74,7 +71,6 @@ const authApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('로그인 오류:', error);
       throw error;
     }
   },
@@ -93,7 +89,6 @@ const authApi = {
       if (!response.ok) {
         if (response.status === 404) {
           // 백엔드 서버가 실행되지 않는 경우, 개발 모드에서 모킹 데이터 사용
-          console.warn("백엔드 서버가 실행되지 않아 모킹 데이터를 사용합니다.");
           return {
             success: true,
             message: "토큰이 성공적으로 갱신되었습니다.",
@@ -110,7 +105,6 @@ const authApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('토큰 갱신 오류:', error);
       throw error;
     }
   },
@@ -132,7 +126,6 @@ const authApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('현재 사용자 정보 가져오기 오류:', error);
       throw error;
     }
   },
@@ -157,7 +150,6 @@ const authApi = {
       const result = await response.json();
       return result;
     } catch (error) {
-      console.error('사용자 정보 업데이트 오류:', error);
       throw error;
     }
   },

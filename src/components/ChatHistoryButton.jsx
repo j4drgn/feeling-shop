@@ -20,7 +20,6 @@ const ChatHistoryButton = ({ onSelectSession }) => {
           setSessions(response.data.data);
         }
       } catch (error) {
-        console.error("채팅 세션 목록 가져오기 오류:", error);
       } finally {
         setIsLoading(false);
       }

@@ -22,9 +22,7 @@ const chatApi = {
       // 세션 ID가 없으면 새 세션 생성
       let currentSessionId = sessionId;
       if (!currentSessionId) {
-        console.log("세션 ID가 없어 새 세션 생성 시도");
         const sessionResponse = await chatApi.createChatSession(`대화 ${new Date().toLocaleString("ko-KR")}`, accessToken);
-        console.log("세션 생성 응답:", sessionResponse);
         let sessionId = null;
         if (sessionResponse && sessionResponse.data) {
           if (sessionResponse.data.data && sessionResponse.data.data.id) {
@@ -37,9 +35,7 @@ const chatApi = {
         }
         if (sessionId) {
           currentSessionId = sessionId;
-          console.log("새 세션 ID:", currentSessionId);
         } else {
-          console.error("세션 생성 응답에서 ID를 찾을 수 없음:", sessionResponse);
           throw new Error("세션 생성 실패");
         }
       }
@@ -68,7 +64,6 @@ const chatApi = {
       // 세션 ID를 응답에 포함
       return { ...responseData, sessionId: currentSessionId };
     } catch (error) {
-      console.error("메시지 전송 오류:", error);
       throw error;
     }
   },
@@ -104,7 +99,6 @@ const chatApi = {
       const responseData = await response.json();
       return responseData;
     } catch (error) {
-      console.error("세션 메시지 전송 오류:", error);
       throw error;
     }
   },
@@ -112,7 +106,6 @@ const chatApi = {
   // 채팅 세션 생성
   createChatSession: async (title, accessToken) => {
     try {
-      console.log("채팅 세션 생성 요청:", title, "토큰:", accessToken ? "있음" : "없음");
       const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
         method: "POST",
         headers: createAuthHeader(accessToken),
@@ -121,16 +114,13 @@ const chatApi = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error("세션 생성 HTTP 오류:", response.status, errorData);
         const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
         throw new Error(errorMessage);
       }
 
       const responseData = await response.json();
-      console.log("세션 생성 성공 응답:", responseData);
       return responseData;
     } catch (error) {
-      console.error("채팅 세션 생성 오류:", error);
       throw error;
     }
   },
@@ -152,7 +142,6 @@ const chatApi = {
       const responseData = await response.json();
       return responseData;
     } catch (error) {
-      console.error("채팅 세션 목록 가져오기 오류:", error);
       throw error;
     }
   },
@@ -172,7 +161,6 @@ const chatApi = {
       const responseData = await response.json();
       return responseData;
     } catch (error) {
-      console.error("채팅 세션 정보 가져오기 오류:", error);
       throw error;
     }
   },
@@ -194,7 +182,6 @@ const chatApi = {
       const responseData = await response.json();
       return responseData;
     } catch (error) {
-      console.error("채팅 세션 업데이트 오류:", error);
       throw error;
     }
   },
@@ -215,7 +202,6 @@ const chatApi = {
       const responseData = await response.json();
       return responseData;
     } catch (error) {
-      console.error("채팅 세션 삭제 오류:", error);
       throw error;
     }
   },
@@ -237,7 +223,6 @@ const chatApi = {
       const responseData = await response.json();
       return responseData;
     } catch (error) {
-      console.error("메시지 저장 오류:", error);
       throw error;
     }
   },
@@ -257,7 +242,6 @@ const chatApi = {
       const responseData = await response.json();
       return responseData;
     } catch (error) {
-      console.error("메시지 목록 가져오기 오류:", error);
       throw error;
     }
   },
@@ -281,7 +265,6 @@ const chatApi = {
       const responseData = await response.json();
       return responseData;
     } catch (error) {
-      console.error("세션 메시지 가져오기 오류:", error);
       throw error;
     }
   },

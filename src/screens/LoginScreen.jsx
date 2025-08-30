@@ -28,21 +28,16 @@ export const LoginScreen = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log('로그인 시도:', formData);
 
     try {
-      console.log('API 호출 시작');
       // API를 통해 로그인
       const response = await authApi.login({
         email: formData.email,
         password: formData.password,
       });
-      console.log('API 응답:', response);
 
       // 로그인 성공
-      console.log('로그인 함수 호출 전');
       await login(response.data);
-      console.log('로그인 함수 호출 후');
 
       toast({
         title: "로그인 성공",
