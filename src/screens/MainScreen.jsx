@@ -166,13 +166,26 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
         let apiResponse;
         if (chatSessionId) {
           console.log("세션 기반 메시지 전송:", chatSessionId);
-          apiResponse = await chatApi.sendSessionMessage(
-            chatSessionId,
-            input,
-            emotionType,
-            emotionScore,
-            accessToken
-          );
+          try {
+            apiResponse = await chatApi.sendSessionMessage(
+              chatSessionId,
+              input,
+              emotionType,
+              emotionScore,
+              accessToken
+            );
+          } catch (sessionError) {
+            console.error("세션 메시지 전송 실패, 일반 메시지로 폴백:", sessionError);
+            // 세션 실패 시 세션 ID를 null로 설정하고 일반 메시지 전송
+            setChatSessionId(null);
+            localStorage.removeItem("currentChatSessionId");
+            apiResponse = await chatApi.sendChatMessage(
+              input,
+              emotionType,
+              emotionScore,
+              accessToken
+            );
+          }
         } else {
           console.log("일반 메시지 전송");
           apiResponse = await chatApi.sendChatMessage(

@@ -3,6 +3,11 @@ const API_BASE_URL = "http://localhost:8090";
 
 // 인증 헤더 생성 함수
 const createAuthHeader = (accessToken) => {
+  if (!accessToken) {
+    return {
+      "Content-Type": "application/json",
+    };
+  }
   return {
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/json",
