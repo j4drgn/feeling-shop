@@ -16,11 +16,17 @@ const createAuthHeader = (accessToken) => {
 
 // 채팅 관련 API 함수들
 const chatApi = {
-  // ChatGPT 단일 메시지 전송 (세션 기반으로 변경)
-  sendChatMessage: async (message, emotionType, emotionScore, accessToken, sessionId = null) => {
+  // ChatGPT 단일 메시지 전송 (세션 기반 음성으로 변경)
+  sendChatMessage: async (message, voiceMetadata, accessToken, sessionId = null) => {
     try {
-      // 세션 ID가 없으면 새 세션 생성
+      // 세션 ID 유효성 검증
       let currentSessionId = sessionId;
+      if (currentSessionId && (isNaN(currentSessionId) || currentSessionId <= 0)) {
+        console.warn('Invalid sessionId provided:', currentSessionId, 'Creating new session...');
+        currentSessionId = null;
+      }
+      
+      // 세션 ID가 없으면 새 세션 생성
       if (!currentSessionId) {
         const sessionResponse = await chatApi.createChatSession(`대화 ${new Date().toLocaleString("ko-KR")}`, accessToken);
         let sessionId = null;
@@ -33,23 +39,29 @@ const chatApi = {
             sessionId = sessionResponse.data.sessionId;
           }
         }
-        if (sessionId) {
+        if (sessionId && !isNaN(sessionId) && sessionId > 0) {
           currentSessionId = sessionId;
         } else {
-          throw new Error("세션 생성 실패");
+          throw new Error("세션 생성 실패: 유효한 세션 ID를 받지 못했습니다.");
         }
       }
 
       // 세션 기반 메시지 전송
       const response = await fetch(
-        `${API_BASE_URL}/chatgpt/chat/session/${currentSessionId}`,
+        `${API_BASE_URL}/chatgpt/chat/session/${currentSessionId}/voice`,
         {
           method: "POST",
           headers: createAuthHeader(accessToken),
           body: JSON.stringify({
             message,
-            emotionType,
-            emotionScore,
+            isVoiceInput: true,
+            voiceMetadata: voiceMetadata ? {
+              duration: voiceMetadata.duration || 1.0,
+              sampleRate: voiceMetadata.sampleRate || 16000,
+            } : {
+              duration: 1.0,
+              sampleRate: 16000,
+            },
           }),
         }
       );
@@ -64,28 +76,39 @@ const chatApi = {
       // 세션 ID를 응답에 포함
       return { ...responseData, sessionId: currentSessionId };
     } catch (error) {
+      console.error('sendChatMessage error:', error);
       throw error;
     }
   },
 
-  // 세션 기반 메시지 전송
-  sendSessionMessage: async (
+  // 세션 기반 메시지 전송 (음성 메타데이터 포함)
+  sendSessionMessageWithVoice: async (
     sessionId,
     message,
-    emotionType,
-    emotionScore,
+    voiceMetadata,
     accessToken
   ) => {
     try {
+      // 세션 ID 유효성 검증
+      if (!sessionId || isNaN(sessionId) || sessionId <= 0) {
+        throw new Error('유효하지 않은 세션 ID입니다.');
+      }
+      
       const response = await fetch(
-        `${API_BASE_URL}/chatgpt/chat/session/${sessionId}`,
+        `${API_BASE_URL}/chatgpt/chat/session/${sessionId}/voice`,
         {
           method: "POST",
           headers: createAuthHeader(accessToken),
           body: JSON.stringify({
             message,
-            emotionType,
-            emotionScore,
+            isVoiceInput: true,
+            voiceMetadata: voiceMetadata ? {
+              duration: voiceMetadata.duration || 1.0,
+              sampleRate: voiceMetadata.sampleRate || 16000,
+            } : {
+              duration: 1.0,
+              sampleRate: 16000,
+            },
           }),
         }
       );
@@ -99,6 +122,7 @@ const chatApi = {
       const responseData = await response.json();
       return responseData;
     } catch (error) {
+      console.error('sendSessionMessageWithVoice error:', error);
       throw error;
     }
   },
@@ -265,6 +289,64 @@ const chatApi = {
       const responseData = await response.json();
       return responseData;
     } catch (error) {
+      throw error;
+    }
+  },
+
+  // 음성 채팅
+  sendVoiceChatMessage: async (message, voiceMetadata, accessToken, sessionId = null) => {
+    try {
+      let currentSessionId = sessionId;
+      
+      // 세션 ID 유효성 검증
+      if (currentSessionId && (isNaN(currentSessionId) || currentSessionId <= 0)) {
+        console.warn('Invalid sessionId provided:', currentSessionId, 'Creating new session...');
+        currentSessionId = null;
+      }
+      
+      if (!currentSessionId) {
+        const sessionResponse = await chatApi.createChatSession(`대화 ${new Date().toLocaleString("ko-KR")}`, accessToken);
+        if (sessionResponse && sessionResponse.data) {
+          if (sessionResponse.data.data && sessionResponse.data.data.id) {
+            currentSessionId = sessionResponse.data.data.id;
+          } else if (sessionResponse.data.id) {
+            currentSessionId = sessionResponse.data.id;
+          } else if (sessionResponse.data.sessionId) {
+            currentSessionId = sessionResponse.data.sessionId;
+          }
+        }
+        if (!currentSessionId || isNaN(currentSessionId) || currentSessionId <= 0) {
+          throw new Error("세션 생성 실패: 유효한 세션 ID를 받지 못했습니다.");
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/chatgpt/chat/voice`, {
+        method: "POST",
+        headers: createAuthHeader(accessToken),
+        body: JSON.stringify({
+          message,
+          chatSessionId: currentSessionId,
+          isVoiceInput: true,
+          voiceMetadata: voiceMetadata ? {
+            duration: voiceMetadata.duration || 1.0,
+            sampleRate: voiceMetadata.sampleRate || 16000,
+          } : {
+            duration: 1.0,
+            sampleRate: 16000,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+      }
+
+      const responseData = await response.json();
+      return { ...responseData, sessionId: currentSessionId };
+    } catch (error) {
+      console.error('sendVoiceChatMessage error:', error);
       throw error;
     }
   },

@@ -11,6 +11,8 @@ export const useSpeechRecognition = () => {
   const analyserRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioDataRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
   const timeoutRef = useRef(null);
 
   // 브라우저 호환성 확인
@@ -73,6 +75,15 @@ export const useSpeechRecognition = () => {
     const hasElongation = elongatedPattern.test(transcript);
     const exclamationCount = (transcript.match(/[!?~]/g) || []).length;
     
+    // 의문문 패턴 감지 (한국어)
+    const questionPatterns = [
+      /\b(왜|어떻게|무엇|언제|어디|누구|뭐|어떤|어느)\b/,
+      /\b(해|돼|돼요|인가요|나요|까|을까|ㄹ까)\b$/,
+      /\b(있어|없어|할까|먹을까|갈까)\b$/
+    ];
+    
+    const hasQuestionWords = questionPatterns.some(pattern => pattern.test(transcript));
+    
     // 감정 규칙 기반 분석
     let emotion = 'neutral';
     let description = '중립적인 톤';
@@ -103,7 +114,8 @@ export const useSpeechRecognition = () => {
       pitch,
       speed,
       volume,
-      description
+      description,
+      hasQuestionWords // 의문문 감지 결과 추가
     };
   }, []);
 
@@ -118,15 +130,32 @@ export const useSpeechRecognition = () => {
       // MediaStream 가져오기 (오디오 분석용)
       mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Web Audio API 설정
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      const source = audioContextRef.current.createMediaStreamSource(mediaStreamRef.current);
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 2048;
-      source.connect(analyserRef.current);
+      // MediaRecorder 초기화 (음성 데이터 녹음용)
+      mediaRecorderRef.current = new MediaRecorder(mediaStreamRef.current);
+      recordedChunksRef.current = [];
       
-      // 오디오 데이터 배열 초기화
-      audioDataRef.current = new Float32Array(analyserRef.current.frequencyBinCount);
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorderRef.current.onstop = () => {
+        // 녹음된 데이터를 Blob으로 변환
+        const audioBlob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // 기존 결과에 음성 데이터 추가
+        setResult(prevResult => ({
+          ...prevResult,
+          audioBlob,
+          audioUrl,
+          audioDuration: 0, // 추후 계산 가능
+        }));
+      };
+      
+      // 녹음 시작
+      mediaRecorderRef.current.start();
       
       // Speech Recognition 설정
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -157,12 +186,24 @@ export const useSpeechRecognition = () => {
         
         if (!event.results || event.results.length === 0) return;
         
-        const transcript = event.results[0][0].transcript;
+        let transcript = event.results[0][0].transcript;
         const speechConfidence = event.results[0][0].confidence;
         
         // 중복 방지: 이전 결과와 같으면 무시
         if (result && result.transcript === transcript) {
           return;
+        }
+        
+        // 의문문 패턴 감지 및 물음표 추가
+        const questionPatterns = [
+          /\b(왜|어떻게|무엇|언제|어디|누구|뭐|어떤|어느)\b/,
+          /\b(해|돼|돼요|인가요|나요|까|을까|ㄹ까)\b$/,
+          /\b(있어|없어|할까|먹을까|갈까)\b$/
+        ];
+        
+        const isQuestion = questionPatterns.some(pattern => pattern.test(transcript));
+        if (isQuestion && !transcript.includes('?')) {
+          transcript += '?';
         }
         
         // 오디오 특징 추출
@@ -173,7 +214,13 @@ export const useSpeechRecognition = () => {
           
           setResult({
             transcript,
-            emotion,
+            emotion: {
+              ...emotion,
+              isVoiceInput: true,
+              questionDetected: isQuestion,
+              timestamp: Date.now(),
+              duration: 0, // 추후 녹음 시간 추가 가능
+            },
             confidence: speechConfidence
           });
         } else {
@@ -186,7 +233,8 @@ export const useSpeechRecognition = () => {
               pitch: 0,
               speed: 0,
               volume: 0,
-              description: '음성 분석을 완료했습니다'
+              description: '음성 분석을 완료했습니다',
+              hasQuestionWords: isQuestion
             },
             confidence: speechConfidence
           });
@@ -195,6 +243,11 @@ export const useSpeechRecognition = () => {
         // 음성 인식 완료 후 즉시 중지
         if (recognitionRef.current) {
           recognitionRef.current.stop();
+        }
+        
+        // 녹음 중지
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
         }
       };
       
@@ -272,6 +325,16 @@ export const useSpeechRecognition = () => {
       timeoutRef.current = null;
     }
     
+    // 음성 인식 중지
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    
+    // 녹음 중지
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
@@ -284,6 +347,8 @@ export const useSpeechRecognition = () => {
     
     analyserRef.current = null;
     audioDataRef.current = null;
+    mediaRecorderRef.current = null;
+    recordedChunksRef.current = [];
   }, []);
 
   // 컴포넌트 언마운트 시 정리

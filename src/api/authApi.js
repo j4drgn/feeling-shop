@@ -15,14 +15,6 @@ const authApi = {
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
-          // 백엔드 서버가 실행되지 않는 경우, 개발 모드에서 모킹 데이터 사용
-          return {
-            success: true,
-            message: "회원가입이 완료되었습니다.",
-            data: null
-          };
-        }
         const errorData = await response.json();
         throw new Error(errorData.message || '회원가입에 실패했습니다.');
       }
@@ -133,7 +125,7 @@ const authApi = {
   // 사용자 정보 업데이트
   updateUserInfo: async (userData, accessToken) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${accessToken}`,

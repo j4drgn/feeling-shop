@@ -182,8 +182,12 @@ export const MainScreen = () => {
 
   const handleUserInput = async (input, emotion) => {
     try {
+      console.log('사용자 입력:', input);
+      console.log('음성 감정 분석:', emotion);
+      
       // 1. 감정 분석 엔진으로 정밀 분석
       const emotionAnalysis = emotionAnalysisEngine.analyzeEmotion(input);
+      console.log('텍스트 감정 분석 결과:', emotionAnalysis);
       
       // 2. 사용자 프로필에 반영
       userProfileService.updateFromConversation(input, emotionAnalysis);
@@ -213,8 +217,6 @@ export const MainScreen = () => {
 
       try {
         // OpenAI API를 통한 응답 생성
-        const emotionType = emotion?.emotion || "neutral";
-        const emotionScore = emotion?.confidence || 0.5;
 
         // 로컬 스토리지에서 토큰 가져오기 (없으면 null)
         const accessToken = localStorage.getItem("accessToken") || null;
@@ -223,17 +225,20 @@ export const MainScreen = () => {
         let apiResponse;
         if (chatSessionId) {
           try {
-            apiResponse = await chatApi.sendSessionMessage(
+            // 음성 입력인 경우 메타데이터를 함께 전송
+            console.log('세션 기반 음성 채팅 호출:', chatSessionId);
+            apiResponse = await chatApi.sendSessionMessageWithVoice(
               chatSessionId,
               input,
-              emotionType,
-              emotionScore,
+              emotion,
               accessToken
             );
           } catch (sessionError) {
+            console.error('세션 기반 채팅 실패:', sessionError);
             // 세션이 존재하지 않거나 만료된 경우 새 세션 생성
             if (sessionError.message.includes("채팅 세션을 찾을 수 없습니다") || 
-                sessionError.message.includes("400")) {
+                sessionError.message.includes("400") ||
+                sessionError.message.includes("유효하지 않은")) {
               try {
                 const sessionTitle = `대화 ${new Date().toLocaleString("ko-KR")}`;
                 const newSessionResponse = await chatApi.createChatSession(
@@ -250,28 +255,27 @@ export const MainScreen = () => {
                     newSessionId = newSessionResponse.data.sessionId;
                   }
                 }
-                if (newSessionId) {
+                if (newSessionId && !isNaN(newSessionId) && newSessionId > 0) {
+                  console.log('새 세션 생성 성공:', newSessionId);
                   setChatSessionId(newSessionId);
                   localStorage.setItem("currentChatSessionId", newSessionId.toString());
                   // 새 세션으로 메시지 전송
-                  apiResponse = await chatApi.sendSessionMessage(
+                  apiResponse = await chatApi.sendSessionMessageWithVoice(
                     newSessionId,
                     input,
-                    emotionType,
-                    emotionScore,
+                    emotion,
                     accessToken
                   );
                 } else {
-                  throw new Error("새 세션 생성 실패");
+                  throw new Error("새 세션 생성 실패: 유효한 세션 ID를 받지 못했습니다.");
                 }
               } catch (createError) {
                 // 세션 ID를 null로 설정
                 setChatSessionId(null);
                 localStorage.removeItem("currentChatSessionId");
-                apiResponse = await chatApi.sendChatMessage(
+                apiResponse = await chatApi.sendVoiceChatMessage(
                   input,
-                  emotionType,
-                  emotionScore,
+                  emotion,
                   accessToken,
                   null
                 );
@@ -285,10 +289,9 @@ export const MainScreen = () => {
               // 다른 오류의 경우 일반 메시지로 폴백
               setChatSessionId(null);
               localStorage.removeItem("currentChatSessionId");
-              apiResponse = await chatApi.sendChatMessage(
+              apiResponse = await chatApi.sendVoiceChatMessage(
                 input,
-                emotionType,
-                emotionScore,
+                emotion, // voiceMetadata
                 accessToken,
                 null
               );
@@ -300,10 +303,9 @@ export const MainScreen = () => {
             }
           }
         } else {
-          apiResponse = await chatApi.sendChatMessage(
+          apiResponse = await chatApi.sendVoiceChatMessage(
             input,
-            emotionType,
-            emotionScore,
+            emotion,
             accessToken,
             chatSessionId
           );
@@ -660,8 +662,19 @@ export const MainScreen = () => {
     if (result && result.transcript) {
       setUserText(result.transcript);
 
+      // 음성 메타데이터 수집 개선
+      const voiceMetadata = {
+        duration: result.emotion?.duration || 1.0,
+        sampleRate: result.emotion?.sampleRate || 16000,
+        pitch: result.emotion?.pitch || 0,
+        volume: result.emotion?.volume || 0,
+        speed: result.emotion?.speed || 0,
+        confidence: result.emotion?.confidence || 0.5,
+      };
+
       // 감정 분석 정보 표시
       if (result.emotion) {
+        console.log('음성 메타데이터:', voiceMetadata);
       }
 
       // AI 응답 생성 중 표시
@@ -670,7 +683,7 @@ export const MainScreen = () => {
 
       // 자동으로 응답 생성
       setTimeout(() => {
-        handleUserInput(result.transcript, result.emotion);
+        handleUserInput(result.transcript, voiceMetadata);
       }, 500);
     }
   }, [result]);
@@ -872,6 +885,11 @@ export const MainScreen = () => {
                     <span className="text-xs sm:text-caption text-layer-muted/70">
                       피치 {Math.round(result.emotion.pitch)}Hz
                     </span>
+                    {result.emotion.hasQuestionWords && (
+                      <span className="text-xs sm:text-caption text-blue-600 font-medium">
+                        의문문 감지됨
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
