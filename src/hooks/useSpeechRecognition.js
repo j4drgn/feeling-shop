@@ -8,6 +8,8 @@ export const useSpeechRecognition = () => {
   const [result, setResult] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [taskStatus, setTaskStatus] = useState(null);
   
   const recognitionRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -338,7 +340,7 @@ export const useSpeechRecognition = () => {
         setIsUploading(false);
 
         // 서버 응답 구조 예시: { transcript, emotion, labels, sessionId }
-        if (serverResponse) {
+    if (serverResponse) {
           setResult(prev => ({
             ...prev,
             transcript: serverResponse.transcript || prev.transcript,
@@ -346,6 +348,7 @@ export const useSpeechRecognition = () => {
             serverLabels: serverResponse.labels || null,
             serverSessionId: serverResponse.sessionId || null,
             chatResponse: serverResponse.chatResponse || null,
+      serverJobId: serverResponse.jobId || serverResponse.taskId || null,
           }));
         }
       } catch (err) {
@@ -359,6 +362,46 @@ export const useSpeechRecognition = () => {
     if (result && result.audioBlob) {
       uploadAndTranscribe(result.audioBlob, result);
     }
+  }, [result]);
+
+  // Polling for async job status
+  useEffect(() => {
+    let intervalId = null;
+    const startPolling = (jobId) => {
+      setIsProcessing(true);
+      setTaskStatus({ status: 'pending' });
+      intervalId = setInterval(async () => {
+        try {
+          const status = await chatApi.getVoiceTaskStatus(jobId);
+          setTaskStatus(status);
+          if (status && status.finished) {
+            // merge final result into result
+            setResult(prev => ({
+              ...prev,
+              transcript: status.transcript || prev.transcript,
+              emotion: status.emotion || prev.emotion,
+              serverLabels: status.labels || prev.serverLabels,
+              serverSessionId: status.sessionId || prev.serverSessionId,
+              chatResponse: status.chatResponse || prev.chatResponse,
+            }));
+            setIsProcessing(false);
+            clearInterval(intervalId);
+            intervalId = null;
+          }
+        } catch (err) {
+          console.warn('Polling task failed', err);
+          // keep trying; if persistent fail, stop after N attempts? For now continue
+        }
+      }, 2000);
+    };
+
+    if (result && result.serverJobId) {
+      startPolling(result.serverJobId);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [result]);
 
   // 음성 인식 중지
@@ -430,6 +473,8 @@ export const useSpeechRecognition = () => {
     resetResult
   ,isUploading,
   uploadProgress
+  ,isProcessing,
+  taskStatus
   };
 };
 

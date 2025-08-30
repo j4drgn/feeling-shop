@@ -52,6 +52,8 @@ export const MainScreen = () => {
     resetResult,
   isUploading,
   uploadProgress,
+  isProcessing,
+  taskStatus,
   } = useSpeechRecognition();
 
   const { speak, isSpeaking, stopSpeaking } = useSpeechSynthesis({
@@ -823,6 +825,18 @@ export const MainScreen = () => {
             {!isUploading && result?.audioBlob && !result?.chatResponse && (
               <div className="bg-layer-surface rounded-surface px-3 py-2 shadow-surface border border-layer-border">
                 <p className="text-xs text-layer-muted">오디오 분석 중... 잠시만 기다려주세요.</p>
+              </div>
+            )}
+            {/* Async task status */}
+            {isProcessing && taskStatus && (
+              <div className="mt-2 bg-layer-surface rounded-surface px-3 py-2 shadow-surface border border-layer-border">
+                <p className="text-xs text-layer-muted">서버에서 분석 중: {taskStatus.status}</p>
+                {taskStatus.jobId && (
+                  <p className="text-xs text-layer-muted mt-1">작업 ID: {taskStatus.jobId}</p>
+                )}
+                {taskStatus.eta && (
+                  <p className="text-xs text-layer-muted mt-1">예상 남은시간: {taskStatus.eta}s</p>
+                )}
               </div>
             )}
           </div>

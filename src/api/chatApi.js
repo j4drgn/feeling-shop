@@ -137,14 +137,25 @@ const chatApi = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        // 서버가 500 등을 반환할 때 전체 응답 본문을 로깅하여 원인 파악을 쉽게 함
+        const text = await response.text().catch(() => null);
+        let parsed = null;
+        try { parsed = text ? JSON.parse(text) : null; } catch (e) { parsed = null; }
+        console.error('createChatSession failed', {
+          status: response.status,
+          statusText: response.statusText,
+          bodyText: text,
+          bodyJson: parsed,
+        });
+
+        const errorMessage = (parsed && (parsed.message || parsed.error)) || text || `HTTP ${response.status}: ${response.statusText}`;
         throw new Error(errorMessage);
       }
 
-      const responseData = await response.json();
+      const responseData = await response.json().catch(() => ({}));
       return responseData;
     } catch (error) {
+      console.error('createChatSession exception', error);
       throw error;
     }
   },
@@ -361,8 +372,9 @@ const chatApi = {
         if (sessionId) form.append('chatSessionId', sessionId);
         if (voiceMetadata) form.append('voiceMetadata', JSON.stringify(voiceMetadata));
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${API_BASE_URL}/chatgpt/chat/voice/file`);
+  const xhr = new XMLHttpRequest();
+  const url = `${API_BASE_URL}/chatgpt/chat/voice/file${typeof asyncMode !== 'undefined' && asyncMode ? '?async=true' : ''}`;
+  xhr.open('POST', url);
 
         if (accessToken) {
           xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
@@ -407,6 +419,22 @@ const chatApi = {
         reject(error);
       }
     });
+  },
+
+  // Poll task status for async processing
+  getVoiceTaskStatus: async (jobId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/chatgpt/chat/voice/task/${jobId}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('getVoiceTaskStatus error:', error);
+      throw error;
+    }
   },
 };
 
