@@ -182,11 +182,25 @@ export const MainScreen = () => {
   const createNewChatSession = async () => {
     try {
       const accessToken = localStorage.getItem("accessToken") || null;
+      
+      // 토큰이 없으면 로그인 페이지로 리다이렉트
+      if (!accessToken) {
+        console.log('액세스 토큰이 없습니다. 로그인 페이지로 이동합니다.');
+        navigate('/login');
+        return;
+      }
+      
       const sessionTitle = `대화 ${new Date().toLocaleString("ko-KR")}`;
       const response = await chatApi.createChatSession(sessionTitle, accessToken);
 
       if (!response || !response.success) {
         console.warn('createChatSession failed or returned invalid:', response && response.message);
+        // 인증 오류인 경우 로그인 페이지로 리다이렉트
+        if (response && response.message && response.message.includes('인증')) {
+          console.log('인증 오류로 로그인 페이지로 이동합니다.');
+          navigate('/login');
+          return;
+        }
         // 백엔드 오류 시 오프라인 모드로 전환
         setIsOfflineMode(true);
         setCharacterText('백엔드 서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
@@ -208,6 +222,12 @@ export const MainScreen = () => {
       }
     } catch (error) {
       console.error('채팅 세션 생성 실패:', error);
+      // 인증 관련 오류인 경우 로그인 페이지로 리다이렉트
+      if (error.message && (error.message.includes('인증') || error.message.includes('토큰') || error.message.includes('401'))) {
+        console.log('인증 오류로 로그인 페이지로 이동합니다.');
+        navigate('/login');
+        return;
+      }
       // 백엔드 오류 시 오프라인 모드로 전환
       setIsOfflineMode(true);
       setCharacterText('백엔드 서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
@@ -221,10 +241,24 @@ export const MainScreen = () => {
   const validateChatSession = async (sessionId) => {
     try {
       const accessToken = localStorage.getItem("accessToken") || null;
+      
+      // 토큰이 없으면 로그인 페이지로 리다이렉트
+      if (!accessToken) {
+        console.log('액세스 토큰이 없습니다. 로그인 페이지로 이동합니다.');
+        navigate('/login');
+        return false;
+      }
+      
       // 세션의 메시지를 가져와서 세션이 유효한지 확인
       await chatApi.getSessionMessages(sessionId, accessToken);
       return true;
     } catch (error) {
+      // 인증 오류인 경우 로그인 페이지로 리다이렉트
+      if (error.message && (error.message.includes('인증') || error.message.includes('토큰') || error.message.includes('401') || error.message.includes('403'))) {
+        console.log('인증 오류로 로그인 페이지로 이동합니다.');
+        navigate('/login');
+        return false;
+      }
       // 404 오류 또는 세션 관련 오류는 세션이 존재하지 않는다는 의미
       if (
         error.message.includes("404") ||
@@ -284,6 +318,12 @@ export const MainScreen = () => {
 
       // API 호출 시도
       try {
+        // 토큰이 없으면 로그인 페이지로 리다이렉트
+        if (!accessToken) {
+          console.log('액세스 토큰이 없습니다. 로그인 페이지로 이동합니다.');
+          navigate('/login');
+          return;
+        }
 
         // 세션 ID가 있으면 세션 기반 API 호출, 없으면 일반 API 호출
         let apiResponse;
@@ -298,6 +338,12 @@ export const MainScreen = () => {
             );
           } catch (sessionError) {
             console.error('세션 기반 채팅 실패:', sessionError);
+            // 인증 오류인 경우 로그인 페이지로 리다이렉트
+            if (sessionError.message && (sessionError.message.includes('인증') || sessionError.message.includes('토큰') || sessionError.message.includes('401') || sessionError.message.includes('403'))) {
+              console.log('인증 오류로 로그인 페이지로 이동합니다.');
+              navigate('/login');
+              return;
+            }
             // 세션이 존재하지 않거나 만료된 경우 새 세션 생성
             if (sessionError.message.includes("채팅 세션을 찾을 수 없습니다") || 
                 sessionError.message.includes("400") ||
@@ -332,6 +378,12 @@ export const MainScreen = () => {
                   throw new Error("새 세션 생성 실패: 유효한 세션 ID를 받지 못했습니다.");
                 }
               } catch (createError) {
+                // 인증 오류인 경우 로그인 페이지로 리다이렉트
+                if (createError.message && (createError.message.includes('인증') || createError.message.includes('토큰') || createError.message.includes('401') || createError.message.includes('403'))) {
+                  console.log('인증 오류로 로그인 페이지로 이동합니다.');
+                  navigate('/login');
+                  return;
+                }
                 // 세션 ID를 null로 설정
                 setChatSessionId(null);
                 localStorage.removeItem("currentChatSessionId");
@@ -400,6 +452,12 @@ export const MainScreen = () => {
         }
       } catch (apiError) {
         console.error("API 호출 실패:", apiError);
+        // 인증 오류인 경우 로그인 페이지로 리다이렉트
+        if (apiError.message && (apiError.message.includes('인증') || apiError.message.includes('토큰') || apiError.message.includes('401') || apiError.message.includes('403'))) {
+          console.log('인증 오류로 로그인 페이지로 이동합니다.');
+          navigate('/login');
+          return;
+        }
         // 서버 연결 실패 감지
         if (apiError.message.includes('Failed to fetch') || apiError.message.includes('ERR_CONNECTION_REFUSED')) {
           setCharacterText('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.');
