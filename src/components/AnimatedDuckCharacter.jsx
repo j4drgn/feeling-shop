@@ -7,14 +7,14 @@ const DUCK_ANIMATIONS = {
     type: 'png_sequence',
     basePath: '/img/duck_idle/adult idle_',
     frameCount: 51, // 0-50
-    frameRate: 15,
+    frameRate: 24, // 더 부드러운 애니메이션을 위해 24fps로 증가
     loop: true
   },
   happy: {
     type: 'png_sequence',
     basePath: '/img/duck_happy/adult happy_',
-    frameCount: 41, // 0-40
-    frameRate: 20,
+    frameCount: 40, // 0-39 (총 40프레임)
+    frameRate: 30, // 더 활발한 느낌을 위해 30fps로 증가
     loop: true
   },
   talk: {
@@ -112,9 +112,40 @@ const AnimatedDuckCharacter = ({
   const [isSequencePlaying, setIsSequencePlaying] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPngAnimationPlaying, setIsPngAnimationPlaying] = useState(false);
+  const [preloadedImages, setPreloadedImages] = useState({});
   const sequenceTimeoutRef = useRef(null);
   const pngAnimationRef = useRef(null);
   const gifRef = useRef(null);
+
+  // Preload images for smoother animation
+  const preloadAnimationImages = useCallback((animConfig) => {
+    if (animConfig.type !== 'png_sequence') return;
+    
+    const imagePromises = [];
+    const padLength = animConfig.basePath.includes('duck_gift') ? 3 : 2;
+    
+    for (let i = 0; i < animConfig.frameCount; i++) {
+      const imagePath = `${animConfig.basePath}${String(i).padStart(padLength, '0')}.png`;
+      if (!preloadedImages[imagePath]) {
+        const img = new Image();
+        img.src = imagePath;
+        imagePromises.push(
+          new Promise((resolve) => {
+            img.onload = () => resolve(imagePath);
+            img.onerror = () => resolve(null);
+          })
+        );
+      }
+    }
+    
+    Promise.all(imagePromises).then((loadedPaths) => {
+      const newPreloaded = { ...preloadedImages };
+      loadedPaths.forEach(path => {
+        if (path) newPreloaded[path] = true;
+      });
+      setPreloadedImages(newPreloaded);
+    });
+  }, [preloadedImages]);
 
   // Get current animation source (GIF path, PNG frame, or sequence step)
   const getCurrentAnimationSource = useCallback(() => {
@@ -148,7 +179,7 @@ const AnimatedDuckCharacter = ({
     }
   }, [currentAnimation, currentSequenceStep, currentFrame]);
 
-  // PNG animation handler
+  // PNG animation handler with requestAnimationFrame for smoother animation
   const playPngAnimation = useCallback((animConfig) => {
     if (animConfig.type !== 'png_sequence') return;
     
@@ -157,30 +188,37 @@ const AnimatedDuckCharacter = ({
     
     const frameInterval = 1000 / (animConfig.frameRate || 15);
     let frameIndex = 0;
+    let lastFrameTime = Date.now();
     
     const playFrame = () => {
-      if (frameIndex >= animConfig.frameCount) {
-        if (animConfig.loop) {
-          frameIndex = 0;
-        } else {
-          setIsPngAnimationPlaying(false);
-          if (onAnimationComplete && typeof onAnimationComplete === 'function') {
-            onAnimationComplete(currentAnimation);
+      const currentTime = Date.now();
+      const deltaTime = currentTime - lastFrameTime;
+      
+      if (deltaTime >= frameInterval) {
+        if (frameIndex >= animConfig.frameCount) {
+          if (animConfig.loop) {
+            frameIndex = 0;
+          } else {
+            setIsPngAnimationPlaying(false);
+            if (onAnimationComplete && typeof onAnimationComplete === 'function') {
+              onAnimationComplete(currentAnimation);
+            }
+            return;
           }
-          return;
         }
+        
+        setCurrentFrame(frameIndex);
+        frameIndex++;
+        lastFrameTime = currentTime;
       }
       
-      setCurrentFrame(frameIndex);
-      frameIndex++;
-      
       if (animConfig.loop || frameIndex < animConfig.frameCount) {
-        pngAnimationRef.current = setTimeout(playFrame, frameInterval);
+        pngAnimationRef.current = requestAnimationFrame(playFrame);
       }
     };
     
-    pngAnimationRef.current = setTimeout(playFrame, frameInterval);
-  }, [currentAnimation, onAnimationComplete, isPngAnimationPlaying]);
+    pngAnimationRef.current = requestAnimationFrame(playFrame);
+  }, [currentAnimation, onAnimationComplete]);
 
   // Handle sequence animations
   const playSequence = useCallback((animConfig) => {
@@ -223,13 +261,13 @@ const AnimatedDuckCharacter = ({
       const animConfig = DUCK_ANIMATIONS[currentAnimation];
       if (!animConfig) return;
 
-      // Clear any existing timeouts
+      // Clear any existing timeouts and animation frames
       if (sequenceTimeoutRef.current) {
         clearTimeout(sequenceTimeoutRef.current);
         sequenceTimeoutRef.current = null;
       }
       if (pngAnimationRef.current) {
-        clearTimeout(pngAnimationRef.current);
+        cancelAnimationFrame(pngAnimationRef.current);
         pngAnimationRef.current = null;
       }
 
@@ -261,7 +299,7 @@ const AnimatedDuckCharacter = ({
           clearTimeout(sequenceTimeoutRef.current);
         }
         if (pngAnimationRef.current) {
-          clearTimeout(pngAnimationRef.current);
+          cancelAnimationFrame(pngAnimationRef.current);
         }
       };
     } catch (error) {
@@ -269,6 +307,13 @@ const AnimatedDuckCharacter = ({
       setCurrentAnimation('idle');
     }
   }, [currentAnimation, playSequence, playPngAnimation, onAnimationComplete]);
+
+  // Preload images on component mount
+  useEffect(() => {
+    // Preload commonly used animations
+    preloadAnimationImages(DUCK_ANIMATIONS.idle);
+    preloadAnimationImages(DUCK_ANIMATIONS.happy);
+  }, [preloadAnimationImages]);
 
   // Handle animation prop changes
   useEffect(() => {
