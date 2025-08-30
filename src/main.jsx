@@ -11,7 +11,7 @@ import { LoginScreen } from "./screens/LoginScreen";
 import { SignupScreen } from "./screens/SignupScreen";
 import "./index.css";
 
-// React Router v7 미리 설정
+// React Router 설정
 const router = createBrowserRouter(
   [
     {
@@ -43,7 +43,12 @@ const router = createBrowserRouter(
   ],
   {
     future: {
-      v7_startTransition: true,
+      v7_startTransition: false,
+      v7_relativeSplatPath: false,
+      v7_fetcherPersist: false,
+      v7_normalizeFormMethod: false,
+      v7_partialHydration: false,
+      v7_skipActionErrorRevalidation: false,
     },
   }
 );

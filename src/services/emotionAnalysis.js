@@ -120,16 +120,18 @@ export class EmotionAnalysisEngine {
     // 7. 신뢰도 계산
     const confidence = this.calculateConfidence(emotionScores, dominantEmotion);
     
-    // 8. 디버깅 로그 (개발용)
-    console.log('감정 분석 결과:', {
-      originalText: text,
-      processedText: processed.text,
-      punctuation: processed.punctuation,
-      sentenceAnalysis: sentenceAnalysis,
-      emotionScores: emotionScores,
-      dominantEmotion: dominantEmotion,
-      confidence: confidence
-    });
+    // 8. 디버깅 로그 (개발용) - 조건부로 실행
+    if (process.env.NODE_ENV === 'development') {
+      console.log('감정 분석 결과:', {
+        originalText: text,
+        processedText: processed.text,
+        punctuation: processed.punctuation,
+        sentenceAnalysis: sentenceAnalysis,
+        emotionScores: emotionScores,
+        dominantEmotion: dominantEmotion,
+        confidence: confidence
+      });
+    }
     
     // 8. 이력 저장
     const analysis = {

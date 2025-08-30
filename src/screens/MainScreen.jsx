@@ -36,11 +36,69 @@ export const MainScreen = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [conversationContext, setConversationContext] = useState(null);
   const [textInput, setTextInput] = useState("");
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [profileQuestion, setProfileQuestion] = useState(null);
-  const [contentRecommendations, setContentRecommendations] = useState([]);
   const [chatSessionId, setChatSessionId] = useState(null);
+  const [contentRecommendations, setContentRecommendations] = useState([]);
   const characterRef = useRef(null);
+
+  // 서버 헬스체크 함수
+  const checkServerHealth = async () => {
+    try {
+      const healthResponse = await healthApi.checkHealth();
+      if (healthResponse && healthResponse.success) {
+        console.log('Backend health OK');
+        const wasOffline = isOfflineMode;
+        setIsOfflineMode(false);
+        // 오프라인에서 온라인으로 전환된 경우에만 세션 초기화 재시도
+        if (wasOffline && !chatSessionId) {
+          initializeChatSession();
+        }
+        return true;
+      } else {
+        console.warn('Backend health check failed:', healthResponse && healthResponse.message);
+        setCharacterText('백엔드 서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
+        setIsOfflineMode(true);
+        return false;
+      }
+    } catch (error) {
+      console.error('checkServerHealth exception', error);
+      setCharacterText('서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
+      setIsOfflineMode(true);
+      return false;
+    }
+  };
+
+  // 채팅 세션 초기화 함수
+  const initializeChatSession = async () => {
+    try {
+      // 백엔드가 오프라인 상태라면 세션 초기화를 건너뜀
+      if (isOfflineMode) {
+        console.log('오프라인 모드: 채팅 세션 초기화 건너뜀');
+        return;
+      }
+
+      const storedSessionId = localStorage.getItem("currentChatSessionId");
+      if (storedSessionId) {
+        const isValid = await validateChatSession(parseInt(storedSessionId, 10));
+        if (isValid) {
+          setChatSessionId(parseInt(storedSessionId, 10));
+        } else {
+          localStorage.removeItem("currentChatSessionId");
+          await createNewChatSession();
+        }
+      } else {
+        // 새 세션 생성
+        await createNewChatSession();
+      }
+    } catch (error) {
+      console.error('채팅 세션 초기화 실패:', error);
+      // 백엔드 오류 시 오프라인 모드로 전환
+      setIsOfflineMode(true);
+      setCharacterText('백엔드 서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
+    }
+  };
 
   const {
     isListening,
@@ -50,13 +108,13 @@ export const MainScreen = () => {
     isSupported,
     error,
     resetResult,
-  isUploading,
-  uploadProgress,
-  isProcessing,
-  taskStatus,
+    isUploading,
+    uploadProgress,
+    isProcessing,
+    taskStatus,
   } = useSpeechRecognition();
 
-  const { speak, isSpeaking, stopSpeaking } = useSpeechSynthesis({
+  const { speak, isSpeaking, stopSpeaking, hasUserInteracted } = useSpeechSynthesis({
     onEnd: () => {
       // 음성 출력이 끝났을 때 애니메이션을 idle로 복원
       if (currentAnimation !== "idle" && !isListening) {
@@ -97,48 +155,25 @@ export const MainScreen = () => {
     }, 1000);
 
     // 서버 헬스체크
-    const checkServerHealth = async () => {
-      try {
-        const healthResponse = await healthApi.checkHealth();
-        if (healthResponse && healthResponse.success) {
-          console.log('Backend health OK');
-        } else {
-          console.warn('Backend health check failed:', healthResponse && healthResponse.message);
-          setCharacterText('백엔드 서버에 연결할 수 없습니다. 서버를 시작하려면 터미널에서 백엔드 프로젝트를 실행하세요.');
-        }
-      } catch (error) {
-        console.error('checkServerHealth exception', error);
-        setCharacterText('서버와 연결할 수 없습니다. 서버가 실행 중인지 확인하세요.');
-      }
-    };
-
     checkServerHealth();
 
     // 로컬 스토리지에서 세션 ID 확인 및 유효성 검증
-    const initializeChatSession = async () => {
-      try {
-        const storedSessionId = localStorage.getItem("currentChatSessionId");
-        if (storedSessionId) {
-          const isValid = await validateChatSession(parseInt(storedSessionId, 10));
-          if (isValid) {
-            setChatSessionId(parseInt(storedSessionId, 10));
-          } else {
-            localStorage.removeItem("currentChatSessionId");
-            await createNewChatSession();
-          }
-        } else {
-          // 새 세션 생성
-          await createNewChatSession();
-        }
-      } catch (error) {
-        console.error('채팅 세션 초기화 실패:', error);
-        setCharacterText('채팅 세션 초기화에 실패했습니다. 서버 상태를 확인하세요.');
-      }
-    };
-
     initializeChatSession();
 
-    return () => clearTimeout(welcomeTimer);
+    // 서버 상태 주기적 모니터링 (오프라인 모드일 때만)
+    const serverMonitorInterval = setInterval(async () => {
+      if (isOfflineMode) {
+        const isServerBack = await checkServerHealth();
+        if (isServerBack) {
+          clearInterval(serverMonitorInterval);
+        }
+      }
+    }, 30000); // 30초마다 확인
+
+    return () => {
+      clearTimeout(welcomeTimer);
+      clearInterval(serverMonitorInterval);
+    };
   }, [triggerAnimation]);
 
   // 새 채팅 세션 생성 함수
@@ -150,7 +185,10 @@ export const MainScreen = () => {
 
       if (!response || !response.success) {
         console.warn('createChatSession failed or returned invalid:', response && response.message);
-        throw new Error(response && response.message ? response.message : '세션 생성 실패');
+        // 백엔드 오류 시 오프라인 모드로 전환
+        setIsOfflineMode(true);
+        setCharacterText('백엔드 서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
+        return;
       }
 
       // response.data는 서버 응답 본문
@@ -168,7 +206,9 @@ export const MainScreen = () => {
       }
     } catch (error) {
       console.error('채팅 세션 생성 실패:', error);
-      setCharacterText('서버에서 채팅 세션을 생성하지 못했습니다. 백엔드 서버가 실행 중인지 확인하세요.');
+      // 백엔드 오류 시 오프라인 모드로 전환
+      setIsOfflineMode(true);
+      setCharacterText('백엔드 서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
       // 세션 ID를 null로 설정하여 세션 없는 모드로 전환
       setChatSessionId(null);
       localStorage.removeItem("currentChatSessionId");
@@ -192,20 +232,18 @@ export const MainScreen = () => {
       ) {
         return false;
       }
-      // 다른 오류는 서버 문제로 간주하고 false 반환하여 새 세션 또는 오류를 유도
+      // 다른 오류(네트워크 오류 등)는 서버 문제로 간주하고 오프라인 모드로 전환
       console.error('세션 검증 중 서버 오류:', error);
+      setIsOfflineMode(true);
+      setCharacterText('백엔드 서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
       return false;
     }
   };
 
   const handleUserInput = async (input, emotion) => {
     try {
-      console.log('사용자 입력:', input);
-      console.log('음성 감정 분석:', emotion);
-      
       // 1. 감정 분석 엔진으로 정밀 분석
       const emotionAnalysis = emotionAnalysisEngine.analyzeEmotion(input);
-      console.log('텍스트 감정 분석 결과:', emotionAnalysis);
       
       // 2. 사용자 프로필에 반영
       userProfileService.updateFromConversation(input, emotionAnalysis);
@@ -217,6 +255,15 @@ export const MainScreen = () => {
           emotionAnalysis.dominant,
           'conversation'
         );
+      }
+      
+      // 오프라인 모드 처리
+      if (isOfflineMode) {
+        const offlineResponse = generateOfflineResponse(input, emotionAnalysis);
+        setCharacterText(offlineResponse);
+        setConversationContext(emotionAnalysis.dominant);
+        setIsAIThinking(false);
+        return;
       }
       
       // 2. 프로필 질문이 대기 중인지 확인
@@ -235,15 +282,12 @@ export const MainScreen = () => {
 
       // API 호출 시도
       try {
-        // 로컬 스토리지에서 토큰 가져오기 (없으면 null)
-        const accessToken = localStorage.getItem("accessToken") || null;
 
         // 세션 ID가 있으면 세션 기반 API 호출, 없으면 일반 API 호출
         let apiResponse;
         if (chatSessionId) {
           try {
             // 음성 입력인 경우 메타데이터를 함께 전송
-            console.log('세션 기반 음성 채팅 호출:', chatSessionId);
             apiResponse = await chatApi.sendSessionMessageWithVoice(
               chatSessionId,
               input,
@@ -273,7 +317,6 @@ export const MainScreen = () => {
                   }
                 }
                 if (newSessionId && !isNaN(newSessionId) && newSessionId > 0) {
-                  console.log('새 세션 생성 성공:', newSessionId);
                   setChatSessionId(newSessionId);
                   localStorage.setItem("currentChatSessionId", newSessionId.toString());
                   // 새 세션으로 메시지 전송
@@ -365,16 +408,7 @@ export const MainScreen = () => {
       }
 
       // API 호출 실패 시 로컬 로직 실행 (서버가 다운되었을 때)
-      if (
-        lowerInput.includes("추천") ||
-        lowerInput.includes("볼만한") ||
-        lowerInput.includes("들을만한") ||
-        lowerInput.includes("읽을만한") ||
-        lowerInput.includes("영화") ||
-        lowerInput.includes("책") ||
-        lowerInput.includes("음악") ||
-        lowerInput.includes("플레이리스트")
-      ) {
+      if (!response || response.trim() === "") {
         const personalizedRecs =
           await contentRecommendationEngine.getPersonalizedContentRecommendations(
             {
@@ -485,9 +519,10 @@ export const MainScreen = () => {
         }
       }
 
-      setCharacterText(response);
-      setConversationContext(context);
-      setIsAIThinking(false);
+        // 로컬 응답 설정
+        setCharacterText(response);
+        setConversationContext(context);
+        setIsAIThinking(false);
     } catch (error) {
       console.error("Error in handleUserInput:", error);
       setCharacterText("어? 뭔가 문제가 생겼어! 다시 말해줄래?");
@@ -576,6 +611,76 @@ export const MainScreen = () => {
     return baseResponses;
   };
 
+  // 오프라인 모드 응답 생성
+  const generateOfflineResponse = (input, emotionAnalysis) => {
+    const lowerInput = input.toLowerCase();
+    
+    // 추천 관련 응답
+    if (
+      lowerInput.includes("추천") ||
+      lowerInput.includes("볼만한") ||
+      lowerInput.includes("들을만한") ||
+      lowerInput.includes("읽을만한") ||
+      lowerInput.includes("영화") ||
+      lowerInput.includes("책") ||
+      lowerInput.includes("음악") ||
+      lowerInput.includes("플레이리스트")
+    ) {
+      const offlineRecommendations = [
+        "오프라인 모드에서는 기본적인 추천만 할 수 있어요. 서버에 연결되면 더 정확한 추천을 받을 수 있습니다!",
+        "지금은 서버에 연결할 수 없어서 간단한 제안만 할게요. 나중에 다시 물어봐주세요!",
+        "백엔드 서버가 실행 중일 때 더 좋은 추천을 해줄 수 있어요. 지금은 기본적인 답변만 드릴게요."
+      ];
+      return offlineRecommendations[Math.floor(Math.random() * offlineRecommendations.length)];
+    }
+    
+    // 인사 관련 응답
+    if (
+      lowerInput.includes("안녕") ||
+      lowerInput.includes("하이") ||
+      lowerInput.includes("헬로")
+    ) {
+      const greetingResponses = [
+        "안녕! 오프라인 모드에서도 대화할 수 있어요 😊",
+        "하이! 지금은 서버에 연결할 수 없지만, 계속 이야기 나눠요!",
+        "안녕하세요! 오프라인 모드에서도 기분 좋은 대화 해보죠!"
+      ];
+      return greetingResponses[Math.floor(Math.random() * greetingResponses.length)];
+    }
+    
+    // 기분 관련 응답
+    if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
+      if (emotionAnalysis.dominant === "happy" || emotionAnalysis.dominant === "excited") {
+        return "와! 기분이 좋아 보여요! 오프라인 모드에서도 함께 기분 좋게 이야기해요 🎉";
+      } else if (emotionAnalysis.dominant === "sad" || emotionAnalysis.dominant === "frustrated") {
+        return "괜찮아요... 오프라인 모드에서도 제가 여기 있어요. 힘내세요! 😊";
+      } else {
+        return "오프라인 모드에서도 당신의 기분을 함께 느껴보고 있어요!";
+      }
+    }
+    
+    // 감사 관련 응답
+    if (lowerInput.includes("고마워") || lowerInput.includes("감사")) {
+      const thankResponses = [
+        "천만에요! 오프라인 모드에서도 도움 드릴 수 있어 기분이 좋아요!",
+        "별말씀을요! 서버 연결이 되면 더 많은 도움을 드릴게요 😊",
+        "고마워요! 오프라인에서도 계속 이야기 나눠요!"
+      ];
+      return thankResponses[Math.floor(Math.random() * thankResponses.length)];
+    }
+    
+    // 기본 응답
+    const defaultResponses = [
+      "오프라인 모드에서도 재미있는 이야기네요!",
+      "그렇군요! 오프라인 모드에서도 계속 대화해요.",
+      "흥미롭네요! 서버 연결이 되면 더 자세한 이야기를 나눠볼까요?",
+      "알겠어요! 지금은 오프라인 모드지만, 좋은 대화였어요.",
+      "오프라인 모드에서도 당신의 이야기를 듣고 있어요!"
+    ];
+    
+    return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+  };
+
   const handleCharacterClick = () => {
     if (!isSupported) {
       setCharacterText(
@@ -642,9 +747,13 @@ export const MainScreen = () => {
     }, 500);
   };
 
-  // 음성 인식 결과 처리
+  // 음성 인식 결과 처리 - 한 번만 실행하도록 수정
+  const lastProcessedTranscriptRef = useRef(null);
+
   useEffect(() => {
-    if (result && result.transcript) {
+    if (result && result.transcript && result.transcript !== lastProcessedTranscriptRef.current) {
+      lastProcessedTranscriptRef.current = result.transcript;
+
       setUserText(result.transcript);
 
       // 음성 메타데이터 수집 개선
@@ -656,11 +765,6 @@ export const MainScreen = () => {
         speed: result.emotion?.speed || 0,
         confidence: result.emotion?.confidence || 0.5,
       };
-
-      // 감정 분석 정보 표시
-      if (result.emotion) {
-        console.log('음성 메타데이터:', voiceMetadata);
-      }
 
       // 서버에서 이미 chatResponse를 제공한 경우, 그것을 우선 사용
       if (result.chatResponse && result.chatResponse.content) {
@@ -674,6 +778,9 @@ export const MainScreen = () => {
         setIsAIThinking(false);
         setCharacterText(resp.content);
         setConversationContext(resp.action || (result.emotion && result.emotion.emotion) || null);
+
+        // result 초기화하여 재처리 방지
+        resetResult();
       } else {
         // AI 응답 생성 중 표시
         setIsAIThinking(true);
@@ -681,14 +788,31 @@ export const MainScreen = () => {
 
         // 자동으로 응답 생성 (클라이언트 -> 서버 흐름)
         setTimeout(() => {
-          handleUserInput(result.transcript, voiceMetadata);
+          handleUserInput(result.transcript, voiceMetadata)
+            .finally(() => {
+              // API 호출 완료 후 result 초기화
+              resetResult();
+            });
         }, 500);
       }
     }
   }, [result]);
 
   // 캐릭터 텍스트가 변경되면 음성 출력 (특정 메시지 제외)
+  const lastSpokenTextRef = useRef(null);
+  const speakTimeoutRef = useRef(null);
+
   useEffect(() => {
+    // 이전에 말한 텍스트와 같으면 스킵
+    if (lastSpokenTextRef.current === characterText) {
+      return;
+    }
+
+    // 기존 타이머 클리어
+    if (speakTimeoutRef.current) {
+      clearTimeout(speakTimeoutRef.current);
+    }
+
     if (
       characterText &&
       !isMuted &&
@@ -699,9 +823,19 @@ export const MainScreen = () => {
       !characterText.includes("인터넷") &&
       !characterText.includes("음성을 인식하지")
     ) {
-      speak(characterText);
+      // 약간의 지연을 주어 상태 변경이 안정화되도록 함
+      speakTimeoutRef.current = setTimeout(() => {
+        lastSpokenTextRef.current = characterText;
+        speak(characterText);
+      }, 100);
     }
-  }, [characterText, isMuted, speak]);
+
+    return () => {
+      if (speakTimeoutRef.current) {
+        clearTimeout(speakTimeoutRef.current);
+      }
+    };
+  }, [characterText, isMuted]); // speak 함수를 의존성에서 제거
 
   return (
     <div className="min-h-[100dvh] bg-layer-background">
@@ -743,6 +877,22 @@ export const MainScreen = () => {
 
               {/* Minimal action buttons */}
               <div className="flex items-center gap-1.5 sm:gap-2">
+                {isOfflineMode && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-surface text-xs font-medium">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                    오프라인 모드
+                  </div>
+                )}
+                {isOfflineMode && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={checkServerHealth}
+                    className="text-xs px-2 py-1 h-7 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-surface"
+                  >
+                    재연결
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -971,7 +1121,7 @@ export const MainScreen = () => {
             {!userText && !isListening && !error && isSupported && (
               <div className="text-center">
                 <p className="text-xs sm:text-caption text-layer-muted bg-layer-surface/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-surface border border-layer-border">
-                  덕키를 터치하고 말해보세요
+                  {isOfflineMode ? "오프라인 모드입니다. 기본적인 대화만 가능합니다." : "덕키를 터치하고 말해보세요"}
                 </p>
               </div>
             )}

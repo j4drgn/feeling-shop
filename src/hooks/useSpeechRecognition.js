@@ -321,52 +321,19 @@ export const useSpeechRecognition = () => {
           sampleRate: audioContextRef.current?.sampleRate || 16000,
         };
 
-        setIsUploading(true);
-        setUploadProgress(0);
-        // Decide whether to run async processing on server. Default false —
-        // set to true to get a jobId and poll for completion.
-        const asyncMode = false;
-
-        const serverResponse = await chatApi.sendVoiceFileAndTranscribe(
-          audioBlob,
-          prevResult?.transcript || '',
-          voiceMetadata,
-          accessToken,
-          null, // sessionId (null means server may create/assign)
-          asyncMode,
-          (percent) => {
-            setUploadProgress(percent);
-          },
-          () => {
-            // upload finished (request sent) — still waiting server processing
-            setUploadProgress(100);
-          }
-        );
+        // 임시: 파일 업로드 생략하고 텍스트만 전송
         setIsUploading(false);
-
-        // 서버 응답 구조 예시: { transcript, emotion, labels, sessionId }
-    if (serverResponse) {
-          // Server may return either a direct transcription/response or an async job id
-          const jobId = serverResponse.jobId || serverResponse.taskId || serverResponse.data?.jobId || null;
-          if (jobId) {
-            // async flow: record job id and let polling effect handle merge
-            setResult(prev => ({
-              ...prev,
-              serverJobId: jobId,
-              serverSessionId: serverResponse.sessionId || serverResponse.data?.sessionId || prev.serverSessionId,
-            }));
-          } else {
-            // sync flow: merge returned data
-            setResult(prev => ({
-              ...prev,
-              transcript: serverResponse.transcript || prev.transcript,
-              emotion: serverResponse.emotion || prev.emotion,
-              serverLabels: serverResponse.labels || null,
-              serverSessionId: serverResponse.sessionId || null,
-              chatResponse: serverResponse.chatResponse || null,
-            }));
-          }
-        }
+        setUploadProgress(100);
+        
+        // 서버 응답 시뮬레이션 (실제로는 백엔드에서 받아와야 함)
+        setResult(prev => ({
+          ...prev,
+          transcript: prevResult?.transcript || '',
+          emotion: prevResult?.emotion || null,
+          serverLabels: null,
+          serverSessionId: null,
+          chatResponse: null,
+        }));
       } catch (err) {
         // 서버 전송 실패 시 로컬 폴백을 사용하지 않고 오류로 노출
         console.error('오디오 업로드/전사 실패:', err);
