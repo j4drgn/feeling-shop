@@ -191,10 +191,10 @@ export const ProductCard = ({ product, onSwipe }) => {
       <div
         ref={cardRef}
         className={cn(
-          "product-card w-[350px] h-[520px] rounded-3xl p-6 cursor-grab active:cursor-grabbing select-none relative overflow-hidden glassmorphism-card",
+          "product-card w-[280px] xs:w-[320px] sm:w-[360px] md:w-[400px] lg:w-[450px] xl:w-[500px] h-[420px] xs:h-[480px] sm:h-[520px] md:h-[560px] lg:h-[600px] bg-white rounded-2xl p-4 xs:p-5 sm:p-6 md:p-7 cursor-grab active:cursor-grabbing select-none relative overflow-hidden shadow-lg border-2 border-amber-200",
           isAnimating && dragX > 80 && "product-card-swipe-right",
           isAnimating && dragX < -80 && "product-card-swipe-left",
-          isDragging && "shadow-2xl"
+          isDragging && "shadow-2xl scale-105"
         )}
         style={{
           transform: `
@@ -209,74 +209,88 @@ export const ProductCard = ({ product, onSwipe }) => {
         onTouchEnd={handleTouchEnd}
       >
         {/* Category Badge */}
-        <Badge className="absolute top-4 left-4 bg-primary/10 text-primary hover:bg-primary/20">
+        <Badge className="absolute top-3 left-3 xs:top-4 xs:left-4 sm:top-5 sm:left-5 bg-amber-100 text-amber-800 hover:bg-amber-200 text-xs sm:text-sm font-semibold border border-amber-300 rounded-full px-3 py-1">
           {product.category}
         </Badge>
 
         {/* Product Image */}
-        <div className="w-full h-64 rounded-2xl overflow-hidden mb-5 bg-muted/30">
+        <div className="w-full h-40 xs:h-48 sm:h-56 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-4 xs:mb-5 sm:mb-6 bg-amber-50 border-2 border-amber-100 shadow-inner">
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           />
         </div>
 
         {/* Product Info */}
-        <div className="space-y-2">
-          <h3 className="font-semibold text-xl text-card-foreground">
+        <div className="space-y-2 xs:space-y-3">
+          <h3 className="font-bold text-lg xs:text-xl sm:text-2xl md:text-3xl text-amber-900 leading-tight">
             {product.name}
           </h3>
-          <p className="text-2xl font-bold text-primary">{product.price}</p>
+          <p className="text-xl xs:text-2xl sm:text-3xl md:text-4xl font-bold text-amber-600">{product.price}</p>
 
-          {/* AI 추천 이유 */}
+          {/* AI 추천 이유 - 말풍선 스타일 */}
           {product.aiRecommendation && (
-            <div className="mt-3 p-3 rounded-lg glassmorphism">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                  <img
-                    src="/duck-character.png"
-                    alt="AI Duck"
-                    className="w-4 h-4 object-contain"
-                  />
+            <div className="relative mt-3 xs:mt-4">
+              <div className="bg-amber-50 rounded-2xl p-3 xs:p-4 border-2 border-amber-200 shadow-md">
+                <div className="flex items-start gap-2 xs:gap-3 mb-2">
+                  <div className="w-8 h-8 xs:w-10 xs:h-10 sm:w-12 sm:h-12 rounded-full bg-amber-100 flex items-center justify-center overflow-hidden border-2 border-amber-300 flex-shrink-0">
+                    <img
+                      src="/duck-character.png"
+                      alt="AI Duck"
+                      className="w-6 h-6 xs:w-8 xs:h-8 sm:w-10 sm:h-10 object-contain"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1 mb-1">
+                      <span className="text-sm xs:text-base sm:text-lg font-bold text-amber-800">
+                        덕키의 추천
+                      </span>
+                      <span className="text-lg">🎆</span>
+                    </div>
+                    <p className="text-xs xs:text-sm sm:text-base text-amber-700 leading-relaxed">
+                      {product.aiRecommendation}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-xs font-semibold text-primary">
-                  Ducky's Recommendation
-                </span>
               </div>
-              <p className="text-sm text-muted-foreground line-clamp-3">
-                {product.aiRecommendation}
-              </p>
+              {/* 말풍선 꼴리 */}
+              <div className="absolute -bottom-2 left-4 xs:left-6">
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+                  <path d="M0 0L8 8L16 0H0Z" fill="#FEF3C7" />
+                  <path d="M1 0L8 7L15 0" stroke="#F59E0B" strokeWidth="2" />
+                </svg>
+              </div>
             </div>
           )}
         </div>
 
-        {/* 왼쪽에 표시되는 좋아요 버튼 */}
+        {/* 왼쪽에 표시되는 좋아요 버튼 - 귀여운 스타일 */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onSwipe("left", product.id);
           }}
           className={cn(
-            "action-button absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center transition-all",
+            "action-button absolute left-2 xs:left-3 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 xs:w-12 xs:h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-pink-100 shadow-lg flex items-center justify-center transition-all border-2 border-pink-300 hover:bg-pink-200 hover:scale-110",
             showLikeButton ? "opacity-100 scale-100" : "opacity-0 scale-75"
           )}
         >
-          <Heart className="h-6 w-6 text-pink-500" fill="#ec4899" />
+          <Heart className="h-5 w-5 xs:h-6 xs:w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-pink-600" fill="#ec4899" />
         </button>
 
-        {/* 오른쪽에 표시되는 링크 버튼 */}
+        {/* 오른쪽에 표시되는 링크 버튼 - 귀여운 스타일 */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onSwipe("right", product.id);
           }}
           className={cn(
-            "action-button absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center transition-all",
+            "action-button absolute right-2 xs:right-3 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 xs:w-12 xs:h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-blue-100 shadow-lg flex items-center justify-center transition-all border-2 border-blue-300 hover:bg-blue-200 hover:scale-110",
             showLinkButton ? "opacity-100 scale-100" : "opacity-0 scale-75"
           )}
         >
-          <ExternalLink className="h-6 w-6 text-blue-500" />
+          <ExternalLink className="h-5 w-5 xs:h-6 xs:w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-blue-600" />
         </button>
 
         {/* Swipe Indicators - 반투명하게 변경 */}
@@ -298,57 +312,59 @@ export const ProductCard = ({ product, onSwipe }) => {
         </div>
       </div>
 
-      {/* 제품 상세 정보 - 좌우 스와이프 후 자동 표시 */}
+      {/* 제품 상세 정보 - 귀여운 카드 스타일 */}
       <div
         ref={detailsRef}
         className={cn(
-          "mt-4 p-4 rounded-xl bg-white/90 backdrop-blur-sm border border-white/20 shadow-lg",
-          "transition-all duration-300 overflow-hidden", // 전환 속도 더 빠르게 수정
+          "mt-4 p-4 sm:p-5 bg-white rounded-2xl border-2 border-amber-200 shadow-lg",
+          "transition-all duration-300 overflow-hidden",
           showDetails
             ? "max-h-[500px] opacity-100 animate-slide-up"
             : "max-h-0 opacity-0 pointer-events-none"
         )}
       >
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-semibold">{product.name}</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg sm:text-xl font-bold text-amber-900">{product.name}</h3>
           <button
             onClick={toggleDetails}
-            className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 text-xs"
+            className="w-8 h-8 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-800 font-bold hover:bg-amber-200 transition-colors border border-amber-300"
           >
             {showDetails ? "−" : "+"}
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <p className="text-xs text-gray-500">카테고리</p>
-            <p className="text-sm font-medium">{product.category}</p>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="bg-amber-50 rounded-xl p-3 border border-amber-200">
+            <p className="text-xs font-semibold text-amber-600 mb-1">카테고리</p>
+            <p className="text-sm font-bold text-amber-800">{product.category}</p>
           </div>
-          <div>
-            <p className="text-xs text-gray-500">가격</p>
-            <p className="text-sm font-medium text-primary">{product.price}</p>
+          <div className="bg-amber-50 rounded-xl p-3 border border-amber-200">
+            <p className="text-xs font-semibold text-amber-600 mb-1">가격</p>
+            <p className="text-sm font-bold text-amber-800">{product.price}</p>
           </div>
         </div>
 
-        <div className="mb-3">
-          <p className="text-xs text-gray-500 mb-1">제품 설명</p>
-          <p className="text-sm">{product.aiRecommendation}</p>
+        <div className="mb-4">
+          <p className="text-sm font-semibold text-amber-600 mb-2">제품 설명</p>
+          <p className="text-sm text-amber-700 leading-relaxed bg-amber-50 rounded-xl p-3 border border-amber-200">{product.aiRecommendation}</p>
         </div>
 
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-3 mt-5">
           <button
             onClick={() => onSwipe("left", product.id)}
-            className="flex-1 py-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
+            className="flex-1 py-3 px-4 bg-pink-100 hover:bg-pink-200 text-pink-700 rounded-2xl text-sm font-bold transition-all border-2 border-pink-300 hover:scale-105 flex items-center justify-center gap-2"
           >
+            <Heart className="h-4 w-4" fill="currentColor" />
             좋아요
           </button>
           <button
             onClick={() =>
               product.productUrl && window.open(product.productUrl, "_blank")
             }
-            className="flex-1 py-2 px-4 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-lg text-sm font-medium transition-colors"
+            className="flex-1 py-3 px-4 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-2xl text-sm font-bold transition-all border-2 border-blue-300 hover:scale-105 flex items-center justify-center gap-2"
             disabled={!product.productUrl}
           >
+            <ExternalLink className="h-4 w-4" />
             구매하기
           </button>
         </div>

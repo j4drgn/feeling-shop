@@ -78,7 +78,7 @@ export const ProductScreen = ({
   const [isScrolling, setIsScrolling] = useState(false);
   const [likedProducts, setLikedProducts] = useState([]);
   const containerRef = useRef(null);
-  const { colors } = useThemeContext();
+  const { } = useThemeContext();
 
   const currentProduct = products[currentProductIndex];
 
@@ -145,97 +145,138 @@ export const ProductScreen = ({
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Background with gradient overlay for glassmorphism effect */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundColor: colors.background,
-          backgroundImage:
-            "radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 70%)",
-        }}
-      />
+    <div className="min-h-[100dvh]" style={{backgroundColor: 'rgb(255,228,161)'}}>
+      <main className="relative flex flex-col min-h-[100dvh]">
 
-      {/* Back button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onNavigateToMain}
-        className="absolute top-4 left-4 z-10 rounded-full glassmorphism-button"
-      >
-        <ArrowLeft className="h-5 w-5" />
-      </Button>
-
-      {/* Header */}
-      <div className="text-center mb-8 relative z-10 p-3 rounded-lg glassmorphism">
-        <h1 className="text-2xl font-bold text-foreground mb-2">
-          Scroll to Discover
-        </h1>
-        <p className="text-muted-foreground">
-          스와이프 좌: 좋아요 / 우: 링크 열기
-        </p>
-      </div>
-
-      {/* Product card area - 유튜브 숏츠 방식으로 변경 */}
-      <div ref={containerRef} className="relative mb-8">
-        {currentProduct ? (
-          <ProductCard
-            key={currentProduct.id}
-            product={currentProduct}
-            onSwipe={handleSwipe}
-          />
-        ) : (
-          <div className="w-[350px] h-[520px] rounded-3xl bg-white/90 backdrop-blur-sm shadow-lg border border-white/40 flex items-center justify-center">
-            <p className="text-muted-foreground">No more products</p>
+        {/* Clean AppBar with pastel background */}
+        <header className="sticky top-0 z-10 backdrop-blur mb-4 sm:mb-6" style={{backgroundColor: 'rgba(255,228,161,0.9)'}}>
+          <div className="mx-auto max-w-[90%] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[800px] xl:max-w-[900px] px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex justify-between items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onNavigateToMain}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/90 hover:bg-white shadow-lg transition-all duration-200 hover:scale-105"
+              >
+                <ArrowLeft className="h-5 w-5 sm:h-6 sm:w-6 text-amber-700" />
+              </Button>
+              <h1 className="text-xl sm:text-2xl font-bold text-amber-800">🎆 추천 상품</h1>
+              <div className="w-10 h-10 sm:w-12 sm:h-12"></div>
+            </div>
           </div>
+        </header>
+
+        {/* Welcome Message in Speech Bubble Style */}
+        <section className="mx-auto max-w-[90%] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[800px] xl:max-w-[900px] px-4 sm:px-6 py-4 sm:py-6">
+          <div className="relative">
+            <div className="bg-white rounded-2xl px-5 py-4 shadow-lg border-2 border-amber-200">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-100 flex items-center justify-center overflow-hidden border-2 border-amber-300">
+                  <img
+                    src="/duck-character.png"
+                    alt="AI Duck"
+                    className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-amber-800">덕키의 추천 상품이야! 🎆</h2>
+                  <p className="text-sm text-amber-600">스와이프해서 마음에 드는 걸 골라봐!</p>
+                </div>
+              </div>
+              <div className="bg-amber-50 rounded-xl p-3 border border-amber-200">
+                <p className="text-xs sm:text-sm text-amber-700 text-center">
+                  💖 좌쪽 스와이프: 좋아요   🔗 오른쪽 스와이프: 링크 열기
+                </p>
+              </div>
+            </div>
+            {/* Speech Bubble Tail */}
+            <div className="flex justify-center">
+              <div className="w-6 h-6 mt-[-1px] relative z-0">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M0 0L12 12L24 0H0Z" fill="white" />
+                  <path d="1 0L12 11L23 0" stroke="#FDE68A" strokeWidth="2" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Product card area - centered content */}
+        <section className="flex-1 mx-auto w-full max-w-[90%] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[800px] xl:max-w-[900px] px-3 sm:px-4 md:px-6 py-2 flex flex-col items-center justify-center">
+          <div ref={containerRef} className="relative w-full flex justify-center">
+            {currentProduct ? (
+              <ProductCard
+                key={currentProduct.id}
+                product={currentProduct}
+                onSwipe={handleSwipe}
+              />
+            ) : (
+              <div className="w-[280px] xs:w-[320px] sm:w-[360px] md:w-[400px] lg:w-[450px] xl:w-[500px] h-[420px] xs:h-[480px] sm:h-[520px] md:h-[560px] lg:h-[600px] bg-white rounded-2xl shadow-lg border-2 border-amber-200 flex flex-col items-center justify-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4 border-2 border-amber-300">
+                    <span className="text-2xl sm:text-3xl">😭</span>
+                  </div>
+                  <p className="text-amber-800 text-sm md:text-base font-semibold mb-2">상품이 없어요!</p>
+                  <p className="text-amber-600 text-xs md:text-sm">다른 카테고리를 살펴보세요</p>
+                </div>
+              </div>
+            )}
+
+            {/* 스크롤 버튼 - 귀여운 스타일 */}
+            <div className="absolute right-[-50px] sm:right-[-60px] md:right-[-80px] lg:right-[-100px] top-1/2 transform -translate-y-1/2 flex flex-col gap-3 z-20">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleScroll("up")}  
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-white/90 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 border-2 border-amber-200"
+                disabled={isScrolling}
+              >
+                <ChevronUp className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-amber-700" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleScroll("down")}  
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-white/90 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 border-2 border-amber-200"
+                disabled={isScrolling}
+              >
+                <ChevronDown className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-amber-700" />
+              </Button>
+            </div>
+
+            {/* 상품 인디케이터 - 귀여운 스타일 */}
+            <div className="absolute right-[-50px] sm:right-[-60px] md:right-[-80px] lg:right-[-100px] top-1/2 transform translate-y-20 sm:translate-y-24 md:translate-y-28 flex flex-col items-center gap-2">
+              {products.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className={cn(
+                    "rounded-full transition-all duration-300 border-2",
+                    idx === currentProductIndex 
+                      ? "w-4 h-4 sm:w-5 sm:h-5 bg-amber-400 border-amber-600 shadow-md" 
+                      : "w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white border-amber-300"
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 좋아요 상품 표시 - 귀여운 스타일 */}
+        {likedProducts.length > 0 && (
+          <footer className="sticky bottom-0 z-10 backdrop-blur-sm" style={{backgroundColor: 'rgba(255,228,161,0.9)'}}>
+            <div className="mx-auto max-w-[90%] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[800px] xl:max-w-[900px] px-4 sm:px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4">
+              <div className="bg-white rounded-2xl px-4 sm:px-6 py-3 sm:py-4 shadow-lg border-2 border-amber-200 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-2xl">💖</span>
+                  <p className="text-sm sm:text-base font-semibold text-amber-800">
+                    {likedProducts.length}개의 상품을 좋아합니다!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </footer>
         )}
-
-        {/* 스크롤 버튼 */}
-        <div className="absolute right-[-50px] top-1/2 transform -translate-y-1/2 flex flex-col gap-3 z-20">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => handleScroll("up")}  
-            className="w-10 h-10 rounded-full bg-white/80 shadow-md hover:bg-white"
-            disabled={isScrolling}
-          >
-            <ChevronUp className="h-5 w-5" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => handleScroll("down")}  
-            className="w-10 h-10 rounded-full bg-white/80 shadow-md hover:bg-white"
-            disabled={isScrolling}
-          >
-            <ChevronDown className="h-5 w-5" />
-          </Button>
-        </div>
-
-        {/* 상품 인디케이터 */}
-        <div className="absolute right-[-50px] top-1/2 transform translate-y-20 flex flex-col items-center gap-1">
-          {products.map((_, idx) => (
-            <div 
-              key={idx} 
-              className={cn(
-                "w-2 h-2 rounded-full transition-all",
-                idx === currentProductIndex 
-                  ? "bg-primary w-3 h-3" 
-                  : "bg-gray-300"
-              )}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 좋아요 상품 표시 */}
-      {likedProducts.length > 0 && (
-        <div className="mt-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            {likedProducts.length}개의 상품을 좋아합니다
-          </p>
-        </div>
-      )}
+      </main>
     </div>
   );
 };
