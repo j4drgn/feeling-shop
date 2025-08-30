@@ -154,6 +154,36 @@ const contentApi = {
       throw error;
     }
   },
+
+  // 로컬 동영상 목록 가져오기
+  getLocalVideos: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/videos/list`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '로컬 동영상 목록을 가져오는데 실패했습니다.');
+      }
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // 감정에 따른 로컬 동영상 추천
+  getLocalVideoRecommendations: async (emotion) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/videos/recommend/${emotion}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '로컬 동영상 추천에 실패했습니다.');
+      }
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default contentApi;

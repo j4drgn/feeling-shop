@@ -47,14 +47,46 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
           return;
         }
 
-        // API를 통해 콘텐츠 가져오기
-        const response = await contentApi.getAllContents();
-        if (response.success && response.data.length > 0) {
-          setPersonalizedContents(response.data);
+        // API를 통해 콘텐츠 가져오기 - 일반 콘텐츠와 로컬 비디오 모두 가져오기
+        const [contentResponse, localVideoResponse] = await Promise.all([
+          contentApi.getAllContents(),
+          contentApi.getLocalVideos()
+        ]);
+        
+        let combinedContents = [];
+        
+        // 일반 콘텐츠 추가
+        if (contentResponse.success && contentResponse.data.length > 0) {
+          combinedContents.push(...contentResponse.data);
+        }
+        
+        // 로컬 동영상 추가 - 콘텐츠 형태로 변환
+        if (localVideoResponse.success && localVideoResponse.data.length > 0) {
+          const videoContents = localVideoResponse.data.map(video => ({
+            id: video.id,
+            title: video.title,
+            type: 'video',
+            creator: '덕키 추천',
+            description: `${video.title} - 로컬 동영상`,
+            coverImage: '/video-thumbnail.jpg', // 기본 썸네일
+            url: `http://localhost:8090${video.url}`,
+            filename: video.filename,
+            isLocal: true,
+            rating: 4.8,
+            reviewCount: 100,
+            year: 2024,
+            duration: '짧은 영상',
+            genre: ['힐링', '재미'],
+            emotionTags: ['happy', 'relaxed']
+          }));
+          combinedContents.push(...videoContents);
+        }
+        
+        if (combinedContents.length > 0) {
+          setPersonalizedContents(combinedContents);
         } else {
-          // API 호출이 정상적이지 않음 — 로컬 폴백을 사용하지 않음
-          const msg = '콘텐츠 API 호출에 실패했습니다.';
-          console.error(msg, response);
+          const msg = '콘텐츠를 찾을 수 없습니다.';
+          console.error(msg);
           setLoadError(msg);
         }
       } catch (error) {
@@ -278,6 +310,8 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
         return "🎵";
       case "playlist":
         return "🎧";
+      case "video":
+        return "🎥";
       default:
         return "🎭";
     }
@@ -294,6 +328,8 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
         return "듣기";
       case "playlist":
         return "재생하기";
+      case "video":
+        return "재생하기";
       default:
         return "체험하기";
     }
@@ -306,13 +342,31 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-        {/* 배경 이미지 */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${currentContent.coverImage})` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/80"></div>
-        </div>
+        {/* 배경 이미지 또는 비디오 */}
+        {currentContent.type === 'video' && currentContent.isLocal ? (
+          // 로컬 비디오인 경우 비디오 플레이어 표시
+          <div className="absolute inset-0">
+            <video
+              className="w-full h-full object-cover"
+              controls
+              autoPlay
+              loop
+              muted
+            >
+              <source src={currentContent.url} type="video/mp4" />
+              비디오를 재생할 수 없습니다.
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80"></div>
+          </div>
+        ) : (
+          // 일반 콘텐츠인 경우 배경 이미지 표시
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${currentContent.coverImage})` }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/80"></div>
+          </div>
+        )}
 
         {/* 상단 헤더 */}
         <div className="absolute top-0 left-0 right-0 z-20 pt-12 px-4">
@@ -330,7 +384,9 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
                   ? "영화"
                   : currentContent.type === "music"
                     ? "음악"
-                    : "플레이리스트"}
+                    : currentContent.type === "video"
+                      ? "동영상"
+                      : "플레이리스트"}
             </div>
             <div className="w-10 h-10"></div>
           </div>
