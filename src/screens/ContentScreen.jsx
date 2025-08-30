@@ -404,7 +404,7 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
 
             {/* 장르 태그 */}
             <div className="flex flex-wrap gap-2 mt-2">
-              {currentContent.genre.map((tag, index) => (
+              {currentContent.genre && Array.isArray(currentContent.genre) && currentContent.genre.map((tag, index) => (
                 <span
                   key={index}
                   className="text-white/80 text-xs bg-white/20 px-2 py-1 rounded-full"
@@ -416,7 +416,7 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
 
             {/* 감정 태그 */}
             <div className="flex flex-wrap gap-2">
-              {currentContent.emotionTags.map((tag, index) => (
+              {currentContent.emotionTags && Array.isArray(currentContent.emotionTags) && currentContent.emotionTags.map((tag, index) => (
                 <span
                   key={index}
                   className="text-blue-300 text-xs bg-blue-500/20 px-2 py-1 rounded-full"
