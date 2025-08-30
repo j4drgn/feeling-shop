@@ -3,7 +3,7 @@ import { useState } from "react";
 const INITIAL_GREETING = {
   role: "assistant",
   content: "안녕하세요! 덕키에요. 오늘 어떤 이야기를 나누고 싶으세요?",
-  id: 'initial-greeting',
+  id: "initial-greeting",
 };
 
 export const useAppNavigation = () => {
@@ -11,8 +11,8 @@ export const useAppNavigation = () => {
   const [isChatActive, setIsChatActive] = useState(false);
   const [chatHistory, setChatHistory] = useState([INITIAL_GREETING]);
 
-  const navigateToProducts = () => {
-    setCurrentScreen("products");
+  const navigateToContent = (selectedContent = null) => {
+    setCurrentScreen("content");
     setIsChatActive(false);
   };
 
@@ -44,7 +44,7 @@ export const useAppNavigation = () => {
 
   const endChat = () => {
     setIsChatActive(false);
-    setChatHistory([INITIAL_GREETING]); 
+    setChatHistory([INITIAL_GREETING]);
     navigateToMain();
   };
 
@@ -52,7 +52,7 @@ export const useAppNavigation = () => {
     currentScreen,
     isChatActive,
     chatHistory,
-    navigateToProducts,
+    navigateToContent,
     navigateToHistory,
     navigateToMain,
     startChat,

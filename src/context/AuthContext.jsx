@@ -51,6 +51,7 @@ export const AuthProvider = ({ children }) => {
   // 로그아웃 함수
   const logout = () => {
     removeTokens();
+    localStorage.removeItem("isAuthenticated");
     setUser(null);
     setIsAuthenticated(false);
   };
@@ -112,6 +113,25 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       setIsLoading(true);
       try {
+        // 로컬 스토리지에서 인증 상태 확인
+        const isAuthenticatedFromStorage = localStorage.getItem("isAuthenticated");
+        
+        if (isAuthenticatedFromStorage === "true") {
+          // 로컬 스토리지에서 현재 사용자 정보 가져오기
+          const currentUserString = localStorage.getItem("currentUser");
+          const currentUser = currentUserString ? JSON.parse(currentUserString) : {
+            id: 1,
+            email: "test@example.com",
+            nickname: "테스트 사용자",
+            profileImageUrl: null
+          };
+          
+          setIsAuthenticated(true);
+          setUser(currentUser);
+          setIsLoading(false);
+          return;
+        }
+        
         const { accessToken } = getTokens();
 
         if (accessToken) {

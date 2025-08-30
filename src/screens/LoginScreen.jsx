@@ -1,27 +1,110 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import DuckCharacter from "@/components/DuckCharacter";
+import { useToast } from "@/components/ui/use-toast";
 import TestNavigationArrow from "@/components/TestNavigationArrow";
 
 export const LoginScreen = ({ onNavigateToMain }) => {
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleKakaoLogin = async () => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
     setIsLoading(true);
-    try {
-      // 카카오 로그인 API 엔드포인트
-      const apiUrl = "http://localhost:8080/api/auth/kakao";
 
-      // 현재 창에서 카카오 로그인 페이지로 리다이렉트
-      window.location.href = apiUrl;
+    // 로컬 스토리지에서 사용자 목록 가져오기
+    const usersString = localStorage.getItem("users");
+    const users = usersString ? JSON.parse(usersString) : [];
 
-      // 참고: 리다이렉트 방식이므로 아래 코드는 실행되지 않음
-      // 인증 후 처리는 리다이렉트 URL에서 수행해야 함
-    } catch (error) {
-      console.error("카카오 로그인 오류:", error);
+    // 사용자 인증
+    const user = users.find(
+      (u) => u.email === formData.email && u.password === formData.password
+    );
+
+    if (user) {
+      // 로그인 성공
+      toast({
+        title: "로그인 성공",
+        description: `${user.nickname}님, 환영합니다!`,
+      });
+
+      // 로그인 상태 저장
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({
+          id: user.id,
+          email: user.email,
+          nickname: user.nickname,
+          profileImageUrl: user.profileImageUrl,
+        })
+      );
+
+      // 메인 화면으로 이동
+      setTimeout(() => {
+        setIsLoading(false);
+        window.location.href = "/";
+      }, 1000);
+    } else {
+      // 로그인 실패
+      toast({
+        title: "로그인 실패",
+        description: "이메일 또는 비밀번호가 올바르지 않습니다.",
+        variant: "destructive",
+      });
       setIsLoading(false);
     }
+  };
+
+  // 테스트 계정 생성
+  const createTestAccounts = () => {
+    const testAccounts = [
+      {
+        id: 1,
+        email: "test1@example.com",
+        password: "password1",
+        nickname: "테스트 사용자 1",
+        profileImageUrl: null,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        email: "test2@example.com",
+        password: "password2",
+        nickname: "테스트 사용자 2",
+        profileImageUrl: null,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 3,
+        email: "test3@example.com",
+        password: "password3",
+        nickname: "테스트 사용자 3",
+        profileImageUrl: null,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    localStorage.setItem("users", JSON.stringify(testAccounts));
+
+    toast({
+      title: "테스트 계정 생성 완료",
+      description: "3개의 테스트 계정이 생성되었습니다.",
+    });
   };
 
   return (
@@ -42,66 +125,57 @@ export const LoginScreen = ({ onNavigateToMain }) => {
         <Card className="p-6 shadow-lg">
           <h2 className="text-xl font-semibold text-center mb-6">로그인</h2>
 
-          <div className="space-y-4">
-            <Button
-              onClick={handleKakaoLogin}
-              className="w-full bg-[#FEE500] hover:bg-[#FEE500]/90 text-black font-medium"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <span className="flex items-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-black"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  로그인 중...
-                </span>
-              ) : (
-                <>
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 18 18"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M9 0.473999C4.02943 0.473999 0 3.7464 0 7.7864C0 10.2744 1.55543 12.4684 3.93401 13.7644C3.75683 14.4144 3.31304 16.4734 3.23333 16.8854C3.13659 17.3764 3.42391 17.3734 3.65203 17.2264C3.83311 17.1124 6.41667 15.3614 7.40667 14.7114C7.92667 14.7824 8.45743 14.8194 9 14.8194C13.9706 14.8194 18 11.5464 18 7.5064C18 3.4664 13.9706 0.473999 9 0.473999Z"
-                      fill="black"
-                    />
-                  </svg>
-                  카카오로 시작하기
-                </>
-              )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">이메일</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="이메일 주소를 입력하세요"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">비밀번호</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="비밀번호를 입력하세요"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "로그인 중..." : "로그인하기"}
             </Button>
 
-            {/* 개발용 임시 로그인 버튼 */}
-            <Button
-              variant="outline"
-              onClick={onNavigateToMain}
-              className="w-full"
-            >
-              개발용 임시 로그인
-            </Button>
-          </div>
+            <div className="flex justify-between pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={createTestAccounts}
+              >
+                테스트 계정 생성
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/signup")}
+              >
+                회원가입
+              </Button>
+            </div>
+          </form>
         </Card>
 
         <p className="text-sm text-center text-muted-foreground mt-4">

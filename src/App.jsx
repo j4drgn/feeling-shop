@@ -5,10 +5,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MainScreen } from "@/screens/MainScreen";
-import { ProductScreen } from "@/screens/ProductScreen";
+import { ContentScreen } from "@/screens/ContentScreen";
 import { HistoryScreen } from "@/screens/HistoryScreen";
 import { LoginScreen } from "@/screens/LoginScreen";
-import { KakaoCallbackScreen } from "@/screens/KakaoCallbackScreen";
+import { SignupScreen } from "@/screens/SignupScreen";
 import { useAppNavigation } from "@/hooks/useAppNavigation";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -43,7 +43,7 @@ const AppContent = () => {
     currentScreen,
     isChatActive,
     chatHistory,
-    navigateToProducts,
+    navigateToContent,
     navigateToHistory,
     navigateToMain,
     startChat,
@@ -54,7 +54,8 @@ const AppContent = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  const [likedProducts, setLikedProducts] = useState([]);
+  const [likedContents, setLikedContents] = useState([]);
+  const [selectedContent, setSelectedContent] = useState(null);
   const [prevScreen, setPrevScreen] = useState(currentScreen);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
@@ -164,10 +165,10 @@ const AppContent = () => {
     }, 300);
   };
 
-  const handleProductLiked = (product) => {
-    // 중복 방지 - 이미 좋아요한 상품이 아닌 경우만 추가
-    if (!likedProducts.some((p) => p.id === product.id)) {
-      setLikedProducts((prev) => [...prev, product]);
+  const handleContentLiked = (content) => {
+    // 중복 방지 - 이미 좋아요한 콘텐츠가 아닌 경우만 추가
+    if (!likedContents.some((c) => c.id === content.id)) {
+      setLikedContents((prev) => [...prev, content]);
     }
   };
 
@@ -194,21 +195,22 @@ const AppContent = () => {
             onSendMessage={handleSendMessage}
             onEndChat={endChat}
             onNavigateToHistory={navigateToHistory}
-            onNavigateToProducts={navigateToProducts}
+            onNavigateToContent={navigateToContent}
           />
         );
-      case "products":
+      case "content":
         return (
-          <ProductScreen
+          <ContentScreen
             onNavigateToMain={navigateToMain}
-            onProductLiked={handleProductLiked}
+            onContentLiked={handleContentLiked}
+            selectedContent={selectedContent}
           />
         );
       case "history":
         return (
           <HistoryScreen
             onNavigateToMain={navigateToMain}
-            likedProducts={likedProducts}
+            likedContents={likedContents}
             chatHistory={chatHistory}
           />
         );
@@ -238,13 +240,20 @@ const App = () => {
             <Sonner />
             <Routes>
               {/* 로그인 화면 */}
-              <Route path="/login" element={<LoginScreen />} />
-
-              {/* 카카오 로그인 콜백 처리 */}
               <Route
-                path="/oauth/callback/kakao"
-                element={<KakaoCallbackScreen />}
+                path="/login"
+                element={
+                  <LoginScreen
+                    onNavigateToMain={() => {
+                      // 인증 상태를 true로 설정하고 메인 화면으로 이동
+                      window.location.href = "/";
+                    }}
+                  />
+                }
               />
+
+              {/* 회원가입 화면 */}
+              <Route path="/signup" element={<SignupScreen />} />
 
               {/* 인증이 필요한 라우트들 */}
               <Route

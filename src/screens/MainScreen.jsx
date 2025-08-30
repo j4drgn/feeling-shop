@@ -12,10 +12,12 @@ import { Brain, Heart } from "lucide-react";
 import { useThemeContext } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import QuickAccessButton from "@/components/QuickAccessButton";
+import ChatHistoryButton from "@/components/ChatHistoryButton";
 import { userProfileService } from "@/services/userProfile";
-import { recommendationEngine } from "@/services/recommendationEngine";
+import { contentRecommendationEngine } from "@/services/contentRecommendationEngine";
+import chatApi from "@/api/chatApi";
 
-export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
+export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
   const { isThinking, toggleTheme } = useThemeContext();
   const [characterText, setCharacterText] = useState(
     "안녕! 나는 덕키야. 오늘 기분은 어때? 나를 터치하고 말해봐!"
@@ -29,7 +31,8 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
   const [textInput, setTextInput] = useState("");
   const [isAIThinking, setIsAIThinking] = useState(false);
   const [profileQuestion, setProfileQuestion] = useState(null);
-  const [recommendations, setRecommendations] = useState([]);
+  const [contentRecommendations, setContentRecommendations] = useState([]);
+  const [chatSessionId, setChatSessionId] = useState(null);
   const characterRef = useRef(null);
 
   const {
@@ -65,7 +68,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
     conversationContext,
   });
 
-  // 앱 시작시 환영 애니메이션
+  // 앱 시작시 환영 애니메이션과 채팅 세션 생성
   useEffect(() => {
     const welcomeTimer = setTimeout(() => {
       if (triggerAnimation) {
@@ -73,14 +76,45 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
       }
     }, 1000);
 
+    // 로컬 스토리지에서 세션 ID 확인
+    const storedSessionId = localStorage.getItem("currentChatSessionId");
+    if (storedSessionId) {
+      setChatSessionId(parseInt(storedSessionId, 10));
+    } else {
+      // 새 세션 생성
+      createNewChatSession();
+    }
+
     return () => clearTimeout(welcomeTimer);
   }, [triggerAnimation]);
+
+  // 새 채팅 세션 생성 함수
+  const createNewChatSession = async () => {
+    try {
+      const accessToken = localStorage.getItem("accessToken") || null;
+      const sessionTitle = `대화 ${new Date().toLocaleString("ko-KR")}`;
+      const response = await chatApi.createChatSession(
+        sessionTitle,
+        accessToken
+      );
+
+      if (response && response.data) {
+        const newSessionId = response.data.id;
+        setChatSessionId(newSessionId);
+        localStorage.setItem("currentChatSessionId", newSessionId.toString());
+        console.log("새 채팅 세션이 생성되었습니다:", newSessionId);
+      }
+    } catch (error) {
+      console.error("채팅 세션 생성 오류:", error);
+      // 오류 발생 시 세션 없이 진행
+    }
+  };
 
   const handleUserInput = async (input, emotion) => {
     try {
       // 1. 사용자 입력을 프로필에 반영
       userProfileService.updateFromConversation(input, emotion);
-      
+
       // 2. 프로필 질문이 대기 중인지 확인
       if (profileQuestion) {
         const response = await handleProfileAnswer(input);
@@ -95,86 +129,239 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
       let context = null;
       const emotionContext = emotion?.emotion || "neutral";
 
-      // 3. 상품 추천 요청 감지
-      if (lowerInput.includes("추천") || lowerInput.includes("뭐 살까") || 
-          lowerInput.includes("쇼핑") || lowerInput.includes("상품") ||
-          lowerInput.includes("필요해") || lowerInput.includes("사고싶")) {
-        
-        const personalizedRecs = await recommendationEngine.getPersonalizedRecommendations({
-          mood: emotionContext,
-          context: 'shopping_request'
-        });
-        
-        setRecommendations(personalizedRecs.slice(0, 3));
-        
-        if (personalizedRecs.length > 0) {
-          response = `맞춤 추천이야! 🎯\n\n` +
-            `**${personalizedRecs[0].name}**\n` +
-            `${personalizedRecs[0].price.toLocaleString()}원\n` +
-            `${personalizedRecs[0].recommendationReason}\n\n` +
-            `더 보려면 🛍️ 버튼을 눌러봐!`;
-          
-          setTimeout(() => onNavigateToProducts(), 3000);
-        } else {
-          response = "아직 너에 대해 더 알아야 좋은 추천을 해줄 수 있어! 조금 더 대화해볼까?";
-        }
-        
-        triggerAnimation("gift_sequence", true);
-        context = "recommendation";
+      try {
+        // OpenAI API를 통한 응답 생성
+        const emotionType = emotion?.emotion || "neutral";
+        const emotionScore = emotion?.confidence || 0.5;
 
-      // 4. 기본 감정/인사 응답
-      } else if (lowerInput.includes("안녕") || lowerInput.includes("하이") || lowerInput.includes("헬로")) {
-        const profileCompleteness = userProfileService.getProfileCompleteness();
-        
-        if (profileCompleteness < 50) {
-          response = "안녕! 나는 덕키야 🦆 너에게 딱 맞는 상품을 추천해주고 싶어! 먼저 너에 대해 알려줄래?";
-          
-          const questions = recommendationEngine.generateProfileQuestions();
-          if (questions.length > 0) {
-            setProfileQuestion(questions[0]);
-            response += `\n\n${questions[0].question}`;
+        // 로컬 스토리지에서 토큰 가져오기 (없으면 null)
+        const accessToken = localStorage.getItem("accessToken") || null;
+
+        // 세션 ID가 있으면 세션 기반 API 호출, 없으면 일반 API 호출
+        let apiResponse;
+        if (chatSessionId) {
+          console.log("세션 기반 메시지 전송:", chatSessionId);
+          apiResponse = await chatApi.sendSessionMessage(
+            chatSessionId,
+            input,
+            emotionType,
+            emotionScore,
+            accessToken
+          );
+        } else {
+          console.log("일반 메시지 전송");
+          apiResponse = await chatApi.sendChatMessage(
+            input,
+            emotionType,
+            emotionScore,
+            accessToken
+          );
+        }
+
+        if (apiResponse && apiResponse.data) {
+          response = apiResponse.data.content;
+
+          // 문화 콘텐츠 추천 관련 응답인 경우
+          if (
+            response.includes("추천") ||
+            response.includes("콘텐츠") ||
+            response.includes("영화") ||
+            response.includes("책") ||
+            response.includes("음악") ||
+            response.includes("플레이리스트")
+          ) {
+            context = "recommendation";
+            triggerAnimation("gift_sequence", true);
+
+            // 추천 콘텐츠 데이터 가져오기
+            const personalizedRecs =
+              await contentRecommendationEngine.getPersonalizedContentRecommendations(
+                {
+                  mood: emotionContext,
+                  context: "content_request",
+                }
+              );
+
+            if (personalizedRecs.length > 0) {
+              const content = personalizedRecs[0];
+              // 외부 링크 생성 (가상)
+              let externalUrl = "";
+              
+              if (content.type === "book") {
+                externalUrl = `https://product.kyobobook.co.kr/search?keyword=${encodeURIComponent(content.title)}`;
+              } else if (content.type === "movie") {
+                externalUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(content.title + " 영화")}`;
+              } else if (content.type === "music" || content.type === "playlist") {
+                externalUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(content.title)}`;
+              }
+              
+              // 3초 후 외부 링크로 이동
+              setTimeout(() => {
+                window.open(externalUrl, "_blank");
+                setCharacterText("감상하고 오면 어떤지 이야기해줘!");
+              }, 3000);
+            }
+          }
+          // 인사 관련 응답인 경우
+          else if (response.includes("안녕") || response.includes("반가워")) {
+            context = "greeting";
+            triggerAnimation("happy", true);
+            setShowFloatingEmojis(true);
+            setTimeout(() => setShowFloatingEmojis(false), 3000);
+          }
+          // 감사 관련 응답인 경우
+          else if (response.includes("천만에") || response.includes("감사")) {
+            context = "thanking";
+            triggerAnimation("happy", true);
+            setShowFloatingEmojis(true);
+            setTimeout(() => setShowFloatingEmojis(false), 3000);
+          }
+          // 기본 응답
+          else {
+            context = emotionContext;
           }
         } else {
-          response = `안녕! 반가워 😊 오늘은 어떤 걸 찾고 있어?`;
+          throw new Error("API 응답이 올바르지 않습니다.");
         }
-        
-        context = "greeting";
-        triggerAnimation("happy", true);
-        setShowFloatingEmojis(true);
-        setTimeout(() => setShowFloatingEmojis(false), 3000);
+      } catch (apiError) {
+        console.error("OpenAI API 호출 오류:", apiError);
 
-      } else if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
-        if (emotionContext === "happy" || emotionContext === "excited") {
-          response = "와! 정말 기분이 좋아 보여! 나도 기뻐~ 🎉 기분 좋을 때 뭔가 특별한 걸 사보는 건 어때?";
-          context = "happy";
-        } else if (emotionContext === "sad" || emotionContext === "frustrated") {
-          response = "괜찮아... 내가 여기 있을게. 힘내! 😊 가끔은 자신에게 선물을 해주는 것도 좋아!";
-          context = "sad";
+        // API 호출 실패 시 기존 로직으로 폴백
+        // 3. 문화 콘텐츠 추천 요청 감지
+        if (
+          lowerInput.includes("추천") ||
+          lowerInput.includes("볼만한") ||
+          lowerInput.includes("들을만한") ||
+          lowerInput.includes("읽을만한") ||
+          lowerInput.includes("영화") ||
+          lowerInput.includes("책") ||
+          lowerInput.includes("음악") ||
+          lowerInput.includes("플레이리스트")
+        ) {
+          const personalizedRecs =
+            await contentRecommendationEngine.getPersonalizedContentRecommendations(
+              {
+                mood: emotionContext,
+                context: "content_request",
+              }
+            );
+
+          setContentRecommendations(personalizedRecs.slice(0, 3));
+
+          if (personalizedRecs.length > 0) {
+            const content = personalizedRecs[0];
+            const contentType =
+              content.type === "book"
+                ? "책"
+                : content.type === "movie"
+                  ? "영화"
+                  : content.type === "music"
+                    ? "음악"
+                    : "플레이리스트";
+
+            response =
+              `너의 감성에 맞는 ${contentType} 추천이야! 🎯\n\n` +
+              `**${content.title}**\n` +
+              `${content.creator}\n` +
+              `${content.recommendationReason}\n\n` +
+              `지금 바로 감상하러 가볼까? 감상하고 돌아와서 어땠는지 얘기해줘!`;
+
+            // 외부 링크 생성 (가상)
+            let externalUrl = "";
+            
+            if (content.type === "book") {
+              externalUrl = `https://product.kyobobook.co.kr/search?keyword=${encodeURIComponent(content.title)}`;
+            } else if (content.type === "movie") {
+              externalUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(content.title + " 영화")}`;
+            } else if (content.type === "music" || content.type === "playlist") {
+              externalUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(content.title)}`;
+            }
+            
+            // 3초 후 외부 링크로 이동
+            setTimeout(() => {
+              window.open(externalUrl, "_blank");
+              setCharacterText("감상하고 오면 어떤지 이야기해줘!");
+            }, 3000);
+          } else {
+            response =
+              "아직 너에 대해 더 알아야 좋은 추천을 해줄 수 있어! 조금 더 대화해볼까?";
+          }
+
+          triggerAnimation("gift_sequence", true);
+          context = "recommendation";
+
+          // 4. 기본 감정/인사 응답
+        } else if (
+          lowerInput.includes("안녕") ||
+          lowerInput.includes("하이") ||
+          lowerInput.includes("헬로")
+        ) {
+          const profileCompleteness =
+            userProfileService.getProfileCompleteness();
+
+          if (profileCompleteness < 50) {
+            response =
+              "안녕! 나는 덕키야 🦆 너에게 딱 맞는 상품을 추천해주고 싶어! 먼저 너에 대해 알려줄래?";
+
+            const questions = recommendationEngine.generateProfileQuestions();
+            if (questions.length > 0) {
+              setProfileQuestion(questions[0]);
+              response += `\n\n${questions[0].question}`;
+            }
+          } else {
+            response = `안녕! 반가워 😊 오늘은 어떤 걸 찾고 있어?`;
+          }
+
+          context = "greeting";
+          triggerAnimation("happy", true);
+          setShowFloatingEmojis(true);
+          setTimeout(() => setShowFloatingEmojis(false), 3000);
+        } else if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
+          if (emotionContext === "happy" || emotionContext === "excited") {
+            response =
+              "와! 정말 기분이 좋아 보여! 나도 기뻐~ 🎉 기분 좋을 때 뭔가 특별한 걸 사보는 건 어때?";
+            context = "happy";
+          } else if (
+            emotionContext === "sad" ||
+            emotionContext === "frustrated"
+          ) {
+            response =
+              "괜찮아... 내가 여기 있을게. 힘내! 😊 가끔은 자신에게 선물을 해주는 것도 좋아!";
+            context = "sad";
+          } else {
+            response = "너의 기분을 이해해! 내가 여기 있어줄게~";
+            context = "neutral";
+          }
+        } else if (
+          lowerInput.includes("고마워") ||
+          lowerInput.includes("감사")
+        ) {
+          response = "천만에! 또 도움이 필요하면 언제든지 말해~";
+          context = "thanking";
+          triggerAnimation("happy", true);
+          setShowFloatingEmojis(true);
+          setTimeout(() => setShowFloatingEmojis(false), 3000);
         } else {
-          response = "너의 기분을 이해해! 내가 여기 있어줄게~";
-          context = "neutral";
-        }
+          // 5. 개인화된 일반 응답
+          const profile = userProfileService.getProfile();
+          const responses = generatePersonalizedResponse(
+            input,
+            profile,
+            emotionContext
+          );
+          response = responses[Math.floor(Math.random() * responses.length)];
+          context = emotionContext;
 
-      } else if (lowerInput.includes("고마워") || lowerInput.includes("감사")) {
-        response = "천만에! 또 도움이 필요하면 언제든지 말해~";
-        context = "thanking";
-        triggerAnimation("happy", true);
-        setShowFloatingEmojis(true);
-        setTimeout(() => setShowFloatingEmojis(false), 3000);
-
-      } else {
-        // 5. 개인화된 일반 응답
-        const profile = userProfileService.getProfile();
-        const responses = generatePersonalizedResponse(input, profile, emotionContext);
-        response = responses[Math.floor(Math.random() * responses.length)];
-        context = emotionContext;
-        
-        // 가끔 프로필 질문 삽입
-        if (Math.random() < 0.3 && userProfileService.getProfileCompleteness() < 80) {
-          const questions = recommendationEngine.generateProfileQuestions();
-          if (questions.length > 0) {
-            setProfileQuestion(questions[0]);
-            response += `\n\n그런데 ${questions[0].question}`;
+          // 가끔 프로필 질문 삽입
+          if (
+            Math.random() < 0.3 &&
+            userProfileService.getProfileCompleteness() < 80
+          ) {
+            const questions = recommendationEngine.generateProfileQuestions();
+            if (questions.length > 0) {
+              setProfileQuestion(questions[0]);
+              response += `\n\n그런데 ${questions[0].question}`;
+            }
           }
         }
       }
@@ -182,9 +369,8 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
       setCharacterText(response);
       setConversationContext(context);
       setIsAIThinking(false);
-      
     } catch (error) {
-      console.error('Error in handleUserInput:', error);
+      console.error("Error in handleUserInput:", error);
       setCharacterText("어? 뭔가 문제가 생겼어! 다시 말해줄래?");
       setIsAIThinking(false);
     }
@@ -193,56 +379,58 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
   // 프로필 질문 답변 처리
   const handleProfileAnswer = async (answer) => {
     const lowerAnswer = answer.toLowerCase();
-    
-    if (profileQuestion.type === 'age') {
+
+    if (profileQuestion.type === "age") {
       let age = null;
-      if (lowerAnswer.includes('10')) age = 15;
-      else if (lowerAnswer.includes('20')) age = 25;
-      else if (lowerAnswer.includes('30')) age = 35;
-      else if (lowerAnswer.includes('40')) age = 45;
-      else if (lowerAnswer.includes('50')) age = 55;
-      
+      if (lowerAnswer.includes("10")) age = 15;
+      else if (lowerAnswer.includes("20")) age = 25;
+      else if (lowerAnswer.includes("30")) age = 35;
+      else if (lowerAnswer.includes("40")) age = 45;
+      else if (lowerAnswer.includes("50")) age = 55;
+
       if (age) {
         userProfileService.userProfile.demographics.age = age;
         userProfileService.saveProfile();
       }
-      
+
       return "좋아! 이제 더 정확한 추천을 해줄 수 있을 거야! 😊";
-      
-    } else if (profileQuestion.type === 'living') {
+    } else if (profileQuestion.type === "living") {
       let livingType = null;
-      if (lowerAnswer.includes('원룸') || lowerAnswer.includes('오피스텔')) livingType = '원룸';
-      else if (lowerAnswer.includes('아파트')) livingType = '아파트';
-      else if (lowerAnswer.includes('빌라')) livingType = '빌라'; 
-      else if (lowerAnswer.includes('주택')) livingType = '주택';
-      
+      if (lowerAnswer.includes("원룸") || lowerAnswer.includes("오피스텔"))
+        livingType = "원룸";
+      else if (lowerAnswer.includes("아파트")) livingType = "아파트";
+      else if (lowerAnswer.includes("빌라")) livingType = "빌라";
+      else if (lowerAnswer.includes("주택")) livingType = "주택";
+
       if (livingType) {
         userProfileService.userProfile.demographics.livingType = livingType;
         userProfileService.saveProfile();
       }
-      
+
       return `${livingType}에서 살고 있구나! 공간에 딱 맞는 제품들을 추천해줄게! 🏠`;
-      
-    } else if (profileQuestion.type === 'hobbies') {
+    } else if (profileQuestion.type === "hobbies") {
       const hobbies = [];
-      if (lowerAnswer.includes('요리')) hobbies.push('cooking');
-      if (lowerAnswer.includes('운동')) hobbies.push('exercise');
-      if (lowerAnswer.includes('게임')) hobbies.push('gaming');
-      if (lowerAnswer.includes('독서')) hobbies.push('reading');
-      if (lowerAnswer.includes('영화')) hobbies.push('movies');
-      if (lowerAnswer.includes('여행')) hobbies.push('travel');
-      if (lowerAnswer.includes('인테리어')) hobbies.push('interior');
-      
+      if (lowerAnswer.includes("요리")) hobbies.push("cooking");
+      if (lowerAnswer.includes("운동")) hobbies.push("exercise");
+      if (lowerAnswer.includes("게임")) hobbies.push("gaming");
+      if (lowerAnswer.includes("독서")) hobbies.push("reading");
+      if (lowerAnswer.includes("영화")) hobbies.push("movies");
+      if (lowerAnswer.includes("여행")) hobbies.push("travel");
+      if (lowerAnswer.includes("인테리어")) hobbies.push("interior");
+
       if (hobbies.length > 0) {
         userProfileService.userProfile.lifestyle.hobbies = [
-          ...new Set([...userProfileService.userProfile.lifestyle.hobbies, ...hobbies])
+          ...new Set([
+            ...userProfileService.userProfile.lifestyle.hobbies,
+            ...hobbies,
+          ]),
         ];
         userProfileService.saveProfile();
       }
-      
+
       return "오~ 취향을 알겠어! 이제 네 관심사에 맞는 상품들을 찾아줄 수 있을 거야! ✨";
     }
-    
+
     return "답변 고마워! 이제 더 나은 추천을 해줄 수 있을 거야! 😊";
   };
 
@@ -252,17 +440,17 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
       "그렇구나! 재밌는 얘기네~",
       "오~ 그거 좋은데? 더 얘기해봐!",
       "정말? 신기하다!",
-      "우와~ 흥미롭네!"
+      "우와~ 흥미롭네!",
     ];
 
     // 프로필 기반 맞춤 응답
-    if (profile.lifestyle.hobbies.includes('cooking')) {
+    if (profile.lifestyle.hobbies.includes("cooking")) {
       baseResponses.push("요리 좋아하는구나! 혹시 주방용품 관심 있어?");
     }
-    if (profile.lifestyle.hobbies.includes('exercise')) {
+    if (profile.lifestyle.hobbies.includes("exercise")) {
       baseResponses.push("운동하는구나! 홈트 용품 어때?");
     }
-    if (profile.demographics.livingType === '원룸') {
+    if (profile.demographics.livingType === "원룸") {
       baseResponses.push("원룸에서 쓰기 좋은 것들 많이 알고 있어!");
     }
 
@@ -317,7 +505,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
     if (!textInput.trim()) return;
 
     setUserText(textInput);
-    
+
     // AI 응답 생성 중 표시
     setIsAIThinking(true);
     setCharacterText("생각하고 있어요...");
@@ -349,7 +537,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
       // AI 응답 생성 중 표시
       setIsAIThinking(true);
       setCharacterText("생각하고 있어요...");
-      
+
       // 자동으로 응답 생성
       setTimeout(() => {
         handleUserInput(result.transcript, result.emotion);
@@ -359,14 +547,16 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
 
   // 캐릭터 텍스트가 변경되면 음성 출력 (특정 메시지 제외)
   useEffect(() => {
-    if (characterText && 
-        !isMuted && 
-        !characterText.includes("듣고 있어요") &&
-        !characterText.includes("생각하고 있어요") &&
-        !characterText.includes("잘 들리지 않았어요") &&
-        !characterText.includes("마이크") &&
-        !characterText.includes("인터넷") &&
-        !characterText.includes("음성을 인식하지")) {
+    if (
+      characterText &&
+      !isMuted &&
+      !characterText.includes("듣고 있어요") &&
+      !characterText.includes("생각하고 있어요") &&
+      !characterText.includes("잘 들리지 않았어요") &&
+      !characterText.includes("마이크") &&
+      !characterText.includes("인터넷") &&
+      !characterText.includes("음성을 인식하지")
+    ) {
       speak(characterText);
     }
   }, [characterText, isMuted, speak]);
@@ -384,7 +574,9 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
                   <div className="w-4 h-4 sm:w-5 sm:h-5 bg-layer-muted rounded-full flex items-center justify-center">
                     <Brain className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-layer-surface" />
                   </div>
-                  <span className="text-xs sm:text-caption text-layer-content">T</span>
+                  <span className="text-xs sm:text-caption text-layer-content">
+                    T
+                  </span>
                 </div>
 
                 <ThumbSwitch
@@ -401,7 +593,9 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
                   <div className="w-4 h-4 sm:w-5 sm:h-5 bg-layer-muted rounded-full flex items-center justify-center">
                     <Heart className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-layer-surface" />
                   </div>
-                  <span className="text-xs sm:text-caption text-layer-content">F</span>
+                  <span className="text-xs sm:text-caption text-layer-content">
+                    F
+                  </span>
                 </div>
               </div>
 
@@ -420,6 +614,20 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
                   )}
                 </Button>
 
+                <ChatHistoryButton
+                  onSelectSession={(sessionId) => {
+                    if (sessionId) {
+                      setChatSessionId(sessionId);
+                      localStorage.setItem(
+                        "currentChatSessionId",
+                        sessionId.toString()
+                      );
+                    } else {
+                      createNewChatSession();
+                    }
+                  }}
+                />
+
                 <Button
                   variant="ghost"
                   size="icon"
@@ -436,10 +644,10 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
         {/* Content Section */}
         <section className="flex-1 mx-auto w-full max-w-[560px] px-4 py-5 flex flex-col items-center justify-center gap-4 sm:gap-6 md:gap-8">
           {/* Speech Bubble - White Surface (위치 변경됨) */}
-          <SpeechBubble 
-            text={characterText} 
-            isListening={isListening} 
-            isThinking={isAIThinking} 
+          <SpeechBubble
+            text={characterText}
+            isListening={isListening}
+            isThinking={isAIThinking}
           />
 
           {/* Duck Character - White Surface Container (위치 변경됨) */}
@@ -515,7 +723,9 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
           {userText && !isListening && (
             <div className="space-y-3 sm:space-y-4 w-full max-w-[540px]">
               <div className="bg-layer-surface rounded-surface px-3 sm:px-4 py-2 sm:py-3 shadow-surface border border-layer-border">
-                <p className="text-sm sm:text-body text-layer-content">{userText}</p>
+                <p className="text-sm sm:text-body text-layer-content">
+                  {userText}
+                </p>
               </div>
 
               {/* Emotion info */}
@@ -545,7 +755,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
             {/* CTA Button - Only show when user has spoken */}
             {userText && !isListening && (
               <Button
-                onClick={onNavigateToProducts}
+                onClick={() => onNavigateToContent()}
                 className="w-full rounded-surface bg-layer-surface text-layer-content text-sm sm:text-body font-bold py-3 sm:py-4 shadow-surface border border-layer-border active:scale-[0.98] transition-all duration-150 hover:shadow-glow"
               >
                 시작하기
@@ -601,18 +811,18 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
         </footer>
       </main>
 
-      {/* 상세 제품 화면으로 이동하는 퀵 액세스 버튼 */}
+      {/* 문화 콘텐츠 화면으로 이동하는 퀵 액세스 버튼 */}
       <QuickAccessButton
         icon={<ShoppingBag className="h-5 w-5" />}
-        label="상품 보기"
-        onClick={onNavigateToProducts}
+        label="콘텐츠 보기"
+        onClick={() => onNavigateToContent()}
         position="bottom-right"
         variant="ghost"
         size="md"
         showLabel={true}
         labelPosition="top"
         className="z-50"
-        data-testid="product-quick-access"
+        data-testid="content-quick-access"
       />
     </div>
   );

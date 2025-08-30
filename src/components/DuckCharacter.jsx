@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-export const DuckCharacter = ({
+const DuckCharacter = ({
   src = "https://i.pinimg.com/originals/2f/85/3d/2f853d0d25410ea49f6e1c4628e63dd9.gif",
   size = "lg",
   onClick,
@@ -64,3 +64,5 @@ export const DuckCharacter = ({
     </div>
   );
 };
+
+export default DuckCharacter;
