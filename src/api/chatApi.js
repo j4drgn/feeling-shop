@@ -41,28 +41,7 @@ const chatApi = {
       return responseData;
     } catch (error) {
       console.error("메시지 전송 오류:", error);
-      
-      // API 연결 실패 시 백업용 모의 응답 사용
-      let content = "";
-      if (emotionType === "happy") {
-        content = `기분이 좋으시군요! 그런 기분에는 밝고 활기찬 음악이 어울릴 것 같아요. 방탄소년단의 'Dynamite'나 아이유의 'Blueming' 같은 곡을 추천해 드릴게요!`;
-      } else if (emotionType === "sad") {
-        content = `마음이 무거우신가 봐요. 위로가 필요하실 때는 잔잔한 책이나 영화가 도움이 될 수 있어요. '아몬드'라는 소설이나 '어바웃 타임' 같은 따뜻한 영화는 어떨까요?`;
-      } else {
-        content = `안녕하세요! 오늘은 어떤 문화 콘텐츠를 추천해 드릴까요? 책, 영화, 음악 중에서 어떤 것에 관심이 있으신가요?`;
-      }
-
-      return {
-        success: true,
-        message: "메시지가 성공적으로 처리되었습니다.",
-        data: {
-          id: Math.floor(Math.random() * 1000) + 1,
-          content: content,
-          type: "ASSISTANT",
-          timestamp: new Date().toISOString(),
-          chatSessionId: null,
-        },
-      };
+      throw error;
     }
   },
 
@@ -98,28 +77,7 @@ const chatApi = {
       return responseData;
     } catch (error) {
       console.error("세션 메시지 전송 오류:", error);
-      
-      // API 연결 실패 시 백업용 모의 응답 사용
-      let content = "";
-      if (emotionType === "happy") {
-        content = `기분이 좋으시군요! 그런 기분에는 밝고 활기찬 음악이 어울릴 것 같아요. 방탄소년단의 'Dynamite'나 아이유의 'Blueming' 같은 곡을 추천해 드릴게요!`;
-      } else if (emotionType === "sad") {
-        content = `마음이 무거우신가 봐요. 위로가 필요하실 때는 잔잔한 책이나 영화가 도움이 될 수 있어요. '아몬드'라는 소설이나 '어바웃 타임' 같은 따뜻한 영화는 어떨까요?`;
-      } else {
-        content = `안녕하세요! 오늘은 어떤 문화 콘텐츠를 추천해 드릴까요? 책, 영화, 음악 중에서 어떤 것에 관심이 있으신가요?`;
-      }
-
-      return {
-        success: true,
-        message: "메시지가 성공적으로 처리되었습니다.",
-        data: {
-          id: Math.floor(Math.random() * 1000) + 1,
-          content: content,
-          type: "ASSISTANT",
-          timestamp: new Date().toISOString(),
-          chatSessionId: sessionId,
-        },
-      };
+      throw error;
     }
   },
 
@@ -142,20 +100,6 @@ const chatApi = {
       return responseData;
     } catch (error) {
       console.error("채팅 세션 생성 오류:", error);
-      // 백엔드 서버가 실행되지 않는 경우 모킹 데이터 사용
-      if (error.message.includes("404") || error.message.includes("Failed to fetch")) {
-        console.warn("백엔드 서버가 실행되지 않아 채팅 세션 모킹 데이터를 사용합니다.");
-        return {
-          success: true,
-          message: "채팅 세션이 성공적으로 생성되었습니다.",
-          data: {
-            id: Math.floor(Math.random() * 10000) + 1,
-            title: title,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-        };
-      }
       throw error;
     }
   },
@@ -178,22 +122,6 @@ const chatApi = {
       return responseData;
     } catch (error) {
       console.error("채팅 세션 목록 가져오기 오류:", error);
-      // 백엔드 서버가 실행되지 않는 경우 모킹 데이터 사용
-      if (error.message.includes("404") || error.message.includes("Failed to fetch")) {
-        console.warn("백엔드 서버가 실행되지 않아 채팅 세션 목록 모킹 데이터를 사용합니다.");
-        return {
-          success: true,
-          message: "채팅 세션 목록을 성공적으로 가져왔습니다.",
-          data: [
-            {
-              id: 1,
-              title: "샘플 대화",
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            },
-          ],
-        };
-      }
       throw error;
     }
   },
@@ -323,25 +251,6 @@ const chatApi = {
       return responseData;
     } catch (error) {
       console.error("세션 메시지 가져오기 오류:", error);
-      // 백엔드 서버가 실행되지 않는 경우 모킹 데이터 사용
-      if (error.message.includes("404") || error.message.includes("Failed to fetch")) {
-        console.warn("백엔드 서버가 실행되지 않아 세션 메시지 모킹 데이터를 사용합니다.");
-        return {
-          success: true,
-          message: "세션 메시지를 성공적으로 가져왔습니다.",
-          data: [
-            {
-              id: 1,
-              content: "안녕하세요! 오늘 기분은 어떠신가요?",
-              type: "ASSISTANT",
-              emotionType: "HAPPY",
-              emotionScore: 0.8,
-              createdAt: new Date().toISOString(),
-              order: 1
-            },
-          ],
-        };
-      }
       throw error;
     }
   },

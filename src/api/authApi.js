@@ -55,8 +55,8 @@ const authApi = {
             success: true,
             message: "로그인이 완료되었습니다.",
             data: {
-              accessToken: "mock_access_token_" + Date.now(),
-              refreshToken: "mock_refresh_token_" + Date.now(),
+              accessToken: "",
+              refreshToken: "",
               user: {
                 id: 1,
                 email: credentials.email,
@@ -98,8 +98,8 @@ const authApi = {
             success: true,
             message: "토큰이 성공적으로 갱신되었습니다.",
             data: {
-              accessToken: "mock_access_token_" + Date.now(),
-              refreshToken: "mock_refresh_token_" + Date.now(),
+              accessToken: "",
+              refreshToken: "",
             }
           };
         }

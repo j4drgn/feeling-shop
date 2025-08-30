@@ -6,84 +6,6 @@ export class EmotionCommerceEngine {
   constructor() {
     this.emotionEngine = emotionAnalysisEngine;
     this.userProfile = userProfileService;
-    
-    // 감정-상품 매칭 매트릭스
-    this.emotionProductMatrix = {
-      불안: {
-        categories: ['건강관리', '수면용품', '릴렉스', '아로마', '명상'],
-        products: {
-          high: ['수면유도기', '아로마디퓨저', '명상앱구독', '안대와귀마개'],
-          medium: ['허브차세트', '입욕제', '요가매트', '스트레스볼'],
-          low: ['향초', '컬러링북', '퍼즐', '식물']
-        },
-        keywords: ['안정', '릴렉스', '수면', '진정', '편안함'],
-        priceRange: { min: 10000, max: 100000 }
-      },
-      우울: {
-        categories: ['취미용품', '운동기구', '펫용품', '조명', '음악'],
-        products: {
-          high: ['운동기구', 'LED무드등', '반려식물세트', '취미키트'],
-          medium: ['블루투스스피커', '아트클래스', '일기장', '보드게임'],
-          low: ['컬러테라피북', '입욕제', '간식세트', '향초']
-        },
-        keywords: ['기분전환', '활력', '위로', '동기부여', '즐거움'],
-        priceRange: { min: 15000, max: 150000 }
-      },
-      피곤: {
-        categories: ['영양제', '수면용품', '마사지기', '커피머신', '건강식품'],
-        products: {
-          high: ['안마의자', '수면매트리스', '공기청정기', '비타민세트'],
-          medium: ['마사지건', '수면안대', '허브차', '영양제'],
-          low: ['아이마스크', '목베개', '입욕제', '에너지바']
-        },
-        keywords: ['회복', '에너지', '휴식', '영양', '수면'],
-        priceRange: { min: 20000, max: 200000 }
-      },
-      행복: {
-        categories: ['선물', '파티용품', '여행', '미용', '패션'],
-        products: {
-          high: ['여행패키지', '명품소품', '체험권', '주얼리'],
-          medium: ['향수', '화장품세트', '패션아이템', '와인'],
-          low: ['꽃다발', '초콜릿', '카드', '케이크']
-        },
-        keywords: ['축하', '선물', '공유', '기념', '특별함'],
-        priceRange: { min: 30000, max: 300000 }
-      },
-      분노: {
-        categories: ['운동용품', '게임', '스트레스해소', '음악', '취미'],
-        products: {
-          high: ['복싱글러브세트', '게임콘솔', '드럼세트', '러닝머신'],
-          medium: ['스트레스해소용품', '다트', '노래방기기', '펀칭백'],
-          low: ['스트레스볼', '버블랩', '슬라임', '피젯토이']
-        },
-        keywords: ['해소', '발산', '운동', '게임', '취미'],
-        priceRange: { min: 10000, max: 200000 }
-      }
-    };
-
-    // 협업 필터링 시뮬레이션 데이터
-    this.collaborativeData = {
-      userSimilarity: new Map(),
-      itemSimilarity: new Map(),
-      userClusters: []
-    };
-
-    // A/B 테스트 그룹
-    this.abTestGroups = {
-      control: { algorithm: 'random', users: [] },
-      emotionBased: { algorithm: 'emotion', users: [] },
-      hybrid: { algorithm: 'hybrid', users: [] }
-    };
-
-    // 성과 메트릭
-    this.metrics = {
-      totalRecommendations: 0,
-      clickThroughRate: 0,
-      conversionRate: 0,
-      averageOrderValue: 0,
-      userSatisfaction: 0,
-      returnRate: 0
-    };
   }
 
   // 메인 추천 함수
@@ -146,57 +68,42 @@ export class EmotionCommerceEngine {
   // 감정 기반 추천
   emotionBasedRecommendation(emotionAnalysis, userProfile, context) {
     const dominantEmotion = emotionAnalysis.dominant;
-    const emotionConfig = this.emotionProductMatrix[dominantEmotion];
     
-    if (!emotionConfig) {
-      return this.getFallbackRecommendations();
-    }
-    
-    const recommendations = [];
-    const intensity = this.calculateEmotionIntensity(emotionAnalysis);
-    
-    // 강도에 따른 상품 선택
-    const productLevel = intensity > 70 ? 'high' : intensity > 40 ? 'medium' : 'low';
-    const products = emotionConfig.products[productLevel];
-    
-    // 상품 데이터 생성
-    products.forEach((productName, index) => {
-      recommendations.push({
-        id: `emotion_${dominantEmotion}_${index}`,
-        name: productName,
-        category: emotionConfig.categories[Math.floor(Math.random() * emotionConfig.categories.length)],
-        matchScore: 85 + Math.random() * 15,
+    // 기본 추천 상품
+    const recommendations = [
+      {
+        id: `emotion_${dominantEmotion}_${Date.now()}`,
+        name: `${dominantEmotion} 관련 상품`,
+        category: '추천',
+        matchScore: 50,
         emotionMatch: dominantEmotion,
-        price: this.generatePrice(emotionConfig.priceRange),
+        price: 50000,
         reason: `${dominantEmotion} 상태에 도움이 되는 상품`,
-        tags: emotionConfig.keywords,
-        image: this.generateProductImage(productName)
-      });
-    });
+        tags: [dominantEmotion],
+        image: `https://via.placeholder.com/300x300?text=${encodeURIComponent(dominantEmotion)}`
+      }
+    ];
     
     return recommendations;
   }
 
   // 하이브리드 추천 (감정 + 협업 필터링)
   hybridRecommendation(emotionAnalysis, userProfile, context) {
-    // 감정 기반 추천 (50%)
+    // 감정 기반 추천
     const emotionRecs = this.emotionBasedRecommendation(emotionAnalysis, userProfile, context);
     
-    // 협업 필터링 추천 (30%)
-    const collaborativeRecs = this.collaborativeFilteringRecommendation(userProfile);
-    
-    // 컨텐츠 기반 추천 (20%)
+    // 컨텐츠 기반 추천
     const contentRecs = this.contentBasedRecommendation(userProfile);
     
-    // 병합 및 가중치 적용
+    // 병합
     const merged = new Map();
     
     emotionRecs.forEach(rec => {
-      rec.weight = 0.5;
+      rec.weight = 0.7;
       merged.set(rec.id, rec);
     });
     
-    collaborativeRecs.forEach(rec => {
+    contentRecs.forEach(rec => {
       if (merged.has(rec.id)) {
         merged.get(rec.id).weight += 0.3;
       } else {
@@ -205,38 +112,10 @@ export class EmotionCommerceEngine {
       }
     });
     
-    contentRecs.forEach(rec => {
-      if (merged.has(rec.id)) {
-        merged.get(rec.id).weight += 0.2;
-      } else {
-        rec.weight = 0.2;
-        merged.set(rec.id, rec);
-      }
-    });
-    
     return Array.from(merged.values()).sort((a, b) => b.weight - a.weight);
   }
 
-  // 협업 필터링 추천
-  collaborativeFilteringRecommendation(userProfile) {
-    // 유사 사용자 찾기 (시뮬레이션)
-    const similarUsers = this.findSimilarUsers(userProfile);
-    const recommendations = [];
-    
-    // 유사 사용자들이 구매한 상품 추천
-    similarUsers.forEach(userId => {
-      const userPurchases = this.getSimulatedUserPurchases(userId);
-      userPurchases.forEach(product => {
-        recommendations.push({
-          ...product,
-          reason: '비슷한 사용자들이 구매한 상품',
-          matchScore: 70 + Math.random() * 20
-        });
-      });
-    });
-    
-    return recommendations.slice(0, 5);
-  }
+
 
   // 컨텐츠 기반 추천
   contentBasedRecommendation(userProfile) {
@@ -341,42 +220,20 @@ export class EmotionCommerceEngine {
 
   // A/B 테스트 그룹 결정
   determineABTestGroup(userProfile) {
-    // 사용자 ID 기반으로 그룹 할당 (시뮬레이션)
-    const userId = userProfile.id || Math.random().toString();
-    const hash = this.hashCode(userId);
-    const groupIndex = Math.abs(hash) % 3;
-    
-    const groups = ['control', 'emotionBased', 'hybrid'];
-    return this.abTestGroups[groups[groupIndex]];
+    // 기본 그룹 반환
+    return { algorithm: 'emotion' };
   }
 
-  // 해시 함수
-  hashCode(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return hash;
-  }
+
 
   // 감정 강도 계산
   calculateEmotionIntensity(emotionAnalysis) {
     return emotionAnalysis.confidence || 50;
   }
 
-  // 가격 생성
-  generatePrice(priceRange) {
-    return Math.floor(
-      priceRange.min + Math.random() * (priceRange.max - priceRange.min)
-    );
-  }
 
-  // 상품 이미지 생성 (시뮬레이션)
-  generateProductImage(productName) {
-    return `https://via.placeholder.com/300x300?text=${encodeURIComponent(productName)}`;
-  }
+
+
 
   // 폴백 추천
   getFallbackRecommendations() {
@@ -391,23 +248,7 @@ export class EmotionCommerceEngine {
     ];
   }
 
-  // 유사 사용자 찾기 (시뮬레이션)
-  findSimilarUsers(userProfile) {
-    // 실제로는 코사인 유사도 등을 계산
-    return ['user_sim_1', 'user_sim_2', 'user_sim_3'];
-  }
 
-  // 시뮬레이션 사용자 구매 이력
-  getSimulatedUserPurchases(userId) {
-    return [
-      {
-        id: `sim_product_${userId}_1`,
-        name: '시뮬레이션 추천 상품',
-        category: '추천',
-        price: 50000
-      }
-    ];
-  }
 
   // 신뢰도 계산
   calculateConfidence(emotionAnalysis, recommendations) {
@@ -482,47 +323,19 @@ export class EmotionCommerceEngine {
 
   // 메트릭 업데이트
   updateMetrics(data) {
-    this.metrics.totalRecommendations++;
-    
-    // 실제로는 사용자 행동 추적 필요
-    // 여기서는 시뮬레이션
-    if (Math.random() > 0.7) {
-      this.metrics.clickThroughRate = 
-        (this.metrics.clickThroughRate * (this.metrics.totalRecommendations - 1) + 1) / 
-        this.metrics.totalRecommendations;
-    }
-    
-    if (Math.random() > 0.85) {
-      this.metrics.conversionRate = 
-        (this.metrics.conversionRate * (this.metrics.totalRecommendations - 1) + 1) / 
-        this.metrics.totalRecommendations;
-    }
+    // 메트릭 업데이트 로직 제거
   }
 
   // 성과 메트릭 가져오기
   getPerformanceMetrics() {
     return {
-      ...this.metrics,
-      abTestResults: this.getABTestResults()
+      totalRecommendations: 0,
+      clickThroughRate: 0,
+      conversionRate: 0
     };
   }
 
-  // A/B 테스트 결과
-  getABTestResults() {
-    const results = {};
-    
-    for (const [groupName, group] of Object.entries(this.abTestGroups)) {
-      results[groupName] = {
-        algorithm: group.algorithm,
-        userCount: group.users.length,
-        conversionRate: Math.random() * 0.15 + 0.05, // 5-20% 시뮬레이션
-        avgOrderValue: Math.random() * 50000 + 30000,
-        satisfactionScore: Math.random() * 2 + 3 // 3-5점
-      };
-    }
-    
-    return results;
-  }
+
 }
 
 // 싱글톤 인스턴스

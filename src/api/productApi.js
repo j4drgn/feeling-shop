@@ -14,16 +14,7 @@ const productApi = {
           return {
             success: true,
             message: "상품 목록을 성공적으로 가져왔습니다.",
-            data: [
-              {
-                id: 1,
-                name: "감성 헤드폰",
-                price: 89000,
-                category: "electronics",
-                description: "편안한 착용감과 뛰어난 음질의 헤드폰",
-                image: "/assets/product-headphones.png",
-              },
-            ],
+            data: [],
           };
         }
         const errorData = await response.json();
