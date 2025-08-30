@@ -12,6 +12,41 @@ export const ProductCard = ({ product, onSwipe }) => {
   const touchModeRef = useRef("none"); // "none", "swipe", "scroll"
   const cardRef = useRef(null);
 
+  // 터치 이벤트를 passive: false로 등록
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const handleTouchMovePassive = (e) => {
+      const touchX = e.touches[0].clientX;
+      const touchY = e.touches[0].clientY;
+      const deltaX = touchX - touchStartRef.current.x;
+      const deltaY = touchY - touchStartRef.current.y;
+
+      // 처음 움직임이 감지되면 스와이프인지 스크롤인지 결정
+      if (touchModeRef.current === "none") {
+        if (Math.abs(deltaX) > Math.abs(deltaY) + 10) {
+          touchModeRef.current = "swipe";
+          e.preventDefault(); // 스와이프로 판단되면 기본 동작 방지
+        } else if (Math.abs(deltaY) > Math.abs(deltaX) + 10) {
+          touchModeRef.current = "scroll";
+          return; // 스크롤로 판단되면 여기서 종료
+        }
+      }
+
+      if (touchModeRef.current === "swipe") {
+        e.preventDefault();
+        setDragX(deltaX);
+      }
+    };
+
+    card.addEventListener('touchmove', handleTouchMovePassive, { passive: false });
+
+    return () => {
+      card.removeEventListener('touchmove', handleTouchMovePassive);
+    };
+  }, []);
+
   const handleMouseDown = (e) => {
     e.preventDefault(); // 기본 동작 방지
     setIsDragging(true);
@@ -55,28 +90,6 @@ export const ProductCard = ({ product, onSwipe }) => {
     setDragX(0);
   };
 
-  const handleTouchMove = (e) => {
-    const touchX = e.touches[0].clientX;
-    const touchY = e.touches[0].clientY;
-    const deltaX = touchX - touchStartRef.current.x;
-    const deltaY = touchY - touchStartRef.current.y;
-
-    // 처음 움직임이 감지되면 스와이프인지 스크롤인지 결정
-    if (touchModeRef.current === "none") {
-      if (Math.abs(deltaX) > Math.abs(deltaY) + 10) {
-        touchModeRef.current = "swipe";
-        e.preventDefault(); // 스와이프로 판단되면 기본 동작 방지
-      } else if (Math.abs(deltaY) > Math.abs(deltaX) + 10) {
-        touchModeRef.current = "scroll";
-        return; // 스크롤로 판단되면 여기서 종료
-      }
-    }
-
-    if (touchModeRef.current === "swipe") {
-      e.preventDefault();
-      setDragX(deltaX);
-    }
-  };
 
   const handleTouchEnd = (e) => {
     if (touchModeRef.current === "swipe" && Math.abs(dragX) > 80) {
@@ -105,7 +118,6 @@ export const ProductCard = ({ product, onSwipe }) => {
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {/* Category Badge */}

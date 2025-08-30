@@ -17,7 +17,7 @@ export const HistoryScreen = ({
   likedProducts,
   chatHistory,
 }) => {
-  const { colors } = useThemeContext();
+  const { colors, isThinking } = useThemeContext();
   const [showHistoryDetails, setShowHistoryDetails] = useState(false);
   const [selectedChatSession, setSelectedChatSession] = useState(null);
 
@@ -25,30 +25,38 @@ export const HistoryScreen = ({
   const groupChatBySession = () => {
     if (!chatHistory || chatHistory.length === 0) return [];
 
-    // 실제 앱에서는 메시지에 timestamp나 sessionId가 있을 것으로 가정
-    // 여기서는 임의로 4개의 메시지를 하나의 세션으로 간주
+    // 연속된 대화를 하나의 세션으로 그룹화 (최대 10개 메시지)
     const sessions = [];
     let currentSession = [];
 
     for (let i = 0; i < chatHistory.length; i++) {
       currentSession.push(chatHistory[i]);
 
-      if (currentSession.length === 4 || i === chatHistory.length - 1) {
+      // 세션을 구분하는 조건: 10개 메시지마다 또는 마지막 메시지
+      if (currentSession.length === 10 || i === chatHistory.length - 1) {
+        const sessionDate = new Date();
+        // 이전 세션들은 시간을 조금씩 빼서 날짜 다양화
+        sessionDate.setHours(sessionDate.getHours() - sessions.length * 2);
+        
         sessions.push({
           id: `session-${sessions.length}`,
-          date: new Date().toLocaleDateString(), // 실제로는 메시지의 timestamp 사용
+          date: sessionDate.toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: 'numeric', 
+            day: 'numeric',
+          }),
+          timestamp: sessionDate,
           messages: [...currentSession],
         });
         currentSession = [];
       }
     }
 
-    return sessions;
+    return sessions.reverse(); // 최신순으로 정렬
   };
 
   const chatSessions = groupChatBySession();
-  const latestSession =
-    chatSessions.length > 0 ? chatSessions[chatSessions.length - 1] : null;
+  const latestSession = chatSessions.length > 0 ? chatSessions[0] : null;
 
   // 채팅 세션 상세 보기 렌더링
   const renderChatSessionDetails = () => {
@@ -135,9 +143,11 @@ export const HistoryScreen = ({
                 <User className="h-8 w-8 text-primary" />
               </div>
               <div className="flex-1">
-                <h2 className="text-lg font-semibold">덕키 사용자</h2>
+                <h2 className="text-lg font-semibold">
+                  {chatHistory.length > 0 ? "활동중인 사용자" : "새로운 사용자"}
+                </h2>
                 <p className="text-sm text-muted-foreground">
-                  MBTI: {colors.type === "T" ? "사고형(T)" : "감정형(F)"}
+                  MBTI: {isThinking ? "사고형(T)" : "감정형(F)"}
                 </p>
                 <div className="flex items-center mt-1">
                   <Badge variant="outline" className="mr-1 text-xs">
@@ -260,10 +270,11 @@ export const HistoryScreen = ({
                 )}
 
                 {/* 이전 대화 세션 목록 */}
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium mb-2">이전 대화</h3>
-                  <div className="space-y-2">
-                    {chatSessions.slice(0, -1).map((session) => (
+                {chatSessions.length > 1 && (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium mb-2">이전 대화</h3>
+                    <div className="space-y-2">
+                      {chatSessions.slice(1).map((session) => (
                       <div
                         key={session.id}
                         className="flex items-center justify-between p-3 rounded-lg bg-white/30 backdrop-blur-sm border border-white/30 shadow-sm cursor-pointer hover:bg-white/40 transition-colors"
@@ -282,9 +293,10 @@ export const HistoryScreen = ({
                         </div>
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ) : (
               <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-lg p-4 shadow-sm">

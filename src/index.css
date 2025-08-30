@@ -185,17 +185,15 @@ All colors MUST be HSL.
 
   /* Clean mobile app styling */
   body {
-    @apply overflow-hidden touch-manipulation bg-layer-background;
-    position: fixed;
+    @apply touch-manipulation bg-layer-background;
     width: 100%;
-    height: 100%;
+    min-height: 100%;
     overscroll-behavior: none;
-    max-height: 100dvh;
   }
 
   #root {
-    @apply h-full overflow-hidden bg-layer-background;
-    max-height: 100dvh;
+    @apply min-h-full bg-layer-background;
+    min-height: 100dvh;
   }
 }
 
