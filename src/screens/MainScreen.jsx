@@ -100,10 +100,15 @@ export const MainScreen = () => {
     const checkServerHealth = async () => {
       try {
         const healthResponse = await healthApi.checkHealth();
-        if (healthResponse.success) {
+        if (healthResponse && healthResponse.success) {
+          console.log('Backend health OK');
         } else {
+          console.warn('Backend health check failed:', healthResponse && healthResponse.message);
+          setCharacterText('백엔드 서버에 연결할 수 없습니다. 일부 기능이 제한됩니다.');
         }
       } catch (error) {
+        console.error('checkServerHealth exception', error);
+        setCharacterText('서버와 연결할 수 없습니다. 서버가 실행 중인지 확인하세요.');
       }
     };
 
@@ -136,28 +141,25 @@ export const MainScreen = () => {
     try {
       const accessToken = localStorage.getItem("accessToken") || null;
       const sessionTitle = `대화 ${new Date().toLocaleString("ko-KR")}`;
-      const response = await chatApi.createChatSession(
-        sessionTitle,
-        accessToken
-      );
+      const response = await chatApi.createChatSession(sessionTitle, accessToken);
 
-      if (response && response.data) {
-        let sessionId = null;
-        if (response.data.data && response.data.data.id) {
-          sessionId = response.data.data.id;
-        } else if (response.data.id) {
-          sessionId = response.data.id;
-        } else if (response.data.sessionId) {
-          sessionId = response.data.sessionId;
-        }
-        if (sessionId) {
-          setChatSessionId(sessionId);
-          localStorage.setItem("currentChatSessionId", sessionId.toString());
-        } else {
-          throw new Error("세션 ID를 찾을 수 없습니다.");
-        }
+      if (!response || !response.success) {
+        console.warn('createChatSession failed or returned invalid:', response && response.message);
+        throw new Error(response && response.message ? response.message : '세션 생성 실패');
+      }
+
+      // response.data는 서버 응답 본문
+      let sessionId = null;
+      const d = response.data || {};
+      if (d.data && d.data.id) sessionId = d.data.id;
+      else if (d.id) sessionId = d.id;
+      else if (d.sessionId) sessionId = d.sessionId;
+
+      if (sessionId && !isNaN(sessionId)) {
+        setChatSessionId(sessionId);
+        localStorage.setItem("currentChatSessionId", sessionId.toString());
       } else {
-        throw new Error("세션 생성 실패");
+        throw new Error('세션 ID를 응답에서 찾을 수 없습니다.');
       }
     } catch (error) {
   // 세션 생성 실패 시 더 이상 로컬 폴백으로 조용히 계속하지 않음

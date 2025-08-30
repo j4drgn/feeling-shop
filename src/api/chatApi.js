@@ -1,5 +1,7 @@
-// API 기본 URL
-const API_BASE_URL = "http://localhost:8090/api";
+// API 기본 URL: Vite 환경변수 VITE_API_BASE_URL 사용 (예: http://localhost:8090)
+// 빌드/개발 환경에서 .env 파일에 VITE_API_BASE_URL을 설정하세요.
+const API_HOST = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'http://localhost:8090';
+const API_BASE_URL = `${API_HOST.replace(/\/+$/, '')}/api`;
 
 // 인증 헤더 생성 함수
 const createAuthHeader = (accessToken) => {
@@ -149,14 +151,15 @@ const chatApi = {
         });
 
         const errorMessage = (parsed && (parsed.message || parsed.error)) || text || `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage);
+        return { success: false, message: errorMessage };
       }
 
       const responseData = await response.json().catch(() => ({}));
-      return responseData;
+      // 일관된 반환 형태: { success: true, data }
+      return { success: true, data: responseData };
     } catch (error) {
       console.error('createChatSession exception', error);
-      throw error;
+      return { success: false, message: error.message || String(error) };
     }
   },
 
@@ -363,18 +366,25 @@ const chatApi = {
   },
 
   // 오디오 파일 업로드 후 서버에서 Whisper 등으로 전사 및 라벨링 요청
-  sendVoiceFileAndTranscribe: (audioBlob, message = '', voiceMetadata = {}, accessToken = null, sessionId = null, onUploadProgress = null, onUploadComplete = null) => {
+  sendVoiceFileAndTranscribe: (audioBlob, message = '', voiceMetadata = {}, accessToken = null, sessionId = null, asyncMode = false, onUploadProgress = null, onUploadComplete = null) => {
     return new Promise((resolve, reject) => {
       try {
         const form = new FormData();
-        form.append('file', audioBlob, 'voice.webm');
+        // server expects part name 'audio'
+        form.append('audio', audioBlob, 'voice.webm');
         if (message) form.append('message', message);
-        if (sessionId) form.append('chatSessionId', sessionId);
-        if (voiceMetadata) form.append('voiceMetadata', JSON.stringify(voiceMetadata));
+        // include meta information as 'meta' part (server expects metaJson string)
+        const meta = { voiceMetadata };
+        form.append('meta', JSON.stringify(meta));
 
-  const xhr = new XMLHttpRequest();
-  const url = `${API_BASE_URL}/chatgpt/chat/voice/file${typeof asyncMode !== 'undefined' && asyncMode ? '?async=true' : ''}`;
-  xhr.open('POST', url);
+        // Build URL with optional query params: chatSessionId and async
+        const params = new URLSearchParams();
+        if (typeof sessionId !== 'undefined' && sessionId !== null) params.set('chatSessionId', String(sessionId));
+        if (asyncMode) params.set('async', 'true');
+        const url = `${API_BASE_URL}/chatgpt/chat/voice/file${params.toString() ? `?${params.toString()}` : ''}`;
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
 
         if (accessToken) {
           xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);

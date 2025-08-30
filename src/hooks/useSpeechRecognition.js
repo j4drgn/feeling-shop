@@ -323,12 +323,17 @@ export const useSpeechRecognition = () => {
 
         setIsUploading(true);
         setUploadProgress(0);
+        // Decide whether to run async processing on server. Default false —
+        // set to true to get a jobId and poll for completion.
+        const asyncMode = false;
+
         const serverResponse = await chatApi.sendVoiceFileAndTranscribe(
           audioBlob,
           prevResult?.transcript || '',
           voiceMetadata,
           accessToken,
-          null,
+          null, // sessionId (null means server may create/assign)
+          asyncMode,
           (percent) => {
             setUploadProgress(percent);
           },
@@ -341,15 +346,26 @@ export const useSpeechRecognition = () => {
 
         // 서버 응답 구조 예시: { transcript, emotion, labels, sessionId }
     if (serverResponse) {
-          setResult(prev => ({
-            ...prev,
-            transcript: serverResponse.transcript || prev.transcript,
-            emotion: serverResponse.emotion || prev.emotion,
-            serverLabels: serverResponse.labels || null,
-            serverSessionId: serverResponse.sessionId || null,
-            chatResponse: serverResponse.chatResponse || null,
-      serverJobId: serverResponse.jobId || serverResponse.taskId || null,
-          }));
+          // Server may return either a direct transcription/response or an async job id
+          const jobId = serverResponse.jobId || serverResponse.taskId || serverResponse.data?.jobId || null;
+          if (jobId) {
+            // async flow: record job id and let polling effect handle merge
+            setResult(prev => ({
+              ...prev,
+              serverJobId: jobId,
+              serverSessionId: serverResponse.sessionId || serverResponse.data?.sessionId || prev.serverSessionId,
+            }));
+          } else {
+            // sync flow: merge returned data
+            setResult(prev => ({
+              ...prev,
+              transcript: serverResponse.transcript || prev.transcript,
+              emotion: serverResponse.emotion || prev.emotion,
+              serverLabels: serverResponse.labels || null,
+              serverSessionId: serverResponse.sessionId || null,
+              chatResponse: serverResponse.chatResponse || null,
+            }));
+          }
         }
       } catch (err) {
         // 서버 전송 실패 시 로컬 폴백을 사용하지 않고 오류로 노출
