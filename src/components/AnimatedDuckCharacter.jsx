@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 // Default configurations for animation types
@@ -231,6 +231,9 @@ const AnimatedDuckCharacter = ({
   const sequenceProtectedRef = useRef(null); // null or animation name
   const pendingAnimRef = useRef(null); // pending animation request during protection
 
+  // 🔒 Request animation change ref to avoid initialization issues
+  const requestAnimationChangeRef = useRef();
+
   // 🎯 Animation Priority System - Define animation groups and priorities
   const ANIMATION_PRIORITIES = {
     // High priority - Cannot be interrupted
@@ -274,6 +277,16 @@ const AnimatedDuckCharacter = ({
     setCurrentFrame(0);
     setIsPngAnimationPlaying(false);
   }, []);
+
+  // 🎬 Auto-start animation when animation prop changes
+  useLayoutEffect(() => {
+    if (animation && animation !== 'idle') {
+      console.log(`🎬 [AUTO START] Animation changed to: ${animation}`);
+      if (requestAnimationChangeRef.current) {
+        requestAnimationChangeRef.current(animation, 'auto');
+      }
+    }
+  }, [animation]);
 
   // 🔒 Get animation config with defaults applied
   const getAnimationConfigWithDefaults = useCallback((animationName) => {
@@ -320,34 +333,48 @@ const AnimatedDuckCharacter = ({
     let start = now();
     const frameDur = 1000 / frameRate;
     let stopped = false;
+    let lastFrame = -1; // 마지막으로 표시한 프레임 추적
 
     function tick(t) {
       if (stopped) return;
+
       const elapsed = t - start;
-      let nextFrame = Math.floor(elapsed / frameDur);
+      const currentFrameIndex = Math.floor(elapsed / frameDur);
 
-      if (loop) {
-        nextFrame = nextFrame % frameCount;
-        onFrame(nextFrame);
-        rafId = requestAnimationFrame(tick);
-        return;
+      // 프레임이 변경되었을 때만 업데이트 (중복 방지)
+      if (currentFrameIndex !== lastFrame) {
+        lastFrame = currentFrameIndex;
+
+        if (loop) {
+          const frameToShow = currentFrameIndex % frameCount;
+          onFrame(frameToShow);
+        } else {
+          // 비반복 모드
+          if (currentFrameIndex >= frameCount) {
+            // 애니메이션 완료 - 마지막 프레임 표시
+            console.log(`🎬 [ANIMATION COMPLETE] Finished ${basePath} at frame ${frameCount - 1}`);
+            onFrame(frameCount - 1);
+            stopped = true;
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null;
+            onComplete?.();
+            return;
+          } else {
+            onFrame(currentFrameIndex);
+          }
+        }
       }
 
-      // loop: false
-      if (nextFrame >= frameCount - 1) {
-        // 마지막 프레임에서 정지 + onComplete 1회 호출
-        onFrame(frameCount - 1);
-        stopped = true;
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = null;
-        onComplete?.();
-        return;
-      }
-
-      onFrame(nextFrame);
+      // 다음 프레임 요청 (계속 진행)
       rafId = requestAnimationFrame(tick);
     }
 
+    // 첫 프레임 즉시 표시 (0프레임)
+    console.log(`🎬 [ANIMATION START] Starting ${basePath} with ${frameCount} frames at ${frameRate}fps`);
+    onFrame(0);
+    lastFrame = 0;
+
+    // 애니메이션 루프 시작
     rafId = requestAnimationFrame(tick);
 
     // 외부에서 정리할 때 호출
@@ -501,6 +528,9 @@ const AnimatedDuckCharacter = ({
     return true;
   }, [executeAnimationChange]);
 
+  // Set the ref after definition
+  requestAnimationChangeRef.current = requestAnimationChange;
+
 
   // 🔍 DEBUG: Animation state logger
   useEffect(() => {
@@ -621,6 +651,7 @@ const AnimatedDuckCharacter = ({
     
     setIsPngAnimationPlaying(true);
     setImageLoadError(false);
+    setCurrentFrame(0); // 애니메이션 시작 전에 프레임 초기화
 
     // Use the new PNG sequence player
     pngAnimationRef.current = playPngSequence({
@@ -628,7 +659,10 @@ const AnimatedDuckCharacter = ({
       frameCount: animConfig.frameCount,
       frameRate: animConfig.frameRate || 24,
       loop: animConfig.loop,
-      onFrame: (frame) => setCurrentFrame(frame),
+      onFrame: (frame) => {
+        console.log(`🎬 [FRAME] Displaying frame ${frame}/${animConfig.frameCount - 1} for ${animConfig.basePath}`);
+        setCurrentFrame(frame);
+      },
       onComplete: () => {
         setIsPngAnimationPlaying(false);
         onCompleteCallback?.(animation);
@@ -945,7 +979,7 @@ const AnimatedDuckCharacter = ({
   }, [animation, onAnimationComplete, startPngAnimation]);
 
   // 🚪 Main Animation Effect - Routes all animation changes through the gate
-  useEffect(() => {
+  useLayoutEffect(() => {
     console.log('🚪 [MAIN EFFECT] Animation prop changed:', {
       animation,
       trigger,
@@ -953,10 +987,10 @@ const AnimatedDuckCharacter = ({
     });
     
     // Route all animation requests through the gate system
-    requestAnimationChange(animation, trigger);
-  }, [animation, trigger, requestAnimationChange]);
-
-  // Preload images on component mount
+    if (requestAnimationChangeRef.current) {
+      requestAnimationChangeRef.current(animation, trigger);
+    }
+  }, [animation, trigger]);  // Preload images on component mount
   useEffect(() => {
     // Preload all single animations
     preloadAnimationImages(DUCK_ANIMATIONS.idle);
