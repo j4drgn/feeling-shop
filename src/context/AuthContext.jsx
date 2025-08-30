@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   const fetchUserInfo = async (accessToken) => {
     try {
       console.log('fetchUserInfo 호출, token:', accessToken);
-      const response = await authApi.getCurrentUserInfo(accessToken);
+      const response = await authApi.getUserMe(accessToken);
       console.log('fetchUserInfo 데이터:', response);
       return response.data; // 백엔드 응답 구조에 맞게 수정
     } catch (error) {
