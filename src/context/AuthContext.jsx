@@ -100,12 +100,6 @@ export const AuthProvider = ({ children }) => {
       try {
         let { accessToken } = getTokens();
 
-        // 개발용: 유효한 토큰이 없으면 테스트 토큰 사용
-        if (!accessToken) {
-          accessToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0MkBnbWFpbC5jb20iLCJpYXQiOjE3NTY1NzUxMzEsImV4cCI6MTc1NjU3ODczMX0.cXo2fGWtaOaxQ_JB-BnatKzKh66cmisSH9-6ZalKyq0";
-          saveTokens(accessToken, "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0MkBnbWFpbC5jb20iLCJpYXQiOjE3NTY1NzUxMzEsImV4cCI6MTc1NzE3OTkzMX0.oV2vBfePVoo7-yfFk7qcqD0VUjyN8TGOD-9KzBFyoew");
-          console.log("개발용 테스트 토큰 적용:", accessToken);
-        }
 
         if (accessToken) {
           // 토큰이 있으면 사용자 정보 가져오기
