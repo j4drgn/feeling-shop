@@ -1,282 +1,307 @@
 import { useState, useEffect, useRef } from "react";
-import { ProductCard } from "@/components/ProductCard";
-import { DuckCharacter } from "@/components/DuckCharacter";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowLeft, Heart, ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
 import { useThemeContext } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 
-// 샘플 상품 데이터 확장
+// 쇼츠 스타일 샘플 상품 데이터
 const sampleProducts = [
   {
     id: "1",
-    name: "Premium Wireless Headphones",
-    price: "$199.99",
-    category: "Electronics",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=500&fit=crop",
-    aiRecommendation:
-      "당신의 음악 취향과 높은 음질 선호도를 고려했을 때 이 헤드폰이 완벽한 선택입니다. 노이즈 캔슬링 기능과 30시간 배터리 수명이 특징입니다.",
+    brand: "살림남 The Life",
+    name: "놀더틈 강력 압축 휴지통 그레이 지름 30 x 높이 43...",
+    price: "₩33,500",
+    originalPrice: "₩45,000",
+    discount: "26%",
+    tags: ["쿠팡!"],
+    image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500&h=800&fit=crop",
+    description: "한 번 더 압축 사용하면 놀더틈 강력 압축 휴지통 그레이 지름 30 x 높이 43cm",
+    creator: "살림남",
+    creatorAvatar: "👨‍🍳",
+    hashtags: ["#쿠팡추천", "#휴지통", "#압축휴지통"]
   },
   {
-    id: "2",
-    name: "Classic Leather Watch",
-    price: "$129.99",
-    category: "Accessories",
-    image: "https://images.unsplash.com/photo-1524805444758-089113d48a6d?w=500&h=500&fit=crop",
-    aiRecommendation:
-      "클래식한 디자인을 선호하는 당신의 스타일에 맞춰 추천합니다. 어떤 옷에도 잘 어울리며 방수 기능도 갖추고 있습니다.",
+    id: "2", 
+    brand: "살림남 The Life",
+    name: "놀더틈 압축 휴지통 20L 크림베이지 지름 30 x 높이...",
+    price: "₩33,500",
+    originalPrice: "₩42,000", 
+    discount: "20%",
+    tags: ["쿠팡!"],
+    image: "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=500&h=800&fit=crop",
+    description: "깔끔한 크림베이지 색상의 압축 휴지통으로 공간 활용도 극대화",
+    creator: "살림남",
+    creatorAvatar: "👨‍🍳",
+    hashtags: ["#압축휴지통", "#크림베이지", "#20L"]
   },
   {
     id: "3",
-    name: "Rose Gold Smartphone",
-    price: "$899.99",
-    category: "Electronics",
-    image: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=500&h=500&fit=crop",
-    aiRecommendation:
-      "사진 촬영과 소셜 미디어 활동을 즐기는 당신에게 최적화된 카메라와 성능을 갖춘 스마트폰입니다. 배터리 수명도 우수합니다.",
+    brand: "프로메이드",
+    name: "프로메이드 폭쉬빈 중량제 봉투 압축휴지통 크림화이트...",
+    price: "₩20,680",
+    originalPrice: "₩28,000",
+    discount: "26%", 
+    tags: ["쿠팡!"],
+    image: "https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=500&h=800&fit=crop",
+    description: "중량제 봉투 압축휴지통으로 더욱 효율적인 쓰레기 처리",
+    creator: "살림남",
+    creatorAvatar: "👨‍🍳",
+    hashtags: ["#프로메이드", "#중량제봉투", "#압축휴지통"]
   },
   {
     id: "4",
-    name: "Smart Fitness Tracker",
-    price: "$89.99",
-    category: "Wearables",
-    image: "https://images.unsplash.com/photo-1576243345690-4e4b79b63288?w=500&h=500&fit=crop",
-    aiRecommendation:
-      "당신의 건강 관리와 운동 습관을 고려해 추천드립니다. 심박수, 수면 패턴 분석과 다양한 운동 모드를 지원합니다.",
-    productUrl: "https://example.com/fitness-tracker"
+    brand: "프로메이드", 
+    name: "프로메이드 폭쉬빈 중량제 봉투 압축휴지통 라이트그레...",
+    price: "₩20,680",
+    originalPrice: "₩27,500",
+    discount: "25%",
+    tags: ["쿠팡!"],
+    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=800&fit=crop", 
+    description: "라이트그레이 색상으로 어떤 인테리어에도 잘 어울리는 압축휴지통",
+    creator: "살림남",
+    creatorAvatar: "👨‍🍳",
+    hashtags: ["#라이트그레이", "#압축휴지통", "#인테리어"]
   },
   {
     id: "5",
-    name: "Portable Bluetooth Speaker",
-    price: "$129.99",
-    category: "Audio",
-    image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=500&h=500&fit=crop",
-    aiRecommendation:
-      "아웃도어 활동을 즐기는 당신에게 완벽한 방수 블루투스 스피커입니다. 강력한 베이스와 15시간 배터리 수명이 특징입니다.",
-    productUrl: "https://example.com/bluetooth-speaker"
-  },
-  {
-    id: "6",
-    name: "Minimalist Desk Lamp",
-    price: "$59.99",
-    category: "Home",
-    image: "https://images.unsplash.com/photo-1534189020686-40213a72113c?w=500&h=500&fit=crop",
-    aiRecommendation:
-      "당신의 인테리어 스타일과 작업 공간에 어울리는 모던한 디자인의 램프입니다. 조절 가능한 밝기와 색온도를 제공합니다.",
-    productUrl: "https://example.com/desk-lamp"
+    brand: "도그독",
+    name: "도그독 퍼스트 프리미엄 듀얼 폴딩카트 캠핑웨건 샌드...",
+    price: "₩165,570", 
+    originalPrice: "₩220,000",
+    discount: "25%",
+    tags: ["쿠팡!"],
+    image: "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500&h=800&fit=crop",
+    description: "캠핑과 이사에 완벽한 듀얼 폴딩카트 웨건",
+    creator: "살림남", 
+    creatorAvatar: "👨‍🍳",
+    hashtags: ["#캠핑웨건", "#폴딩카트", "#듀얼"]
   }
 ];
 
-export const ProductScreen = ({
-  onNavigateToMain,
-  onProductLiked,
-}) => {
-  const [currentProductIndex, setCurrentProductIndex] = useState(0);
-  const [products, setProducts] = useState(sampleProducts);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [isScrolling, setIsScrolling] = useState(false);
+export const ProductScreen = ({ onNavigateToMain, onProductLiked }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
   const [likedProducts, setLikedProducts] = useState([]);
-  const containerRef = useRef(null);
-  const { } = useThemeContext();
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
 
-  const currentProduct = products[currentProductIndex];
+  const currentProduct = sampleProducts[currentIndex];
 
-  const handleSwipe = (direction, productId) => {
-    setIsAnimating(true);
+  // 터치 스와이프 핸들러
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientY);
+  };
 
-    if (direction === "left") {
-      // 좋아요 기능 - 히스토리에 저장 (왼쪽 스와이프)
-      if (!likedProducts.some(p => p.id === currentProduct.id)) {
-        setLikedProducts(prev => [...prev, currentProduct]);
-        onProductLiked(currentProduct);
-      }
-      // 애니메이션 유지 시간 단축
-      setTimeout(() => {
-        setIsAnimating(false);
-      }, 100);
-    } else if (direction === "right") {
-      // 링크로 이동 기능 (오른쪽 스와이프)
-      if (currentProduct.productUrl) {
-        window.open(currentProduct.productUrl, '_blank');
-      }
-      // 애니메이션 유지 시간 단축
-      setTimeout(() => {
-        setIsAnimating(false);
-      }, 100);
-    } else if (direction === "up") {
-      // 이전 상품으로 이동
-      setTimeout(() => {
-        setCurrentProductIndex((prev) =>
-          prev > 0 ? prev - 1 : products.length - 1
-        );
-        setIsAnimating(false);
-      }, 300);
-      return;
-    } else if (direction === "down") {
-      // 다음 상품으로 이동
-      setTimeout(() => {
-        setCurrentProductIndex((prev) =>
-          prev < products.length - 1 ? prev + 1 : 0
-        );
-        setIsAnimating(false);
-      }, 300);
-      return;
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientY);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isUpSwipe = distance > 50;
+    const isDownSwipe = distance < -50;
+
+    if (isUpSwipe) {
+      handleNext();
+    }
+    if (isDownSwipe) {
+      handlePrev();
     }
   };
-  
-  // 스크롤 버튼 핸들러
-  const handleScroll = (direction) => {
-    setIsScrolling(true);
-    
-    if (direction === "up") {
-      setCurrentProductIndex((prev) =>
-        prev > 0 ? prev - 1 : products.length - 1
-      );
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % sampleProducts.length);
+    setIsLiked(false);
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + sampleProducts.length) % sampleProducts.length);
+    setIsLiked(false);
+  };
+
+  const handleLike = () => {
+    setIsLiked(!isLiked);
+    if (!isLiked) {
+      setLikedProducts(prev => [...prev, currentProduct]);
+      onProductLiked?.(currentProduct);
     } else {
-      setCurrentProductIndex((prev) =>
-        prev < products.length - 1 ? prev + 1 : 0
-      );
+      setLikedProducts(prev => prev.filter(p => p.id !== currentProduct.id));
     }
-    
-    setTimeout(() => {
-      setIsScrolling(false);
-    }, 300);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: currentProduct.name,
+        text: currentProduct.description,
+        url: window.location.href
+      });
+    }
   };
 
   return (
-    <div className="min-h-[100dvh]" style={{backgroundColor: 'rgb(255,228,161)'}}>
-      <main className="relative flex flex-col min-h-[100dvh]">
+    <div className="relative w-full h-screen bg-black overflow-hidden">
+      {/* 상품 컨테이너 */}
+      <div 
+        className="relative w-full h-full flex items-center justify-center"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* 배경 이미지 */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${currentProduct.image})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60"></div>
+        </div>
 
-        {/* Clean AppBar with pastel background */}
-        <header className="sticky top-0 z-10 backdrop-blur mb-4 sm:mb-6" style={{backgroundColor: 'rgba(255,228,161,0.9)'}}>
-          <div className="mx-auto max-w-[90%] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[800px] xl:max-w-[900px] px-4 sm:px-6 py-3 sm:py-4">
-            <div className="flex justify-between items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onNavigateToMain}
-                className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/90 hover:bg-white shadow-lg transition-all duration-200 hover:scale-105"
-              >
-                <ArrowLeft className="h-5 w-5 sm:h-6 sm:w-6 text-amber-700" />
-              </Button>
-              <h1 className="text-xl sm:text-2xl font-bold text-amber-800">🎆 추천 상품</h1>
-              <div className="w-10 h-10 sm:w-12 sm:h-12"></div>
-            </div>
+        {/* 상단 헤더 */}
+        <div className="absolute top-0 left-0 right-0 z-20 pt-12 px-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={onNavigateToMain}
+              className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center"
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <div className="text-white text-sm font-medium">제품</div>
+            <div className="w-10 h-10"></div>
           </div>
-        </header>
+        </div>
 
-        {/* Welcome Message in Speech Bubble Style */}
-        <section className="mx-auto max-w-[90%] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[800px] xl:max-w-[900px] px-4 sm:px-6 py-4 sm:py-6">
+        {/* 우측 액션 버튼들 */}
+        <div className="absolute right-4 bottom-32 z-20 flex flex-col items-center space-y-6">
+          {/* 크리에이터 아바타 */}
           <div className="relative">
-            <div className="bg-white rounded-2xl px-5 py-4 shadow-lg border-2 border-amber-200">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-100 flex items-center justify-center overflow-hidden border-2 border-amber-300">
-                  <img
-                    src="/duck-character.png"
-                    alt="AI Duck"
-                    className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
-                  />
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-amber-800">덕키의 추천 상품이야! 🎆</h2>
-                  <p className="text-sm text-amber-600">스와이프해서 마음에 드는 걸 골라봐!</p>
-                </div>
-              </div>
-              <div className="bg-amber-50 rounded-xl p-3 border border-amber-200">
-                <p className="text-xs sm:text-sm text-amber-700 text-center">
-                  💖 좌쪽 스와이프: 좋아요   🔗 오른쪽 스와이프: 링크 열기
-                </p>
-              </div>
+            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-2xl border-2 border-white">
+              {currentProduct.creatorAvatar}
             </div>
-            {/* Speech Bubble Tail */}
-            <div className="flex justify-center">
-              <div className="w-6 h-6 mt-[-1px] relative z-0">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M0 0L12 12L24 0H0Z" fill="white" />
-                  <path d="1 0L12 11L23 0" stroke="#FDE68A" strokeWidth="2" />
-                </svg>
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
+              <span className="text-white text-xs font-bold">+</span>
+            </div>
+          </div>
+
+          {/* 좋아요 버튼 */}
+          <button
+            onClick={handleLike}
+            className="flex flex-col items-center space-y-1"
+          >
+            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center">
+              <Heart 
+                className={cn(
+                  "w-7 h-7",
+                  isLiked ? "text-red-500 fill-current" : "text-white"
+                )}
+              />
+            </div>
+            <span className="text-white text-xs font-medium">{isLiked ? likedProducts.length + 1 : likedProducts.length}</span>
+          </button>
+
+          {/* 자세히 보기 버튼 */}
+          <button
+            onClick={() => window.open('#', '_blank')}
+            className="flex flex-col items-center space-y-1"
+          >
+            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center">
+              <ExternalLink className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-white text-xs font-medium">자세히 보기</span>
+          </button>
+
+          {/* 제품 보기 버튼 */}
+          <button className="flex flex-col items-center space-y-1">
+            <div className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center">
+              <div className="w-6 h-6 rounded bg-white"></div>
+            </div>
+            <span className="text-white text-xs font-medium">제품 보기</span>
+          </button>
+        </div>
+
+        {/* 하단 상품 정보 */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 p-4 pb-8">
+          <div className="space-y-3">
+            {/* 크리에이터 정보 */}
+            <div className="flex items-center space-x-2">
+              <span className="text-white font-semibold">@{currentProduct.creator}</span>
+              <span className="text-gray-300 text-sm">구독</span>
+            </div>
+
+            {/* 상품 설명 */}
+            <p className="text-white text-sm leading-relaxed">
+              {currentProduct.description}
+            </p>
+
+            {/* 해시태그 */}
+            <div className="flex flex-wrap gap-2">
+              {currentProduct.hashtags.map((tag, index) => (
+                <span key={index} className="text-blue-300 text-sm">
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            {/* 상품 정보 카드 */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 mt-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                      {currentProduct.tags[0]}
+                    </span>
+                    {currentProduct.discount && (
+                      <span className="text-xs font-medium text-red-600 bg-red-100 px-2 py-1 rounded">
+                        {currentProduct.discount} 할인
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-medium text-gray-900 text-sm mb-1 line-clamp-2">
+                    {currentProduct.name}
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg font-bold text-gray-900">
+                      {currentProduct.price}
+                    </span>
+                    {currentProduct.originalPrice && (
+                      <span className="text-sm text-gray-500 line-through">
+                        {currentProduct.originalPrice}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Product card area - centered content */}
-        <section className="flex-1 mx-auto w-full max-w-[90%] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[800px] xl:max-w-[900px] px-3 sm:px-4 md:px-6 py-2 flex flex-col items-center justify-center">
-          <div ref={containerRef} className="relative w-full flex justify-center">
-            {currentProduct ? (
-              <ProductCard
-                key={currentProduct.id}
-                product={currentProduct}
-                onSwipe={handleSwipe}
-              />
-            ) : (
-              <div className="w-[280px] xs:w-[320px] sm:w-[360px] md:w-[400px] lg:w-[450px] xl:w-[500px] h-[420px] xs:h-[480px] sm:h-[520px] md:h-[560px] lg:h-[600px] bg-white rounded-2xl shadow-lg border-2 border-amber-200 flex flex-col items-center justify-center">
-                <div className="text-center">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4 border-2 border-amber-300">
-                    <span className="text-2xl sm:text-3xl">😭</span>
-                  </div>
-                  <p className="text-amber-800 text-sm md:text-base font-semibold mb-2">상품이 없어요!</p>
-                  <p className="text-amber-600 text-xs md:text-sm">다른 카테고리를 살펴보세요</p>
-                </div>
-              </div>
-            )}
-
-            {/* 스크롤 버튼 - 귀여운 스타일 */}
-            <div className="absolute right-[-50px] sm:right-[-60px] md:right-[-80px] lg:right-[-100px] top-1/2 transform -translate-y-1/2 flex flex-col gap-3 z-20">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => handleScroll("up")}  
-                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-white/90 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 border-2 border-amber-200"
-                disabled={isScrolling}
-              >
-                <ChevronUp className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-amber-700" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => handleScroll("down")}  
-                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-2xl bg-white/90 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 border-2 border-amber-200"
-                disabled={isScrolling}
-              >
-                <ChevronDown className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-amber-700" />
-              </Button>
-            </div>
-
-            {/* 상품 인디케이터 - 귀여운 스타일 */}
-            <div className="absolute right-[-50px] sm:right-[-60px] md:right-[-80px] lg:right-[-100px] top-1/2 transform translate-y-20 sm:translate-y-24 md:translate-y-28 flex flex-col items-center gap-2">
-              {products.map((_, idx) => (
-                <div 
-                  key={idx} 
+        {/* 수직 스크롤 인디케이터 */}
+        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 z-20">
+          <div className="flex flex-col items-center space-y-2">
+            <button onClick={handlePrev}>
+              <ChevronUp className="w-6 h-6 text-white/60" />
+            </button>
+            
+            {/* 진행 인디케이터 */}
+            <div className="flex flex-col space-y-1">
+              {sampleProducts.map((_, index) => (
+                <div
+                  key={index}
                   className={cn(
-                    "rounded-full transition-all duration-300 border-2",
-                    idx === currentProductIndex 
-                      ? "w-4 h-4 sm:w-5 sm:h-5 bg-amber-400 border-amber-600 shadow-md" 
-                      : "w-2 h-2 sm:w-2.5 sm:h-2.5 bg-white border-amber-300"
+                    "w-1 h-6 rounded-full transition-all duration-300",
+                    index === currentIndex ? "bg-white" : "bg-white/30"
                   )}
                 />
               ))}
             </div>
+            
+            <button onClick={handleNext}>
+              <ChevronDown className="w-6 h-6 text-white/60" />
+            </button>
           </div>
-        </section>
-
-        {/* 좋아요 상품 표시 - 귀여운 스타일 */}
-        {likedProducts.length > 0 && (
-          <footer className="sticky bottom-0 z-10 backdrop-blur-sm" style={{backgroundColor: 'rgba(255,228,161,0.9)'}}>
-            <div className="mx-auto max-w-[90%] sm:max-w-[560px] md:max-w-[640px] lg:max-w-[800px] xl:max-w-[900px] px-4 sm:px-6 pb-[max(20px,env(safe-area-inset-bottom))] pt-4">
-              <div className="bg-white rounded-2xl px-4 sm:px-6 py-3 sm:py-4 shadow-lg border-2 border-amber-200 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-2xl">💖</span>
-                  <p className="text-sm sm:text-base font-semibold text-amber-800">
-                    {likedProducts.length}개의 상품을 좋아합니다!
-                  </p>
-                </div>
-              </div>
-            </div>
-          </footer>
-        )}
-      </main>
+        </div>
+      </div>
     </div>
   );
 };
