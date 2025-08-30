@@ -9,12 +9,12 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* UI Redesign 2025 - Design System Colors */
-    --color-primary: #FFD43B; /* Yellow - Main CTA/Brand */
-    --color-secondary: #4DA3FF; /* Sky Blue - Supporting accent */
-    --color-accent: #9C6ADE; /* Soft Purple - Interaction highlight */
-    --color-neutral-bg: #F8F9FA; /* Background */
-    --color-neutral-text: #6B7280; /* Secondary text */
-    
+    --color-primary: #ffd43b; /* Yellow - Main CTA/Brand */
+    --color-secondary: #4da3ff; /* Sky Blue - Supporting accent */
+    --color-accent: #9c6ade; /* Soft Purple - Interaction highlight */
+    --color-neutral-bg: #f8f9fa; /* Background */
+    --color-neutral-text: #6b7280; /* Secondary text */
+
     /* Updated color mappings to design system */
     --background: 210 8% 97%; /* #F8F9FA converted to HSL */
     --foreground: 215 16% 47%; /* #6B7280 converted to HSL */
@@ -147,20 +147,22 @@ All colors MUST be HSL.
 
 /* Clean & Cute Design System - Pretendard Variable Font */
 @font-face {
-  font-family: 'PretendardVariable';
+  font-family: "PretendardVariable";
   font-weight: 400 900;
   font-style: normal;
   font-display: swap;
-  src: url('/Pretendard/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
+  src: url("/Pretendard/web/variable/woff2/PretendardVariable.woff2")
+    format("woff2-variations");
 }
 
 /* Fallback for older systems */
 @font-face {
-  font-family: 'Pretendard';
+  font-family: "Pretendard";
   font-weight: 400 900;
   font-style: normal;
   font-display: swap;
-  src: url('/Pretendard/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
+  src: url("/Pretendard/web/variable/woff2/PretendardVariable.woff2")
+    format("woff2-variations");
 }
 
 @layer base {
@@ -171,7 +173,12 @@ All colors MUST be HSL.
   html,
   body {
     @apply bg-layer-background text-layer-content;
-    font-family: 'PretendardVariable', 'Pretendard', system-ui, -apple-system, sans-serif;
+    font-family:
+      "PretendardVariable",
+      "Pretendard",
+      system-ui,
+      -apple-system,
+      sans-serif;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }
@@ -434,7 +441,8 @@ All colors MUST be HSL.
 
   /* Speech Bubble Animations */
   @keyframes bubble-float {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0) rotate(-0.5deg);
     }
     33% {
@@ -444,7 +452,7 @@ All colors MUST be HSL.
       transform: translateY(-4px) rotate(-0.5deg);
     }
   }
-  
+
   @keyframes text-appear {
     from {
       opacity: 0;
@@ -455,19 +463,19 @@ All colors MUST be HSL.
       transform: scale(1);
     }
   }
-  
+
   .animate-bubble-float {
     animation: bubble-float 4s ease-in-out infinite;
   }
-  
+
   .animate-text-appear {
     animation: text-appear 0.3s ease-out;
   }
-  
+
   .delay-75 {
     animation-delay: 75ms;
   }
-  
+
   .delay-150 {
     animation-delay: 150ms;
   }
@@ -489,7 +497,7 @@ All colors MUST be HSL.
       opacity: 0;
     }
   }
-  
+
   @keyframes spin-slow {
     from {
       transform: rotate(0deg);
@@ -498,7 +506,7 @@ All colors MUST be HSL.
       transform: rotate(360deg);
     }
   }
-  
+
   @keyframes slide-up {
     from {
       opacity: 0;
@@ -509,7 +517,7 @@ All colors MUST be HSL.
       transform: translateY(0);
     }
   }
-  
+
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -518,26 +526,27 @@ All colors MUST be HSL.
       opacity: 1;
     }
   }
-  
+
   .animate-float-up {
     animation: float-up 3s ease-in-out forwards;
   }
-  
+
   .animate-spin-slow {
     animation: spin-slow 20s linear infinite;
   }
-  
+
   .animate-slide-up {
     animation: slide-up 0.3s ease-out;
   }
-  
+
   .animate-fade-in {
     animation: fade-in 0.5s ease-out;
   }
 
   /* Kawaii animations */
   @keyframes float-hearts {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0) scale(1);
       opacity: 0.8;
     }
@@ -553,7 +562,8 @@ All colors MUST be HSL.
 
   /* Cute bounce animation */
   @keyframes cute-bounce {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0) rotate(-2deg);
     }
     25% {
@@ -570,7 +580,8 @@ All colors MUST be HSL.
 
   /* Wiggle animation for duck */
   @keyframes wiggle {
-    0%, 100% {
+    0%,
+    100% {
       transform: rotate(-5deg);
     }
     25% {

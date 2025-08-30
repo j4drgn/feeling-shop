@@ -190,7 +190,7 @@ const AnimatedDuckCharacter = ({
       className={cn(
         'relative select-none cursor-pointer transition-all duration-200',
         sizeClasses[size],
-        'hover:scale-105 active:scale-95',
+        'hover:scale-[1.02]',
         className
       )}
       onClick={handleClick}

@@ -9,7 +9,7 @@ export const DuckCharacter = ({
   circleColor,
 }) => {
   const [isClicked, setIsClicked] = useState(false);
-  
+
   const sizeClasses = {
     sm: "w-20 h-20",
     md: "w-32 h-32",
@@ -32,8 +32,8 @@ export const DuckCharacter = ({
           "bg-white border-2 border-gray-200",
           "shadow-lg hover:shadow-xl",
           sizeClasses[size],
-          isClicked && "scale-95",
-          !isClicked && "hover:scale-105",
+          isClicked && "scale-[0.98]",
+          !isClicked && "hover:scale-[1.02]",
           className
         )}
         onClick={handleClick}
@@ -52,13 +52,13 @@ export const DuckCharacter = ({
             )}
           />
         </div>
-        
+
         {/* Click effect - subtle */}
         {isClicked && (
           <div className="absolute inset-0 rounded-full bg-brand-primary/20 animate-ping" />
         )}
       </div>
-      
+
       {/* Minimal shadow */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-2 w-1/2 h-2 bg-gray-200 rounded-full blur-sm opacity-40" />
     </div>
