@@ -63,7 +63,6 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
     currentAnimation,
     triggerCount,
     triggerAnimation,
-    handleAnimationComplete,
     isAnimating,
   } = useDuckAnimation({
     emotion: result?.emotion,
@@ -71,6 +70,19 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
     isSpeaking,
     conversationContext,
   });
+
+  // 애니메이션 완료 처리
+  const handleAnimationComplete = (completedAnimation) => {
+    console.log('🎬 애니메이션 완료:', completedAnimation);
+    
+    // product_recommendation 애니메이션이 끝나면 쇼츠 페이지로 이동
+    if (completedAnimation === 'product_recommendation') {
+      console.log('🎯 상품 추천 애니메이션 완료 - 쇼츠 페이지로 이동');
+      setTimeout(() => {
+        onNavigateToContent();
+      }, 500); // 약간의 딜레이 후 이동
+    }
+  };
 
   // 앱 시작시 환영 애니메이션과 채팅 세션 생성
   useEffect(() => {
@@ -200,22 +212,8 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
 
             if (personalizedRecs.length > 0) {
               const content = personalizedRecs[0];
-              // 외부 링크 생성 (가상)
-              let externalUrl = "";
-              
-              if (content.type === "book") {
-                externalUrl = `https://product.kyobobook.co.kr/search?keyword=${encodeURIComponent(content.title)}`;
-              } else if (content.type === "movie") {
-                externalUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(content.title + " 영화")}`;
-              } else if (content.type === "music" || content.type === "playlist") {
-                externalUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(content.title)}`;
-              }
-              
-              // 3초 후 외부 링크로 이동
-              setTimeout(() => {
-                window.open(externalUrl, "_blank");
-                setCharacterText("감상하고 오면 어떤지 이야기해줘!");
-              }, 3000);
+              // 애니메이션 완료 후 쇼츠 페이지에서 콘텐츠를 보여줄 예정
+              setCharacterText(`${content.title}을(를) 추천할게! 쇼츠 페이지에서 확인해봐!`);
             }
           }
           // 인사 관련 응답인 경우
@@ -280,33 +278,16 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
               `**${content.title}**\n` +
               `${content.creator}\n` +
               `${content.recommendationReason}\n\n` +
-              `지금 바로 감상하러 가볼까? 감상하고 돌아와서 어땠는지 얘기해줘!`;
+              `지금 바로 쇼츠 페이지에서 확인해봐!`;
 
-            // 외부 링크 생성 (가상)
-            let externalUrl = "";
-            
-            if (content.type === "book") {
-              externalUrl = `https://product.kyobobook.co.kr/search?keyword=${encodeURIComponent(content.title)}`;
-            } else if (content.type === "movie") {
-              externalUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(content.title + " 영화")}`;
-            } else if (content.type === "music" || content.type === "playlist") {
-              externalUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(content.title)}`;
-            }
-            
-            // 3초 후 외부 링크로 이동
-            setTimeout(() => {
-              window.open(externalUrl, "_blank");
-              setCharacterText("감상하고 오면 어떤지 이야기해줘!");
-            }, 3000);
+            // 애니메이션 트리거
+            triggerAnimation("product_recommendation", true);
           } else {
             response =
               "아직 너에 대해 더 알아야 좋은 추천을 해줄 수 있어! 조금 더 대화해볼까?";
           }
 
-          triggerAnimation("product_recommendation", true);
           context = "recommendation";
-
-          // 4. 기본 감정/인사 응답
         } else if (
           lowerInput.includes("안녕") ||
           lowerInput.includes("하이") ||
