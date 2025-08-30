@@ -25,6 +25,8 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
   const [likedContents, setLikedContents] = useState([]);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
+  const [viewedVideos, setViewedVideos] = useState(new Set());
+  const [isRecommendedSession, setIsRecommendedSession] = useState(false);
 
   // 개인화된 콘텐츠 또는 선택된 콘텐츠 사용
   const currentContents = selectedContent
@@ -45,6 +47,23 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
           setPersonalizedContents([selectedContent]);
           setIsLoading(false);
           return;
+        }
+
+        // 로컬 스토리지에서 추천된 동영상 확인 (우선순위)
+        const recommendedVideos = localStorage.getItem('recommendedVideos');
+        if (recommendedVideos) {
+          try {
+            const parsedVideos = JSON.parse(recommendedVideos);
+            setPersonalizedContents(parsedVideos);
+            setIsRecommendedSession(true);
+            setIsLoading(false);
+            // 추천 세션이므로 사용된 데이터 제거
+            localStorage.removeItem('recommendedVideos');
+            return;
+          } catch (error) {
+            console.error('추천 동영상 파싱 실패:', error);
+            localStorage.removeItem('recommendedVideos');
+          }
         }
 
         // API를 통해 콘텐츠 가져오기 - 일반 콘텐츠와 로컬 비디오 모두 가져오기
@@ -129,8 +148,22 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
   const handleNext = () => {
     if (selectedContent) return; // 선택된 콘텐츠가 있으면 넘기지 않음
 
-    setCurrentIndex((prev) => (prev + 1) % currentContents.length);
+    // 현재 동영상을 시청한 것으로 표시 (추천 세션에서만)
+    if (isRecommendedSession && currentContent) {
+      setViewedVideos(prev => new Set([...prev, currentContent.id]));
+    }
+
+    const nextIndex = (currentIndex + 1) % currentContents.length;
+    setCurrentIndex(nextIndex);
     setIsLiked(false);
+
+    // 추천 세션에서 모든 동영상을 봤는지 확인
+    if (isRecommendedSession && viewedVideos.size + 1 >= currentContents.length) {
+      // 잠시 후 피드백 수집 화면으로 이동
+      setTimeout(() => {
+        setShowFeedbackPrompt(true);
+      }, 3000);
+    }
 
     // 콘텐츠 조회 기록
     if (currentContent) {
@@ -203,7 +236,35 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
 
   const handleReturnToChat = () => {
     // 채팅으로 돌아가기
-    onNavigateToMain();
+    onNavigateToMain?.();
+    navigate('/');
+  };
+
+  const handleVideoFeedback = (isPositive) => {
+    // 피드백을 로컬 스토리지에 저장
+    const feedbackData = {
+      timestamp: new Date().toISOString(),
+      videos: currentContents.map(content => ({
+        id: content.id,
+        title: content.title,
+        filename: content.filename
+      })),
+      feedback: isPositive ? 'positive' : 'negative',
+      viewedCount: viewedVideos.size
+    };
+
+    const existingFeedback = localStorage.getItem('videoFeedback') || '[]';
+    const feedbackHistory = JSON.parse(existingFeedback);
+    feedbackHistory.push(feedbackData);
+    localStorage.setItem('videoFeedback', JSON.stringify(feedbackHistory));
+
+    // 메인 화면으로 돌아가면서 피드백 메시지 설정
+    const feedbackMessage = isPositive 
+      ? "와! 마음에 들었구나! 다음엔 더 비슷한 영상들을 추천해줄게~ 😊" 
+      : "음... 취향이 좀 다르구나. 다음엔 더 나은 영상들을 찾아줄게! 🤔";
+    
+    localStorage.setItem('feedbackMessage', feedbackMessage);
+    navigate('/');
   };
 
   if (isLoading) {
@@ -250,30 +311,38 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
       <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
         <div className="text-center px-6 max-w-md">
           <div className="w-20 h-20 mx-auto mb-6">
-            <img
-              src="/duck-character.png"
-              alt="덕키"
-              className="w-full h-full object-contain"
-            />
+            <div className="w-full h-full bg-yellow-400 rounded-full flex items-center justify-center text-4xl">
+              🦆
+            </div>
           </div>
           <h2 className="text-white text-xl font-bold mb-4">
-            콘텐츠는 어땠어요?
+            추천한 영상들이 어땠어?
           </h2>
           <p className="text-white/80 mb-8">
-            {currentContent.title}에 대한 감상을 나눠주세요! 더 정확한 추천을
-            위해 도움이 됩니다.
+            {currentContents.length}개의 영상을 추천했는데, 마음에 들었나요? 
+            피드백을 주면 다음엔 더 좋은 영상들을 추천해드릴게요!
           </p>
+          
+          <div className="space-y-4">
+            <button
+              onClick={() => handleVideoFeedback(true)}
+              className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-full font-bold text-lg transition-colors flex items-center justify-center gap-2"
+            >
+              😊 좋았어! 비슷한 걸로 더 추천해줘
+            </button>
+            <button
+              onClick={() => handleVideoFeedback(false)}
+              className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-full font-bold text-lg transition-colors flex items-center justify-center gap-2"
+            >
+              😐 별로였어... 다른 영상으로 추천해줘
+            </button>
+          </div>
+
           <button
             onClick={handleReturnToChat}
-            className="w-full py-3 bg-white text-black rounded-full font-medium mb-4"
+            className="w-full py-3 mt-6 bg-white/20 text-white rounded-full font-medium"
           >
-            대화로 돌아가기
-          </button>
-          <button
-            onClick={() => setShowFeedbackPrompt(false)}
-            className="w-full py-3 bg-white/20 text-white rounded-full"
-          >
-            다른 콘텐츠 보기
+            나중에 평가할게
           </button>
         </div>
       </div>

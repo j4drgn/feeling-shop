@@ -9,6 +9,7 @@ import { ContentScreen } from "./screens/ContentScreen";
 import { HistoryScreen } from "./screens/HistoryScreen";
 import { LoginScreen } from "./screens/LoginScreen";
 import { SignupScreen } from "./screens/SignupScreen";
+import VideoShorts from "./screens/VideoShorts";
 import "./index.css";
 
 // React Router 설정
@@ -37,6 +38,10 @@ const router = createBrowserRouter(
         {
           path: "signup",
           element: <SignupScreen />,
+        },
+        {
+          path: "videos",
+          element: <VideoShorts />,
         },
       ],
     },

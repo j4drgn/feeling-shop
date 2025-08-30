@@ -164,6 +164,44 @@ export const MainScreen = () => {
     // 로컬 스토리지에서 세션 ID 확인 및 유효성 검증
     initializeChatSession();
 
+    // 피드백 메시지 확인 및 표시
+    const feedbackMessage = localStorage.getItem('feedbackMessage');
+    if (feedbackMessage) {
+      setTimeout(() => {
+        setCharacterText(feedbackMessage);
+        localStorage.removeItem('feedbackMessage');
+      }, 2000);
+    }
+
+    // 동영상 피드백 요청 확인
+    const requestVideoFeedback = localStorage.getItem('requestVideoFeedback');
+    const videoFeedback = localStorage.getItem('videoFeedback');
+    
+    if (requestVideoFeedback === 'true' && videoFeedback) {
+      try {
+        const feedbackData = JSON.parse(videoFeedback);
+        const videoCount = feedbackData.watchedVideos;
+        
+        setTimeout(() => {
+          setCharacterText(`방금 ${videoCount}개의 동영상을 보셨네요! 어떠셨나요? 마음에 드셨는지 말씀해주세요! 😊`);
+          
+          // 애니메이션 트리거
+          if (triggerAnimation) {
+            triggerAnimation("curious", true);
+          }
+        }, 2500);
+        
+        // 플래그 제거
+        localStorage.removeItem('requestVideoFeedback');
+        localStorage.removeItem('videoFeedback');
+        
+      } catch (error) {
+        console.error('동영상 피드백 데이터 파싱 오류:', error);
+        localStorage.removeItem('requestVideoFeedback');
+        localStorage.removeItem('videoFeedback');
+      }
+    }
+
     // 서버 상태 주기적 모니터링 (오프라인 모드일 때만)
     const serverMonitorInterval = setInterval(async () => {
       if (isOfflineMode) {
@@ -326,6 +364,71 @@ export const MainScreen = () => {
       let response = "";
       let context = null;
       const emotionContext = emotion?.emotion || "neutral";
+
+      // 동영상 추천 요청 감지 및 처리
+      if (lowerInput.includes("영상") && (lowerInput.includes("추천") || lowerInput.includes("보여") || lowerInput.includes("볼만한"))) {
+        try {
+          const localVideoResponse = await contentApi.getLocalVideos();
+          if (localVideoResponse.success && localVideoResponse.data.length > 0) {
+            // 과거 피드백 가져오기
+            const feedbackHistory = JSON.parse(localStorage.getItem('videoFeedback') || '[]');
+            
+            // 피드백을 기반으로 동영상 필터링
+            let filteredVideos = [...localVideoResponse.data];
+            
+            if (feedbackHistory.length > 0) {
+              const lastFeedback = feedbackHistory[feedbackHistory.length - 1];
+              
+              if (lastFeedback.feedback === 'negative') {
+                // 이전에 싫어했던 동영상들은 제외
+                const previousVideoIds = lastFeedback.videos.map(v => v.id);
+                filteredVideos = filteredVideos.filter(video => !previousVideoIds.includes(video.id));
+                
+                // 필터링 후 동영상이 부족하면 전체에서 랜덤 선택
+                if (filteredVideos.length < 3) {
+                  filteredVideos = localVideoResponse.data.sort(() => Math.random() - 0.5);
+                }
+              }
+              // positive 피드백인 경우, 같은 카테고리의 비디오를 우선순위로 (현재는 모든 비디오가 같은 카테고리)
+            }
+
+            // 로컬 동영상을 콘텐츠 형태로 변환
+            const videoContents = filteredVideos.map(video => ({
+              id: video.id,
+              title: video.title,
+              type: 'video',
+              creator: '덕키 추천',
+              description: `${video.title} - 로컬 동영상`,
+              coverImage: '/video-thumbnail.jpg',
+              url: `http://localhost:8090${video.url}`,
+              filename: video.filename,
+              isLocal: true,
+              rating: 4.8,
+              reviewCount: 100,
+              year: 2024,
+              duration: '짧은 영상',
+              genre: ['힐링', '재미'],
+              emotionTags: ['happy', 'relaxed']
+            }));
+
+            // 로컬 스토리지에 추천된 동영상들 저장
+            localStorage.setItem('recommendedVideos', JSON.stringify(videoContents));
+            
+            setCharacterText("와! 너에게 딱 맞는 영상들을 찾았어! 지금 보여줄게~ 🎥✨");
+            setIsAIThinking(false);
+            
+            // 잠시 후 콘텐츠 화면으로 이동
+            setTimeout(() => {
+              navigate('/content');
+            }, 2000);
+            
+            return;
+          }
+        } catch (error) {
+          console.error("로컬 동영상 가져오기 실패:", error);
+          // 에러 시 일반적인 AI 응답으로 폴백
+        }
+      }
 
       // API 호출 시도
       try {
@@ -698,6 +801,30 @@ export const MainScreen = () => {
       setCharacterText(result.chatResponse.content);
       setConversationContext(result.chatResponse.type || 'assistant');
       setIsAIThinking(false);
+
+      // 동영상 추천 키워드 감지 및 자동 이동
+      const content = result.chatResponse.content.toLowerCase();
+      const videoKeywords = [
+        '동영상', '영상', '비디오', 'video',
+        '고양이', '강아지', '동물',
+        '영화', '드라마', '애니메이션',
+        '추천', 'recommend',
+        '보여', '시청', '감상'
+      ];
+      
+      const hasVideoKeyword = videoKeywords.some(keyword => content.includes(keyword));
+      
+      if (hasVideoKeyword) {
+        // 3초 후 동영상 페이지로 자동 이동
+        setTimeout(() => {
+          navigate('/videos');
+        }, 3000);
+        
+        // 이동 안내 메시지 추가
+        setTimeout(() => {
+          setCharacterText(result.chatResponse.content + '\n\n곧 추천 동영상을 보여드릴게요! 🎥');
+        }, 1500);
+      }
 
       // 서버에서 전달한 세션 ID가 있으면 저장
       if (result.chatResponse.chatSessionId) {
