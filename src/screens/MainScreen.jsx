@@ -142,11 +142,26 @@ export const MainScreen = () => {
         accessToken
       );
 
-      if (response && response.data && response.data.data) {
-        const newSessionId = response.data.data.id;
-        setChatSessionId(newSessionId);
-        localStorage.setItem("currentChatSessionId", newSessionId.toString());
-        console.log("새 채팅 세션이 생성되었습니다:", newSessionId);
+      if (response && response.data) {
+        let sessionId = null;
+        if (response.data.data && response.data.data.id) {
+          sessionId = response.data.data.id;
+        } else if (response.data.id) {
+          sessionId = response.data.id;
+        } else if (response.data.sessionId) {
+          sessionId = response.data.sessionId;
+        }
+        if (sessionId) {
+          setChatSessionId(sessionId);
+          localStorage.setItem("currentChatSessionId", sessionId.toString());
+          console.log("새 채팅 세션이 생성되었습니다:", sessionId);
+        } else {
+          console.error("세션 생성 응답에서 ID를 찾을 수 없음:", response);
+          throw new Error("세션 ID를 찾을 수 없습니다.");
+        }
+      } else {
+        console.error("세션 생성 응답이 올바르지 않음:", response);
+        throw new Error("세션 생성 실패");
       }
     } catch (error) {
       console.error("채팅 세션 생성 오류:", error);
@@ -239,8 +254,17 @@ export const MainScreen = () => {
                   sessionTitle,
                   accessToken
                 );
-                if (newSessionResponse && newSessionResponse.data && newSessionResponse.data.data) {
-                  const newSessionId = newSessionResponse.data.data.id;
+                let newSessionId = null;
+                if (newSessionResponse && newSessionResponse.data) {
+                  if (newSessionResponse.data.data && newSessionResponse.data.data.id) {
+                    newSessionId = newSessionResponse.data.data.id;
+                  } else if (newSessionResponse.data.id) {
+                    newSessionId = newSessionResponse.data.id;
+                  } else if (newSessionResponse.data.sessionId) {
+                    newSessionId = newSessionResponse.data.sessionId;
+                  }
+                }
+                if (newSessionId) {
                   setChatSessionId(newSessionId);
                   localStorage.setItem("currentChatSessionId", newSessionId.toString());
                   console.log("새 채팅 세션이 생성되었습니다:", newSessionId);
@@ -294,12 +318,13 @@ export const MainScreen = () => {
           }
         } else {
           console.log("일반 메시지 전송");
+          console.log("현재 chatSessionId:", chatSessionId);
           apiResponse = await chatApi.sendChatMessage(
             input,
             emotionType,
             emotionScore,
             accessToken,
-            null
+            chatSessionId
           );
           // 새 세션 ID가 생성되었으면 설정
           if (apiResponse.sessionId) {

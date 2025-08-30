@@ -22,10 +22,24 @@ const chatApi = {
       // 세션 ID가 없으면 새 세션 생성
       let currentSessionId = sessionId;
       if (!currentSessionId) {
+        console.log("세션 ID가 없어 새 세션 생성 시도");
         const sessionResponse = await chatApi.createChatSession(`대화 ${new Date().toLocaleString("ko-KR")}`, accessToken);
-        if (sessionResponse && sessionResponse.data && sessionResponse.data.data) {
-          currentSessionId = sessionResponse.data.data.id;
+        console.log("세션 생성 응답:", sessionResponse);
+        let sessionId = null;
+        if (sessionResponse && sessionResponse.data) {
+          if (sessionResponse.data.data && sessionResponse.data.data.id) {
+            sessionId = sessionResponse.data.data.id;
+          } else if (sessionResponse.data.id) {
+            sessionId = sessionResponse.data.id;
+          } else if (sessionResponse.data.sessionId) {
+            sessionId = sessionResponse.data.sessionId;
+          }
+        }
+        if (sessionId) {
+          currentSessionId = sessionId;
+          console.log("새 세션 ID:", currentSessionId);
         } else {
+          console.error("세션 생성 응답에서 ID를 찾을 수 없음:", sessionResponse);
           throw new Error("세션 생성 실패");
         }
       }
@@ -98,6 +112,7 @@ const chatApi = {
   // 채팅 세션 생성
   createChatSession: async (title, accessToken) => {
     try {
+      console.log("채팅 세션 생성 요청:", title, "토큰:", accessToken ? "있음" : "없음");
       const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
         method: "POST",
         headers: createAuthHeader(accessToken),
@@ -106,11 +121,13 @@ const chatApi = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error("세션 생성 HTTP 오류:", response.status, errorData);
         const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
         throw new Error(errorMessage);
       }
 
       const responseData = await response.json();
+      console.log("세션 생성 성공 응답:", responseData);
       return responseData;
     } catch (error) {
       console.error("채팅 세션 생성 오류:", error);
