@@ -828,6 +828,7 @@ export const MainScreen = () => {
 
       // 서버에서 이미 chatResponse를 제공한 경우, 그것을 우선 사용
       if (result.chatResponse && result.chatResponse.content) {
+        console.log('🎯 서버에서 chatResponse 받음:', result.chatResponse);
         const resp = result.chatResponse;
         // 서버가 세션 ID를 돌려주면 갱신
         if (result.serverSessionId) {
@@ -841,7 +842,14 @@ export const MainScreen = () => {
 
         // result 초기화하여 재처리 방지
         resetResult();
+      } else if (result.audioBlob) {
+        // 음성 파일이 있지만 서버 응답이 아직 없는 경우
+        console.log('⏳ 음성 파일 있음, 서버 응답 대기 중...');
+        // 서버 응답을 기다리기 위해 아무것도 하지 않음
+        // useSpeechRecognition에서 result가 업데이트되면 이 useEffect가 다시 실행됨
       } else {
+        // 서버 응답이 없고 음성 파일도 없는 경우 (텍스트 입력 등)
+        console.log('💬 서버 응답 없음, 로컬 처리 시작');
         // AI 응답 생성 중 표시
         setIsAIThinking(true);
         setCharacterText("생각하고 있어요...");
@@ -856,9 +864,7 @@ export const MainScreen = () => {
         }, 500);
       }
     }
-  }, [result]);
-
-  useEffect(() => {
+  }, [result]);  useEffect(() => {
     // 이전에 말한 텍스트와 같으면 스킵
     if (lastSpokenTextRef.current === characterText) {
       return;
@@ -877,8 +883,7 @@ export const MainScreen = () => {
       !characterText.includes("생각하고 있어요") &&
       !characterText.includes("잘 들리지 않았어요") &&
       !characterText.includes("마이크") &&
-      !characterText.includes("인터넷") &&
-      !characterText.includes("음성을 인식하지")
+      !characterText.includes("인터넷")
     ) {
       // 약간의 지연을 주어 상태 변경이 안정화되도록 함
       speakTimeoutRef.current = setTimeout(() => {

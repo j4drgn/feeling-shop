@@ -312,11 +312,13 @@ export const useSpeechRecognition = () => {
   useEffect(() => {
     const uploadAndTranscribe = async (audioBlob, prevResult) => {
       try {
+        console.log('🎤 음성 파일 업로드 시작:', { size: audioBlob.size, type: audioBlob.type });
         setIsUploading(true);
         setUploadProgress(0);
 
         // 액세스 토큰이 필요한 경우 로컬스토리지에서 가져옴
         const accessToken = localStorage.getItem('accessToken') || null;
+        console.log('🔑 액세스 토큰:', accessToken ? '있음' : '없음');
 
         // 음성 메타데이터 준비
         const voiceMetadata = {
@@ -328,6 +330,8 @@ export const useSpeechRecognition = () => {
           confidence: prevResult?.emotion?.confidence || prevResult?.confidence || 0.5,
         };
 
+        console.log('📊 음성 메타데이터:', voiceMetadata);
+
         // 서버로 음성 파일 업로드 및 전사 요청
         const uploadResponse = await chatApi.sendVoiceFileAndTranscribe(
           audioBlob,
@@ -337,23 +341,31 @@ export const useSpeechRecognition = () => {
           null, // sessionId는 null로 시작
           true, // asyncMode 활성화
           (progress) => {
+            console.log(`📤 업로드 진행률: ${progress}%`);
             setUploadProgress(progress);
           },
           () => {
+            console.log('✅ 업로드 완료');
             setUploadProgress(100);
           }
         );
 
+        console.log('📥 서버 응답:', uploadResponse);
+
         // 업로드 성공 시 결과 업데이트
-        if (uploadResponse && uploadResponse.jobId) {
+        if (uploadResponse && (uploadResponse.jobId || uploadResponse.data)) {
           // 비동기 작업인 경우 jobId 저장
+          const jobId = uploadResponse.jobId || uploadResponse.data;
+          console.log('⏳ 비동기 작업 시작, jobId:', jobId);
           setResult(prev => ({
             ...prev,
-            serverJobId: uploadResponse.jobId,
+            serverJobId: jobId,
             isProcessing: true,
+            audioBlob: null, // 업로드 완료 후 audioBlob 제거
           }));
         } else if (uploadResponse && uploadResponse.transcript) {
           // 동기 응답인 경우 바로 결과 업데이트
+          console.log('✅ 동기 응답 받음:', uploadResponse.transcript);
           setResult(prev => ({
             ...prev,
             transcript: uploadResponse.transcript || prev.transcript,
@@ -361,12 +373,14 @@ export const useSpeechRecognition = () => {
             serverLabels: uploadResponse.labels || null,
             serverSessionId: uploadResponse.sessionId || null,
             chatResponse: uploadResponse.chatResponse || null,
+            audioBlob: null, // 업로드 완료 후 audioBlob 제거
           }));
         }
 
         setIsUploading(false);
+        console.log('🎉 음성 파일 처리 완료');
       } catch (err) {
-        console.error('오디오 업로드/전사 실패:', err);
+        console.error('❌ 오디오 업로드/전사 실패:', err);
         setIsUploading(false);
         setUploadProgress(0);
         setError('서버 업로드/전사 실패: ' + (err.message || String(err)));
@@ -374,7 +388,8 @@ export const useSpeechRecognition = () => {
       }
     };
 
-    if (result && result.audioBlob) {
+    if (result && result.audioBlob && !result.serverJobId && !isUploading) {
+      console.log('🎵 audioBlob 감지됨, 업로드 시작');
       uploadAndTranscribe(result.audioBlob, result);
     }
   }, [result]);
@@ -383,36 +398,66 @@ export const useSpeechRecognition = () => {
   useEffect(() => {
     let intervalId = null;
     const startPolling = (jobId) => {
+      console.log('🔄 폴링 시작, jobId:', jobId);
       setIsProcessing(true);
       setTaskStatus({ status: 'pending', jobId });
       
       intervalId = setInterval(async () => {
         try {
+          console.log('📡 작업 상태 조회 중...');
           const status = await chatApi.getVoiceTaskStatus(jobId);
-          setTaskStatus(status);
+          console.log('📊 작업 상태 상세:', JSON.stringify(status, null, 2));
           
-          if (status && status.finished) {
-            // 작업 완료 시 최종 결과 업데이트
-            setResult(prev => ({
-              ...prev,
-              transcript: status.transcript || prev.transcript,
-              emotion: status.emotion || prev.emotion,
-              serverLabels: status.labels || prev.serverLabels,
-              serverSessionId: status.sessionId || prev.serverSessionId,
-              chatResponse: status.chatResponse || prev.chatResponse,
-            }));
-            setIsProcessing(false);
-            clearInterval(intervalId);
-            intervalId = null;
-          } else if (status && status.status === 'failed') {
-            // 작업 실패 시 오류 처리
-            setError('음성 처리 작업이 실패했습니다.');
-            setIsProcessing(false);
-            clearInterval(intervalId);
-            intervalId = null;
+          if (status && status.data) {
+            const taskData = status.data;
+            console.log('🔍 작업 데이터:', JSON.stringify(taskData, null, 2));
+            
+            // 다양한 완료 조건 체크
+            const isCompleted = taskData.finished || 
+                               taskData.status === 'completed' || 
+                               taskData.status === 'success' || 
+                               taskData.status === 'done' ||
+                               taskData.chatResponse || // chatResponse만 있어도 완료로 간주
+                               (taskData.transcript && taskData.transcript.trim()) || // transcript만 있어도 완료로 간주
+                               (taskData.response && taskData.response.trim()); // response 필드도 체크
+                               
+            if (isCompleted) {
+              console.log('✅ 작업 완료!', { 
+                finished: taskData.finished, 
+                status: taskData.status,
+                hasTranscript: !!taskData.transcript,
+                hasChatResponse: !!taskData.chatResponse
+              });
+              // 작업 완료 시 최종 결과 업데이트 (serverJobId 유지)
+              setResult(prev => ({
+                ...prev,
+                transcript: taskData.transcript || prev.transcript,
+                emotion: taskData.emotion || prev.emotion,
+                serverLabels: taskData.labels || prev.serverLabels,
+                serverSessionId: taskData.sessionId || prev.serverSessionId,
+                chatResponse: taskData.chatResponse || prev.chatResponse,
+                audioBlob: null, // 작업 완료 후 audioBlob 제거
+                serverJobId: prev.serverJobId, // serverJobId 유지
+                isProcessing: false, // processing 상태도 업데이트
+              }));
+              setIsProcessing(false);
+              clearInterval(intervalId);
+              intervalId = null;
+            } else if (taskData.status === 'failed' || taskData.status === 'error') {
+              console.log('❌ 작업 실패');
+              // 작업 실패 시 오류 처리
+              setError('음성 처리 작업이 실패했습니다.');
+              setIsProcessing(false);
+              clearInterval(intervalId);
+              intervalId = null;
+            } else {
+              console.log('⏳ 작업 진행 중:', taskData.status || 'unknown');
+            }
+          } else {
+            console.log('⚠️ 작업 상태 데이터 없음', { status });
           }
         } catch (err) {
-          console.error('Polling task failed', err);
+          console.error('❌ 폴링 실패:', err);
           setIsProcessing(false);
           setError('서버 작업 상태 조회 실패: ' + (err.message || String(err)));
           if (intervalId) {
@@ -420,17 +465,21 @@ export const useSpeechRecognition = () => {
             intervalId = null;
           }
         }
-      }, 2000); // 2초마다 상태 확인
+      }, 3000); // 3초마다 상태 확인
     };
 
     if (result && result.serverJobId) {
+      console.log('🚀 serverJobId 감지됨, 폴링 시작');
       startPolling(result.serverJobId);
     }
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalId) {
+        console.log('🛑 폴링 중지');
+        clearInterval(intervalId);
+      }
     };
-  }, [result]);
+  }, [result?.serverJobId]);
 
   // 음성 인식 중지
   const stopListening = useCallback(() => {

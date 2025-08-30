@@ -50,6 +50,7 @@ const router = createBrowserRouter(
       v7_partialHydration: true,
       v7_skipActionErrorRevalidation: true,
     },
+    unstable_patchRoutesOnNavigation: true,
   }
 );
 
