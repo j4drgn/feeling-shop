@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import chatApi from '@/api/chatApi';
 
 export const useSpeechRecognition = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   const recognitionRef = useRef(null);
   const audioContextRef = useRef(null);
@@ -303,6 +306,61 @@ export const useSpeechRecognition = () => {
     }
   }, [isSupported, analyzeAudioFeatures, analyzeEmotion]);
 
+  // audioBlob이 setResult에 들어오면 서버에 업로드하여 Whisper 등으로 전사 및 라벨링 요청
+  useEffect(() => {
+    const uploadAndTranscribe = async (audioBlob, prevResult) => {
+      try {
+        // 액세스 토큰이 필요한 경우 로컬스토리지에서 가져옴
+        const accessToken = localStorage.getItem('accessToken') || null;
+
+        // 기본 음성 메타데이터 (가능하면 더 정밀하게 채우세요)
+        const voiceMetadata = {
+          duration: prevResult?.audioDuration || 1.0,
+          sampleRate: audioContextRef.current?.sampleRate || 16000,
+        };
+
+        setIsUploading(true);
+        setUploadProgress(0);
+        const serverResponse = await chatApi.sendVoiceFileAndTranscribe(
+          audioBlob,
+          prevResult?.transcript || '',
+          voiceMetadata,
+          accessToken,
+          null,
+          (percent) => {
+            setUploadProgress(percent);
+          },
+          () => {
+            // upload finished (request sent) — still waiting server processing
+            setUploadProgress(100);
+          }
+        );
+        setIsUploading(false);
+
+        // 서버 응답 구조 예시: { transcript, emotion, labels, sessionId }
+        if (serverResponse) {
+          setResult(prev => ({
+            ...prev,
+            transcript: serverResponse.transcript || prev.transcript,
+            emotion: serverResponse.emotion || prev.emotion,
+            serverLabels: serverResponse.labels || null,
+            serverSessionId: serverResponse.sessionId || null,
+            chatResponse: serverResponse.chatResponse || null,
+          }));
+        }
+      } catch (err) {
+        // 서버 전송 실패 시 로컬 분석 결과를 그대로 사용
+        console.warn('오디오 업로드/전사 실패:', err);
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
+    };
+
+    if (result && result.audioBlob) {
+      uploadAndTranscribe(result.audioBlob, result);
+    }
+  }, [result]);
+
   // 음성 인식 중지
   const stopListening = useCallback(() => {
     // 타임아웃 클리어
@@ -370,5 +428,9 @@ export const useSpeechRecognition = () => {
     startListening,
     stopListening,
     resetResult
+  ,isUploading,
+  uploadProgress
   };
 };
+
+

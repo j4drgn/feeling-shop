@@ -50,6 +50,8 @@ export const MainScreen = () => {
     isSupported,
     error,
     resetResult,
+  isUploading,
+  uploadProgress,
   } = useSpeechRecognition();
 
   const { speak, isSpeaking, stopSpeaking } = useSpeechSynthesis({
@@ -677,14 +679,28 @@ export const MainScreen = () => {
         console.log('음성 메타데이터:', voiceMetadata);
       }
 
-      // AI 응답 생성 중 표시
-      setIsAIThinking(true);
-      setCharacterText("생각하고 있어요...");
+      // 서버에서 이미 chatResponse를 제공한 경우, 그것을 우선 사용
+      if (result.chatResponse && result.chatResponse.content) {
+        const resp = result.chatResponse;
+        // 서버가 세션 ID를 돌려주면 갱신
+        if (result.serverSessionId) {
+          setChatSessionId(result.serverSessionId);
+          localStorage.setItem('currentChatSessionId', result.serverSessionId.toString());
+        }
 
-      // 자동으로 응답 생성
-      setTimeout(() => {
-        handleUserInput(result.transcript, voiceMetadata);
-      }, 500);
+        setIsAIThinking(false);
+        setCharacterText(resp.content);
+        setConversationContext(resp.action || (result.emotion && result.emotion.emotion) || null);
+      } else {
+        // AI 응답 생성 중 표시
+        setIsAIThinking(true);
+        setCharacterText("생각하고 있어요...");
+
+        // 자동으로 응답 생성 (클라이언트 -> 서버 흐름)
+        setTimeout(() => {
+          handleUserInput(result.transcript, voiceMetadata);
+        }, 500);
+      }
     }
   }, [result]);
 
@@ -792,6 +808,24 @@ export const MainScreen = () => {
             isListening={isListening}
             isThinking={isAIThinking}
           />
+
+          {/* Upload / Analysis status */}
+          <div className="w-full max-w-[540px] mt-3">
+            {isUploading && (
+              <div className="bg-layer-surface rounded-surface px-3 py-2 shadow-surface border border-layer-border">
+                <p className="text-xs text-layer-muted mb-2">오디오 업로드 중... {uploadProgress}%</p>
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div className="h-2 bg-accent-ducky" style={{ width: `${uploadProgress}%` }} />
+                </div>
+              </div>
+            )}
+
+            {!isUploading && result?.audioBlob && !result?.chatResponse && (
+              <div className="bg-layer-surface rounded-surface px-3 py-2 shadow-surface border border-layer-border">
+                <p className="text-xs text-layer-muted">오디오 분석 중... 잠시만 기다려주세요.</p>
+              </div>
+            )}
+          </div>
 
           {/* Duck Character - White Surface Container (위치 변경됨) */}
           <div ref={characterRef} className="relative mt-1">

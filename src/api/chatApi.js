@@ -350,6 +350,64 @@ const chatApi = {
       throw error;
     }
   },
+
+  // 오디오 파일 업로드 후 서버에서 Whisper 등으로 전사 및 라벨링 요청
+  sendVoiceFileAndTranscribe: (audioBlob, message = '', voiceMetadata = {}, accessToken = null, sessionId = null, onUploadProgress = null, onUploadComplete = null) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const form = new FormData();
+        form.append('file', audioBlob, 'voice.webm');
+        if (message) form.append('message', message);
+        if (sessionId) form.append('chatSessionId', sessionId);
+        if (voiceMetadata) form.append('voiceMetadata', JSON.stringify(voiceMetadata));
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${API_BASE_URL}/chatgpt/chat/voice/file`);
+
+        if (accessToken) {
+          xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+        }
+
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable && typeof onUploadProgress === 'function') {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            try { onUploadProgress(percent); } catch (e) { /* ignore */ }
+          }
+        });
+
+        xhr.upload.addEventListener('load', () => {
+          if (typeof onUploadComplete === 'function') {
+            try { onUploadComplete(); } catch (e) { /* ignore */ }
+          }
+        });
+
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState === 4) {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const json = JSON.parse(xhr.responseText || '{}');
+                resolve(json);
+              } catch (err) {
+                resolve({});
+              }
+            } else {
+              let errMsg = `HTTP ${xhr.status}`;
+              try {
+                const parsed = JSON.parse(xhr.responseText || '{}');
+                if (parsed.message) errMsg = parsed.message;
+              } catch (e) {}
+              reject(new Error(errMsg));
+            }
+          }
+        };
+
+        xhr.onerror = (e) => reject(new Error('Network error during audio upload'));
+        xhr.send(form);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
 };
 
 export default chatApi;
