@@ -16,20 +16,33 @@ const createAuthHeader = (accessToken) => {
 
 // 채팅 관련 API 함수들
 const chatApi = {
-  // ChatGPT 단일 메시지 전송
-  sendChatMessage: async (message, emotionType, emotionScore, accessToken) => {
+  // ChatGPT 단일 메시지 전송 (세션 기반으로 변경)
+  sendChatMessage: async (message, emotionType, emotionScore, accessToken, sessionId = null) => {
     try {
-      // 실제 API 호출
-      const response = await fetch(`${API_BASE_URL}/chatgpt/chat`, {
-        method: "POST",
-        headers: createAuthHeader(accessToken),
-        body: JSON.stringify({
-          message,
-          emotionType,
-          emotionScore,
-          chatSessionId: null,
-        }),
-      });
+      // 세션 ID가 없으면 새 세션 생성
+      let currentSessionId = sessionId;
+      if (!currentSessionId) {
+        const sessionResponse = await chatApi.createChatSession(`대화 ${new Date().toLocaleString("ko-KR")}`, accessToken);
+        if (sessionResponse && sessionResponse.data && sessionResponse.data.data) {
+          currentSessionId = sessionResponse.data.data.id;
+        } else {
+          throw new Error("세션 생성 실패");
+        }
+      }
+
+      // 세션 기반 메시지 전송
+      const response = await fetch(
+        `${API_BASE_URL}/chatgpt/chat/session/${currentSessionId}`,
+        {
+          method: "POST",
+          headers: createAuthHeader(accessToken),
+          body: JSON.stringify({
+            message,
+            emotionType,
+            emotionScore,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -38,7 +51,8 @@ const chatApi = {
       }
 
       const responseData = await response.json();
-      return responseData;
+      // 세션 ID를 응답에 포함
+      return { ...responseData, sessionId: currentSessionId };
     } catch (error) {
       console.error("메시지 전송 오류:", error);
       throw error;

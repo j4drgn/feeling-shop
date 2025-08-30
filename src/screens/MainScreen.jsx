@@ -264,8 +264,14 @@ export const MainScreen = () => {
                   input,
                   emotionType,
                   emotionScore,
-                  accessToken
+                  accessToken,
+                  null
                 );
+                // 새 세션 ID가 생성되었으면 설정
+                if (apiResponse.sessionId) {
+                  setChatSessionId(apiResponse.sessionId);
+                  localStorage.setItem("currentChatSessionId", apiResponse.sessionId.toString());
+                }
               }
             } else {
               // 다른 오류의 경우 일반 메시지로 폴백
@@ -276,8 +282,14 @@ export const MainScreen = () => {
                 input,
                 emotionType,
                 emotionScore,
-                accessToken
+                accessToken,
+                null
               );
+              // 새 세션 ID가 생성되었으면 설정
+              if (apiResponse.sessionId) {
+                setChatSessionId(apiResponse.sessionId);
+                localStorage.setItem("currentChatSessionId", apiResponse.sessionId.toString());
+              }
             }
           }
         } else {
@@ -286,8 +298,14 @@ export const MainScreen = () => {
             input,
             emotionType,
             emotionScore,
-            accessToken
+            accessToken,
+            null
           );
+          // 새 세션 ID가 생성되었으면 설정
+          if (apiResponse.sessionId) {
+            setChatSessionId(apiResponse.sessionId);
+            localStorage.setItem("currentChatSessionId", apiResponse.sessionId.toString());
+          }
         }
 
         if (apiResponse && apiResponse.data) {
