@@ -11,6 +11,7 @@ import { useThemeContext } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { contentRecommendationEngine } from "@/services/contentRecommendationEngine";
 import { userProfileService } from "@/services/userProfile";
+import contentApi from "@/api/contentApi";
 
 export const ContentScreen = ({ selectedContent = null, onContentLiked, onNavigateToMain }) => {
   const navigate = useNavigate();
@@ -45,19 +46,38 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
           return;
         }
 
-        // 그렇지 않으면 추천 엔진에서 콘텐츠 가져오기
-        const recommendations =
-          await contentRecommendationEngine.getPersonalizedContentRecommendations(
-            {
-              mood: "neutral", // 기본 감정 상태
-            }
-          );
-
-        if (recommendations.length > 0) {
-          setPersonalizedContents(recommendations);
+        // API를 통해 콘텐츠 가져오기
+        const response = await contentApi.getAllContents();
+        if (response.success && response.data.length > 0) {
+          setPersonalizedContents(response.data);
+        } else {
+          // API 실패 시 추천 엔진 사용
+          const recommendations =
+            await contentRecommendationEngine.getPersonalizedContentRecommendations(
+              {
+                mood: "neutral", // 기본 감정 상태
+              }
+            );
+          if (recommendations.length > 0) {
+            setPersonalizedContents(recommendations);
+          }
         }
       } catch (error) {
         console.error("Failed to load personalized recommendations:", error);
+        // API 실패 시 추천 엔진 사용
+        try {
+          const recommendations =
+            await contentRecommendationEngine.getPersonalizedContentRecommendations(
+              {
+                mood: "neutral",
+              }
+            );
+          if (recommendations.length > 0) {
+            setPersonalizedContents(recommendations);
+          }
+        } catch (fallbackError) {
+          console.error("Fallback recommendation also failed:", fallbackError);
+        }
       } finally {
         setIsLoading(false);
       }

@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect } from "react";
+import authApi from "@/api/authApi";
 
 // 인증 컨텍스트 생성
 export const AuthContext = createContext();
@@ -64,30 +65,9 @@ export const AuthProvider = ({ children }) => {
   const fetchUserInfo = async (accessToken) => {
     try {
       console.log('fetchUserInfo 호출, token:', accessToken);
-      const response = await fetch("http://localhost:8090/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      console.log('fetchUserInfo 응답 status:', response.status);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          // 백엔드 서버가 실행되지 않는 경우, 개발 모드에서 모킹 데이터 사용
-          console.warn("백엔드 서버가 실행되지 않아 모킹 데이터를 사용합니다.");
-          return {
-            id: 1,
-            email: "test@example.com",
-            name: "테스트 사용자",
-            profileImage: null,
-          };
-        }
-        throw new Error("사용자 정보를 가져오는데 실패했습니다.");
-      }
-
-      const data = await response.json();
-      console.log('fetchUserInfo 데이터:', data);
-      return data.data; // 백엔드 응답 구조에 맞게 수정
+      const response = await authApi.getCurrentUserInfo(accessToken);
+      console.log('fetchUserInfo 데이터:', response);
+      return response.data; // 백엔드 응답 구조에 맞게 수정
     } catch (error) {
       console.error("사용자 정보 가져오기 오류:", error);
       throw error;
@@ -97,27 +77,15 @@ export const AuthProvider = ({ children }) => {
   // 토큰 갱신 함수
   const refreshToken = async () => {
     try {
-      const { refreshToken } = getTokens();
+      const { refreshToken: token } = getTokens();
 
-      if (!refreshToken) {
+      if (!token) {
         throw new Error("리프레시 토큰이 없습니다.");
       }
 
-      const response = await fetch("http://localhost:8090/api/auth/refresh", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (!response.ok) {
-        throw new Error("토큰 갱신에 실패했습니다.");
-      }
-
-      const data = await response.json();
-      saveTokens(data.data.accessToken, data.data.refreshToken);
-      return data.data;
+      const response = await authApi.refreshToken(token);
+      saveTokens(response.data.accessToken, response.data.refreshToken);
+      return response.data;
     } catch (error) {
       console.error("토큰 갱신 오류:", error);
       logout();

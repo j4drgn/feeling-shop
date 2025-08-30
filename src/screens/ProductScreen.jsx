@@ -4,6 +4,7 @@ import { useThemeContext } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { recommendationEngine } from "@/services/recommendationEngine";
 import { userProfileService } from "@/services/userProfile";
+import productApi from "@/api/productApi";
 
 // 쇼츠 스타일 샘플 상품 데이터
 const sampleProducts = [
@@ -97,32 +98,82 @@ export const ProductScreen = ({ onNavigateToMain, onProductLiked }) => {
     const loadPersonalizedRecommendations = async () => {
       try {
         setIsLoading(true);
-        const recommendations = await recommendationEngine.getPersonalizedRecommendations({
-          context: 'product_browsing'
-        });
-        
-        if (recommendations.length > 0) {
-          // 추천 상품을 쇼츠 형태로 변환
-          const formattedProducts = recommendations.map((product, index) => ({
+        // API를 통해 상품 가져오기
+        const response = await productApi.getAllProducts();
+        if (response.success && response.data.length > 0) {
+          // API 상품을 쇼츠 형태로 변환
+          const formattedProducts = response.data.map((product, index) => ({
             id: product.id,
-            brand: product.brand,
+            brand: product.brand || "브랜드",
             name: product.name,
             price: `₩${product.price.toLocaleString()}`,
             originalPrice: product.originalPrice ? `₩${product.originalPrice.toLocaleString()}` : null,
             discount: product.originalPrice ? 
               `${Math.round((1 - product.price / product.originalPrice) * 100)}%` : null,
-            tags: [product.tags?.[0] || "추천"],
+            tags: [product.category || "추천"],
             image: product.image,
-            description: product.recommendationReason || product.description || "개인화 추천 상품입니다",
+            description: product.description || "추천 상품입니다",
             creator: "덕키 AI",
             creatorAvatar: "🦆",
-            hashtags: product.tags ? product.tags.map(tag => `#${tag}`) : ["#AI추천", "#맞춤상품"]
+            hashtags: ["#AI추천", "#맞춤상품"]
           }));
-          
           setPersonalizedProducts(formattedProducts);
+        } else {
+          // API 실패 시 추천 엔진 사용
+          const recommendations = await recommendationEngine.getPersonalizedRecommendations({
+            context: 'product_browsing'
+          });
+          
+          if (recommendations.length > 0) {
+            const formattedProducts = recommendations.map((product, index) => ({
+              id: product.id,
+              brand: product.brand,
+              name: product.name,
+              price: `₩${product.price.toLocaleString()}`,
+              originalPrice: product.originalPrice ? `₩${product.originalPrice.toLocaleString()}` : null,
+              discount: product.originalPrice ? 
+                `${Math.round((1 - product.price / product.originalPrice) * 100)}%` : null,
+              tags: [product.tags?.[0] || "추천"],
+              image: product.image,
+              description: product.recommendationReason || product.description || "개인화 추천 상품입니다",
+              creator: "덕키 AI",
+              creatorAvatar: "🦆",
+              hashtags: product.tags ? product.tags.map(tag => `#${tag}`) : ["#AI추천", "#맞춤상품"]
+            }));
+            
+            setPersonalizedProducts(formattedProducts);
+          }
         }
       } catch (error) {
         console.error('Failed to load personalized recommendations:', error);
+        // API 실패 시 추천 엔진 사용
+        try {
+          const recommendations = await recommendationEngine.getPersonalizedRecommendations({
+            context: 'product_browsing'
+          });
+          
+          if (recommendations.length > 0) {
+            const formattedProducts = recommendations.map((product, index) => ({
+              id: product.id,
+              brand: product.brand,
+              name: product.name,
+              price: `₩${product.price.toLocaleString()}`,
+              originalPrice: product.originalPrice ? `₩${product.originalPrice.toLocaleString()}` : null,
+              discount: product.originalPrice ? 
+                `${Math.round((1 - product.price / product.originalPrice) * 100)}%` : null,
+              tags: [product.tags?.[0] || "추천"],
+              image: product.image,
+              description: product.recommendationReason || product.description || "개인화 추천 상품입니다",
+              creator: "덕키 AI",
+              creatorAvatar: "🦆",
+              hashtags: product.tags ? product.tags.map(tag => `#${tag}`) : ["#AI추천", "#맞춤상품"]
+            }));
+            
+            setPersonalizedProducts(formattedProducts);
+          }
+        } catch (fallbackError) {
+          console.error('Fallback recommendation also failed:', fallbackError);
+        }
       } finally {
         setIsLoading(false);
       }

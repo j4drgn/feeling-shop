@@ -115,10 +115,10 @@ const authApi = {
     }
   },
 
-  // 현재 사용자 정보 조회
-  getCurrentUserInfo: async (accessToken) => {
+  // 현재 사용자 정보 조회 (UserController)
+  getUserMe: async (accessToken) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },

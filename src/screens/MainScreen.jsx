@@ -21,6 +21,7 @@ import { recommendationEngine } from "@/services/recommendationEngine";
 import { emotionAnalysisEngine } from "@/services/emotionAnalysis";
 import { emotionCommerceEngine } from "@/services/emotionCommerceEngine";
 import { conversionTracking } from "@/services/conversionTracking";
+import healthApi from "@/api/healthApi";
 
 export const MainScreen = () => {
   const navigate = useNavigate();
@@ -90,6 +91,22 @@ export const MainScreen = () => {
         triggerAnimation("happy", true);
       }
     }, 1000);
+
+    // 서버 헬스체크
+    const checkServerHealth = async () => {
+      try {
+        const healthResponse = await healthApi.checkHealth();
+        if (healthResponse.success) {
+          console.log("서버 상태 확인: 정상");
+        } else {
+          console.warn("서버 상태 확인 실패:", healthResponse.message);
+        }
+      } catch (error) {
+        console.warn("서버 헬스체크 실패:", error);
+      }
+    };
+
+    checkServerHealth();
 
     // 로컬 스토리지에서 세션 ID 확인 및 유효성 검증
     const initializeChatSession = async () => {

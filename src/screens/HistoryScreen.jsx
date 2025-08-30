@@ -16,8 +16,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export const HistoryScreen = ({
-  likedProducts,
-  chatHistory,
+  likedProducts = [],
+  chatHistory = [],
 }) => {
   const navigate = useNavigate();
   const { colors } = useThemeContext();
@@ -110,9 +110,9 @@ export const HistoryScreen = ({
                                 {message.role === "user" ? "You: " : "Duck: "}
                               </span>
                               <span className="text-muted-foreground">
-                                {message.content.length > 80
+                                {message.content && message.content.length > 80
                                   ? `${message.content.substring(0, 80)}...`
-                                  : message.content}
+                                  : message.content || ''}
                               </span>
                             </div>
                           ))}
@@ -202,7 +202,7 @@ export const HistoryScreen = ({
                         : "bg-white/60 text-foreground"
                     }`}
                   >
-                    <p className="text-sm">{message.content}</p>
+                    <p className="text-sm">{message.content || ''}</p>
                   </div>
                 </div>
               ))}
