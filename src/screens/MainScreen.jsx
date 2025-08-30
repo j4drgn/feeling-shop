@@ -175,16 +175,42 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
               accessToken
             );
           } catch (sessionError) {
-            console.error("세션 메시지 전송 실패, 일반 메시지로 폴백:", sessionError);
-            // 세션 실패 시 세션 ID를 null로 설정하고 일반 메시지 전송
-            setChatSessionId(null);
-            localStorage.removeItem("currentChatSessionId");
-            apiResponse = await chatApi.sendChatMessage(
-              input,
-              emotionType,
-              emotionScore,
-              accessToken
-            );
+            console.error("세션 메시지 전송 실패, 새 세션 생성 후 재시도:", sessionError);
+            // 새 세션 생성
+            try {
+              const sessionTitle = `대화 ${new Date().toLocaleString("ko-KR")}`;
+              const newSessionResponse = await chatApi.createChatSession(
+                sessionTitle,
+                accessToken
+              );
+              if (newSessionResponse && newSessionResponse.data) {
+                const newSessionId = newSessionResponse.data.id;
+                setChatSessionId(newSessionId);
+                localStorage.setItem("currentChatSessionId", newSessionId.toString());
+                console.log("새 채팅 세션이 생성되었습니다:", newSessionId);
+                // 새 세션으로 메시지 전송
+                apiResponse = await chatApi.sendSessionMessage(
+                  newSessionId,
+                  input,
+                  emotionType,
+                  emotionScore,
+                  accessToken
+                );
+              } else {
+                throw new Error("새 세션 생성 실패");
+              }
+            } catch (createError) {
+              console.error("새 세션 생성 실패, 일반 메시지로 폴백:", createError);
+              // 세션 ID를 null로 설정
+              setChatSessionId(null);
+              localStorage.removeItem("currentChatSessionId");
+              apiResponse = await chatApi.sendChatMessage(
+                input,
+                emotionType,
+                emotionScore,
+                accessToken
+              );
+            }
           }
         } else {
           console.log("일반 메시지 전송");
