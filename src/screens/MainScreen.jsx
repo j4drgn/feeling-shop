@@ -114,7 +114,7 @@ export const MainScreen = () => {
     uploadProgress,
     isProcessing,
     taskStatus,
-  } = useSpeechRecognition();
+  } = useSpeechRecognition(chatSessionId);
 
   const { speak, isSpeaking, stopSpeaking, hasUserInteracted } = useSpeechSynthesis({
     onEnd: () => {

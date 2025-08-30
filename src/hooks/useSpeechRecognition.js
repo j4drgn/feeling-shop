@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import chatApi from '@/api/chatApi';
 
-export const useSpeechRecognition = () => {
+export const useSpeechRecognition = (sessionId = null) => {
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [error, setError] = useState(null);
@@ -338,7 +338,7 @@ export const useSpeechRecognition = () => {
           prevResult?.transcript || '',
           voiceMetadata,
           accessToken,
-          null, // sessionId는 null로 시작
+          sessionId, // 전달받은 sessionId 사용
           true, // asyncMode 활성화
           (progress) => {
             console.log(`📤 업로드 진행률: ${progress}%`);
@@ -352,29 +352,40 @@ export const useSpeechRecognition = () => {
 
         console.log('📥 서버 응답:', uploadResponse);
 
-        // 업로드 성공 시 결과 업데이트
-        if (uploadResponse && (uploadResponse.jobId || uploadResponse.data)) {
-          // 비동기 작업인 경우 jobId 저장
-          const jobId = uploadResponse.jobId || uploadResponse.data;
-          console.log('⏳ 비동기 작업 시작, jobId:', jobId);
-          setResult(prev => ({
-            ...prev,
-            serverJobId: jobId,
-            isProcessing: true,
-            audioBlob: null, // 업로드 완료 후 audioBlob 제거
-          }));
-        } else if (uploadResponse && uploadResponse.transcript) {
-          // 동기 응답인 경우 바로 결과 업데이트
-          console.log('✅ 동기 응답 받음:', uploadResponse.transcript);
-          setResult(prev => ({
-            ...prev,
-            transcript: uploadResponse.transcript || prev.transcript,
-            emotion: uploadResponse.emotion || prev.emotion,
-            serverLabels: uploadResponse.labels || null,
-            serverSessionId: uploadResponse.sessionId || null,
-            chatResponse: uploadResponse.chatResponse || null,
-            audioBlob: null, // 업로드 완료 후 audioBlob 제거
-          }));
+        // DuckK API 응답 처리
+        if (uploadResponse) {
+          console.log('📥 DuckK API 응답:', uploadResponse);
+          
+          // 비동기 작업인 경우 (jobId 있음)
+          if (uploadResponse.success && typeof uploadResponse.data === 'string') {
+            const jobId = uploadResponse.data;
+            console.log('⏳ 비동기 작업 시작, jobId:', jobId);
+            setResult(prev => ({
+              ...prev,
+              serverJobId: jobId,
+              isProcessing: true,
+              audioBlob: null, // 업로드 완료 후 audioBlob 제거
+            }));
+          } 
+          // 동기 응답인 경우 (content 있음)
+          else if (uploadResponse.success && uploadResponse.data && uploadResponse.data.content) {
+            console.log('✅ 동기 응답 받음:', uploadResponse.data.content);
+            setResult(prev => ({
+              ...prev,
+              chatResponse: uploadResponse.data,
+              serverSessionId: uploadResponse.data.chatSessionId || sessionId,
+              audioBlob: null, // 업로드 완료 후 audioBlob 제거
+            }));
+          }
+          // 기타 응답 구조 처리
+          else if (uploadResponse.data) {
+            console.log('📦 기타 응답:', uploadResponse.data);
+            setResult(prev => ({
+              ...prev,
+              serverResponse: uploadResponse.data,
+              audioBlob: null,
+            }));
+          }
         }
 
         setIsUploading(false);
@@ -397,72 +408,120 @@ export const useSpeechRecognition = () => {
   // Polling for async job status
   useEffect(() => {
     let intervalId = null;
+    let currentJobId = null;
+    let pollCount = 0;
+    const maxPollAttempts = 40; // 최대 2분 (3초 * 40 = 120초)
+    
     const startPolling = (jobId) => {
+      // 이미 같은 jobId로 폴링 중이면 무시
+      if (currentJobId === jobId && intervalId) {
+        console.log('🔄 이미 폴링 중:', jobId);
+        return;
+      }
+      
+      // 기존 폴링 중지 (다른 jobId인 경우만)
+      if (intervalId && currentJobId !== jobId) {
+        console.log('🛑 기존 폴링 중지 (새 작업):', currentJobId, '->', jobId);
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      
+      currentJobId = jobId;
+      pollCount = 0;
       console.log('🔄 폴링 시작, jobId:', jobId);
       setIsProcessing(true);
       setTaskStatus({ status: 'pending', jobId });
       
       intervalId = setInterval(async () => {
+        pollCount++;
+        
         try {
-          console.log('📡 작업 상태 조회 중...');
+          console.log(`📡 작업 상태 조회 중... (${pollCount}/${maxPollAttempts})`);
           const status = await chatApi.getVoiceTaskStatus(jobId);
           console.log('📊 작업 상태 상세:', JSON.stringify(status, null, 2));
           
-          if (status && status.data) {
+          if (status && status.success && status.data) {
             const taskData = status.data;
-            console.log('🔍 작업 데이터:', JSON.stringify(taskData, null, 2));
+            console.log('🔍 DuckK 작업 데이터:', JSON.stringify(taskData, null, 2));
             
-            // 다양한 완료 조건 체크
-            const isCompleted = taskData.finished || 
-                               taskData.status === 'completed' || 
-                               taskData.status === 'success' || 
-                               taskData.status === 'done' ||
-                               taskData.chatResponse || // chatResponse만 있어도 완료로 간주
-                               (taskData.transcript && taskData.transcript.trim()) || // transcript만 있어도 완료로 간주
-                               (taskData.response && taskData.response.trim()); // response 필드도 체크
+            // DuckK API 완료 조건 체크
+            const isCompleted = taskData.status === 'DONE' || 
+                               taskData.status === 'COMPLETED' ||
+                               (taskData.assistantResponse && taskData.assistantResponse.trim());
                                
             if (isCompleted) {
-              console.log('✅ 작업 완료!', { 
-                finished: taskData.finished, 
+              console.log('✅ DuckK 작업 완료!', { 
                 status: taskData.status,
                 hasTranscript: !!taskData.transcript,
-                hasChatResponse: !!taskData.chatResponse
+                hasAssistantResponse: !!taskData.assistantResponse
               });
-              // 작업 완료 시 최종 결과 업데이트 (serverJobId 유지)
+              
+              // DuckK API 응답 구조에 맞게 결과 업데이트
               setResult(prev => ({
                 ...prev,
                 transcript: taskData.transcript || prev.transcript,
-                emotion: taskData.emotion || prev.emotion,
-                serverLabels: taskData.labels || prev.serverLabels,
+                chatResponse: taskData.assistantResponse ? {
+                  content: taskData.assistantResponse,
+                  type: 'ASSISTANT',
+                  timestamp: new Date().toISOString(),
+                  chatSessionId: taskData.sessionId || prev.serverSessionId
+                } : prev.chatResponse,
                 serverSessionId: taskData.sessionId || prev.serverSessionId,
-                chatResponse: taskData.chatResponse || prev.chatResponse,
-                audioBlob: null, // 작업 완료 후 audioBlob 제거
-                serverJobId: prev.serverJobId, // serverJobId 유지
-                isProcessing: false, // processing 상태도 업데이트
+                serverLabels: taskData.analysisJson ? (() => {
+                  try {
+                    return JSON.parse(taskData.analysisJson);
+                  } catch (e) {
+                    console.warn('JSON 파싱 실패:', taskData.analysisJson);
+                    return prev.serverLabels;
+                  }
+                })() : prev.serverLabels,
+                audioBlob: null,
+                serverJobId: null, // 완료 후 serverJobId 제거
+                isProcessing: false,
               }));
               setIsProcessing(false);
               clearInterval(intervalId);
               intervalId = null;
-            } else if (taskData.status === 'failed' || taskData.status === 'error') {
-              console.log('❌ 작업 실패');
-              // 작업 실패 시 오류 처리
-              setError('음성 처리 작업이 실패했습니다.');
+              currentJobId = null;
+            } else if (taskData.status === 'FAILED' || taskData.errorMessage) {
+              console.log('❌ DuckK 작업 실패:', taskData.errorMessage);
+              setError(taskData.errorMessage || '음성 처리 작업이 실패했습니다.');
               setIsProcessing(false);
               clearInterval(intervalId);
               intervalId = null;
+              currentJobId = null;
+            } else if (pollCount >= maxPollAttempts) {
+              console.log('⏰ 폴링 타임아웃');
+              setError('음성 처리 작업이 시간 초과되었습니다. 다시 시도해주세요.');
+              setIsProcessing(false);
+              clearInterval(intervalId);
+              intervalId = null;
+              currentJobId = null;
             } else {
-              console.log('⏳ 작업 진행 중:', taskData.status || 'unknown');
+              const eta = Math.max(0, (maxPollAttempts - pollCount) * 3);
+              console.log('⏳ DuckK 작업 진행 중:', taskData.status || 'PENDING', `(남은 시간: ~${eta}초)`);
+              setTaskStatus({ status: taskData.status || 'PENDING', jobId, eta });
             }
           } else {
-            console.log('⚠️ 작업 상태 데이터 없음', { status });
+            console.log('⚠️ DuckK 작업 상태 데이터 없음', { status });
+            if (pollCount >= maxPollAttempts) {
+              setError('음성 처리 작업 상태를 가져올 수 없습니다.');
+              setIsProcessing(false);
+              clearInterval(intervalId);
+              intervalId = null;
+              currentJobId = null;
+            }
           }
         } catch (err) {
           console.error('❌ 폴링 실패:', err);
-          setIsProcessing(false);
-          setError('서버 작업 상태 조회 실패: ' + (err.message || String(err)));
-          if (intervalId) {
+          if (pollCount >= maxPollAttempts) {
+            setError('서버 작업 상태 조회 실패: ' + (err.message || String(err)));
+            setIsProcessing(false);
             clearInterval(intervalId);
             intervalId = null;
+            currentJobId = null;
+          } else {
+            console.log(`🔄 폴링 재시도 중... (${pollCount}/${maxPollAttempts})`);
           }
         }
       }, 3000); // 3초마다 상태 확인
@@ -475,8 +534,10 @@ export const useSpeechRecognition = () => {
 
     return () => {
       if (intervalId) {
-        console.log('🛑 폴링 중지');
+        console.log('🛑 폴링 중지 (cleanup)');
         clearInterval(intervalId);
+        intervalId = null;
+        currentJobId = null;
       }
     };
   }, [result?.serverJobId]);

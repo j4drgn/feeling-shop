@@ -365,23 +365,38 @@ const chatApi = {
     }
   },
 
-  // 오디오 파일 업로드 후 서버에서 Whisper 등으로 전사 및 라벨링 요청
+  // 오디오 파일 업로드 후 서버에서 Whisper 등으로 전사 및 라벨링 요청 (DuckK API)
   sendVoiceFileAndTranscribe: (audioBlob, message = '', voiceMetadata = {}, accessToken = null, sessionId = null, asyncMode = false, onUploadProgress = null, onUploadComplete = null) => {
     return new Promise((resolve, reject) => {
       try {
         const form = new FormData();
-        // server expects part name 'audio'
+        // DuckK API expects 'audio' as the part name
         form.append('audio', audioBlob, 'voice.webm');
-        if (message) form.append('message', message);
-        // include meta information as 'meta' part (server expects metaJson string)
-        const meta = { voiceMetadata };
-        form.append('meta', JSON.stringify(meta));
+        
+        // DuckK API에서는 meta 정보를 별도로 전송
+        if (voiceMetadata && Object.keys(voiceMetadata).length > 0) {
+          form.append('meta', JSON.stringify(voiceMetadata));
+        }
+        
+        // sessionId가 있으면 chatSessionId로 전송
+        if (sessionId) {
+          form.append('chatSessionId', String(sessionId));
+        }
+        
+        // 비동기 모드 설정
+        if (asyncMode) {
+          form.append('async', 'true');
+        }
 
-        // Build URL with optional query params: chatSessionId and async
-        const params = new URLSearchParams();
-        if (typeof sessionId !== 'undefined' && sessionId !== null) params.set('chatSessionId', String(sessionId));
-        if (asyncMode) params.set('async', 'true');
-        const url = `${API_BASE_URL}/chatgpt/chat/voice/file${params.toString() ? `?${params.toString()}` : ''}`;
+        // DuckK API 엔드포인트 사용
+        let url;
+        if (sessionId) {
+          // 세션 기반 음성 채팅
+          url = `${API_BASE_URL}/chatgpt/chat/session/${sessionId}/voice/file`;
+        } else {
+          // 일반 음성 채팅
+          url = `${API_BASE_URL}/chatgpt/chat/voice/file`;
+        }
 
         const xhr = new XMLHttpRequest();
         xhr.open('POST', url);
