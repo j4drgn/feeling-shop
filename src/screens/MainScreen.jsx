@@ -630,6 +630,8 @@ export const MainScreen = () => {
 
   // 음성 인식 결과 처리 - 한 번만 실행하도록 수정
   const lastProcessedTranscriptRef = useRef(null);
+  // 서버에서 온 assistant 응답이 중복 처리되는 것을 막기 위한 ref
+  const lastProcessedChatResponseRef = useRef(null);
 
   useEffect(() => {
     if (result && result.transcript && result.transcript !== lastProcessedTranscriptRef.current) {
@@ -656,6 +658,13 @@ export const MainScreen = () => {
 
       console.log('handleUserInput 호출:', result.transcript, emotionData);
 
+      // 만약 서버에 비동기 작업(job)을 생성한 경우(serverJobId가 있는 경우),
+      // 서버의 assistantResponse가 도착할 것이므로 로컬에서 다시 메시지를 보내지 않음
+      if (result.serverJobId) {
+        console.log('비동기 서버 작업 중이므로 로컬 handleUserInput 호출을 건너뜁니다. 서버 응답을 기다립니다.');
+        return;
+      }
+
       // 자동으로 응답 생성 (클라이언트 -> 서버 흐름)
       setTimeout(() => {
         handleUserInput(result.transcript, emotionData)
@@ -665,7 +674,45 @@ export const MainScreen = () => {
           });
       }, 500);
     }
-  }, [result]);  useEffect(() => {
+  }, [result]);
+
+  useEffect(() => {
+    // 서버 폴링으로 assistant response가 들어왔을 때 처리
+    if (result && result.chatResponse && result.chatResponse.content) {
+      const chatKey = result.chatResponse.content + '|' + (result.chatResponse.chatSessionId || '');
+      if (lastProcessedChatResponseRef.current === chatKey) {
+        return; // 이미 처리됨
+      }
+      lastProcessedChatResponseRef.current = chatKey;
+
+      // AI 응답을 히스토리에 추가
+      const aiMessage = {
+        role: 'assistant',
+        content: result.chatResponse.content,
+        timestamp: new Date().toISOString(),
+        chatSessionId: result.chatResponse.chatSessionId || result.chatResponse.sessionId || null,
+      };
+      setConversationHistory(prev => [...prev, aiMessage]);
+
+      // UI 업데이트
+      setCharacterText(result.chatResponse.content);
+      setConversationContext(result.chatResponse.type || 'assistant');
+      setIsAIThinking(false);
+
+      // 서버에서 전달한 세션 ID가 있으면 저장
+      if (result.chatResponse.chatSessionId) {
+        const sid = result.chatResponse.chatSessionId;
+        setChatSessionId(sid);
+        try {
+          localStorage.setItem('currentChatSessionId', sid.toString());
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+  }, [result?.chatResponse]);
+
+  useEffect(() => {
     // 이전에 말한 텍스트와 같으면 스킵
     if (lastSpokenTextRef.current === characterText) {
       return;
