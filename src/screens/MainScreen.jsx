@@ -14,6 +14,9 @@ import { cn } from "@/lib/utils";
 import QuickAccessButton from "@/components/QuickAccessButton";
 import { userProfileService } from "@/services/userProfile";
 import { recommendationEngine } from "@/services/recommendationEngine";
+import { emotionAnalysisEngine } from "@/services/emotionAnalysis";
+import { emotionCommerceEngine } from "@/services/emotionCommerceEngine";
+import { conversionTracking } from "@/services/conversionTracking";
 
 export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
   const { isThinking, toggleTheme } = useThemeContext();
@@ -78,8 +81,20 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
 
   const handleUserInput = async (input, emotion) => {
     try {
-      // 1. 사용자 입력을 프로필에 반영
-      userProfileService.updateFromConversation(input, emotion);
+      // 1. 감정 분석 엔진으로 정밀 분석
+      const emotionAnalysis = emotionAnalysisEngine.analyzeEmotion(input);
+      
+      // 2. 사용자 프로필에 반영
+      userProfileService.updateFromConversation(input, emotionAnalysis);
+      
+      // 3. 감정 변화 추적
+      if (emotion) {
+        conversionTracking.trackEmotionChange(
+          emotion.previousEmotion || 'neutral',
+          emotionAnalysis.dominant,
+          'conversation'
+        );
+      }
       
       // 2. 프로필 질문이 대기 중인지 확인
       if (profileQuestion) {

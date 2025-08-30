@@ -1,4 +1,5 @@
 // 사용자 프로파일링 및 개인화 추천 시스템
+import { emotionAnalysisEngine } from './emotionAnalysis.js';
 
 export class UserProfileService {
   constructor() {
@@ -66,6 +67,25 @@ export class UserProfileService {
         currentGoals: [], // '건강관리', '인테리어', '요리시작', '운동시작'
         problems: [], // '공간부족', '시간부족', '예산부족'
         priorities: [] // '편의성', '가격', '품질', '디자인'
+      },
+
+      // 감정 프로필 (새로 추가)
+      emotionalProfile: {
+        currentMood: null,
+        dominantEmotions: {},
+        emotionHistory: [],
+        triggers: {},
+        copingStrategies: [],
+        lastAnalyzed: null
+      },
+
+      // AI 학습 데이터
+      aiMetrics: {
+        profileCompleteness: 0,
+        engagementScore: 0,
+        recommendationAccuracy: 0,
+        purchaseConversionRate: 0,
+        lastUpdated: null
       }
     };
   }
@@ -79,7 +99,10 @@ export class UserProfileService {
         productViews: [],
         likes: [],
         purchases: [],
-        searches: []
+        searches: [],
+        emotionLogs: [],
+        recommendations: [],
+        feedback: []
       };
     } catch (error) {
       console.error('Failed to load interactions:', error);
