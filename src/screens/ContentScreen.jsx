@@ -180,7 +180,7 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-white text-lg">
-            🦆 너에게 딱 맞는 콘텐츠를 찾고 있어...
+            너에게 딱 맞는 콘텐츠를 찾고 있어...
           </p>
         </div>
       </div>

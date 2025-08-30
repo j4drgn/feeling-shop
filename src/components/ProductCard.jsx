@@ -246,7 +246,6 @@ export const ProductCard = ({ product, onSwipe }) => {
                       <span className="text-sm xs:text-base sm:text-lg font-bold text-amber-800">
                         덕키의 추천
                       </span>
-                      <span className="text-lg">🎆</span>
                     </div>
                     <p className="text-xs xs:text-sm sm:text-base text-amber-700 leading-relaxed">
                       {product.aiRecommendation}
@@ -300,7 +299,7 @@ export const ProductCard = ({ product, onSwipe }) => {
             dragX < -50 ? "opacity-30 text-pink-500" : "opacity-0"
           )}
         >
-          ❤️
+          좋아요
         </div>
         <div
           className={cn(
@@ -308,7 +307,7 @@ export const ProductCard = ({ product, onSwipe }) => {
             dragX > 50 ? "opacity-30 text-blue-500" : "opacity-0"
           )}
         >
-          🔗
+          링크
         </div>
       </div>
 

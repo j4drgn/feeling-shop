@@ -155,59 +155,59 @@ const AnimatedDuckCharacter = ({
   // Cleanup reference for PNG animation
   const cleanupRef = useRef(null);
   
-  // 🔒 Animation Control System - Single source of truth for all animation state
+  // Animation Control System - Single source of truth for all animation state
   const animationLockRef = useRef(false); // Global animation lock
   const animationQueueRef = useRef([]); // Animation request queue
   const currentAnimationRef = useRef(null); // Currently active animation
   const lastFrameResetRef = useRef(null); // Last animation that reset frame
   
-  // 🔒 Sequence duplicate start prevention
+  // Sequence duplicate start prevention
   const lastSequenceStartKeyRef = useRef('');
   
-  // 🔒 Enhanced runId system for sequence timeouts
+  // Enhanced runId system for sequence timeouts
   const sequenceRunIdRef = useRef(0);
   const activeSequenceRunIdRef = useRef(0);
 
-  // 🔒 Duplicate key processing prevention
+  // Duplicate key processing prevention
   const lastProcessedRef = useRef({ key: null });
   
-  // 🔒 Sequence protection - prevent interruption during critical sequences
+  // Sequence protection - prevent interruption during critical sequences
   const sequenceProtectedRef = useRef(null); // null or animation name
   const pendingAnimRef = useRef(null); // pending animation request during protection
 
-  // 🔒 Request animation change ref to avoid initialization issues
+  // Request animation change ref to avoid initialization issues
   const requestAnimationChangeRef = useRef();
 
-  // 🎯 Animation Priority System - Define animation groups and priorities
+  // Animation Priority System - Define animation groups and priorities
   const ANIMATION_PRIORITIES = {
-    // 🚨 Critical feedback - Always show these
+    // Critical feedback - Always show these
     error: 120,
     success: 115,
     
-    // 🎯 High priority interactions
+    // High priority interactions
     product_recommendation: 110,
     welcome_greeting: 105,
     task_complete: 105,
     
-    // 🔍 Medium-high priority
+    // Medium-high priority
     searching: 100,
     gift: 95,
     walkback: 90,
     walkforward: 90,
     
-    // 😠 Negative emotions
+    // Negative emotions
     mad: 85,
     frustrated: 80,
     
-    // 😊 Positive emotions
+    // Positive emotions
     happy: 70,
     hungry: 75,
     
-    // 🗣️ Communication states
+    // Communication states
     talk: 50,
     listening: 45,
     
-    // 😴 Base states
+    // Base states
     idle: 10,
     waiting: 5
   };
@@ -233,7 +233,7 @@ const AnimatedDuckCharacter = ({
     setIsPngAnimationPlaying(false);
   }, []);
 
-  // 🎬 Auto-start animation when animation prop changes
+  // Auto-start animation when animation prop changes
   useLayoutEffect(() => {
     if (animation && animation !== 'idle') {
       if (requestAnimationChangeRef.current) {
@@ -242,7 +242,7 @@ const AnimatedDuckCharacter = ({
     }
   }, [animation]);
 
-  // 🔒 Get animation config with defaults applied
+  // Get animation config with defaults applied
   const getAnimationConfigWithDefaults = useCallback((animationName) => {
     const rawConfig = DUCK_ANIMATIONS[animationName];
     if (!rawConfig) {
@@ -328,7 +328,7 @@ const AnimatedDuckCharacter = ({
     };
   }, []);
 
-  // 🔓 Animation Unlock System
+  // Animation Unlock System
   const unlockAnimation = useCallback(() => {
     animationLockRef.current = false;
     
@@ -338,7 +338,7 @@ const AnimatedDuckCharacter = ({
     }
   }, []);
 
-  // 🎬 Core Animation Execution - Handles the actual animation change
+  // Core Animation Execution - Handles the actual animation change
   const executeAnimationChange = useCallback((targetAnimation, trigger) => {
     // Lock the animation system
     animationLockRef.current = true;
@@ -403,7 +403,7 @@ const AnimatedDuckCharacter = ({
   }, [clearAll, getAnimationConfig, onAnimationComplete, unlockAnimation]);
 
 
-  // 🚪 Animation Gate - Single entry point for all animation changes
+  // Animation Gate - Single entry point for all animation changes
   const requestAnimationChange = useCallback((targetAnimation, trigger = null) => {
     const currentPriority = ANIMATION_PRIORITIES[currentAnimationRef.current] || 0;
     const targetPriority = ANIMATION_PRIORITIES[targetAnimation] || 0;
@@ -440,7 +440,7 @@ const AnimatedDuckCharacter = ({
   requestAnimationChangeRef.current = requestAnimationChange;
 
 
-  // 🔍 DEBUG: Animation state logger
+  // DEBUG: Animation state logger
   useEffect(() => {
   }, [animation, currentSequenceStep, isSequencePlaying, currentFrame, isPngAnimationPlaying, imageLoadError, trigger]);
 
@@ -490,14 +490,14 @@ const AnimatedDuckCharacter = ({
     }
   }, [animation]);
 
-  // 🔒 Locked version of startPngAnimation
+  // Locked version of startPngAnimation
   const startPngAnimationWithUnlock = useCallback((animConfig, onCompleteCallback) => {
     if (animConfig.type !== 'png_sequence') {
       onCompleteCallback?.(animation);
       return;
     }
     
-    // ⚠️ CRITICAL: frameCount validation
+    // CRITICAL: frameCount validation
     if (!animConfig.frameCount || animConfig.frameCount <= 0) {
       onCompleteCallback?.(animation);
       return;
@@ -523,9 +523,9 @@ const AnimatedDuckCharacter = ({
     });
   }, [animation, playPngSequence]);
 
-  // 🔒 Locked version of playSequence
+  // Locked version of playSequence
   const playSequenceWithUnlock = useCallback((animConfig, onCompleteCallback) => {
-    // 🔒 CRITICAL: Prevent duplicate sequence starts with same animation + trigger
+    // CRITICAL: Prevent duplicate sequence starts with same animation + trigger
     const sequenceKey = `${animation}:${trigger}`;
     if (lastSequenceStartKeyRef.current === sequenceKey) {
       onCompleteCallback?.(animation);
@@ -544,7 +544,7 @@ const AnimatedDuckCharacter = ({
       sequenceTimeoutRef.current = null;
     }
     
-    // 🔒 Create sequence run ID for this execution
+    // Create sequence run ID for this execution
     const currentSequenceRunId = ++sequenceRunIdRef.current;
     activeSequenceRunIdRef.current = currentSequenceRunId;
     
@@ -553,7 +553,7 @@ const AnimatedDuckCharacter = ({
     
     // Sequence step completion handler
     const onSequenceStepComplete = (stepIndex) => {
-      // 🔒 CRITICAL: Validate sequence run ID
+      // CRITICAL: Validate sequence run ID
       if (activeSequenceRunIdRef.current !== currentSequenceRunId) {
         return;
       }
@@ -600,7 +600,7 @@ const AnimatedDuckCharacter = ({
       return;
     }
     
-    // ⚠️ CRITICAL: frameCount validation
+    // CRITICAL: frameCount validation
     if (!animConfig.frameCount || animConfig.frameCount <= 0) {
       return;
     }
@@ -635,7 +635,7 @@ const AnimatedDuckCharacter = ({
 
   // Handle sequence animations
   const playSequence = useCallback((animConfig) => {
-    // 🔒 CRITICAL: Prevent duplicate sequence starts with same animation + trigger
+    // CRITICAL: Prevent duplicate sequence starts with same animation + trigger
     const sequenceKey = `${animation}:${trigger}`;
     if (lastSequenceStartKeyRef.current === sequenceKey) {
       return;
@@ -652,11 +652,11 @@ const AnimatedDuckCharacter = ({
       sequenceTimeoutRef.current = null;
     }
     
-    // 🔒 Create sequence run ID for this execution
+    // Create sequence run ID for this execution
     const currentSequenceRunId = ++sequenceRunIdRef.current;
     activeSequenceRunIdRef.current = currentSequenceRunId;
     
-    // 🛡️ 중요한 시퀀스는 보호 모드 활성화
+    // 중요한 시퀀스는 보호 모드 활성화
     const protectedSequences = ['product_recommendation', 'welcome_greeting', 'searching'];
     if (protectedSequences.includes(animation)) {
       sequenceProtectedRef.current = animation;
@@ -667,7 +667,7 @@ const AnimatedDuckCharacter = ({
     
     // Sequence step completion handler
     const onSequenceStepComplete = (stepIndex) => {
-      // 🔒 CRITICAL: Validate sequence run ID
+      // CRITICAL: Validate sequence run ID
       if (activeSequenceRunIdRef.current !== currentSequenceRunId) {
         return;
       }
@@ -678,7 +678,7 @@ const AnimatedDuckCharacter = ({
         // All steps complete
         setIsSequencePlaying(false);
         
-        // 🛡️ 시퀀스 보호 해제
+        // 시퀀스 보호 해제
         if (sequenceProtectedRef.current === animation) {
           sequenceProtectedRef.current = null;
           const pending = pendingAnimRef.current;
@@ -724,7 +724,7 @@ const AnimatedDuckCharacter = ({
     startNextStep(0);
   }, [animation, onAnimationComplete, startPngAnimation]);
 
-  // 🚪 Main Animation Effect - Routes all animation changes through the gate
+  // Main Animation Effect - Routes all animation changes through the gate
   useLayoutEffect(() => {
     // Route all animation requests through the gate system
     if (requestAnimationChangeRef.current) {

@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Duck emotion/state mapping - Enhanced for better UX
 const EMOTION_TO_ANIMATION = {
-  // 🎤 Speech recognition states - More engaging animations
-  listening: 'talk', // 👂 귀 기울이는 느낌으로 talk 사용 (더 자연스러움)
-  speaking: 'talk',  // 🗣️ AI 응답 시
+  // Speech recognition states - More engaging animations
+  listening: 'talk', // 귀 기울이는 느낌으로 talk 사용 (더 자연스러움)
+  speaking: 'talk',  // AI 응답 시
   
-  // 😊 Positive emotions - 다양한 긍정 표현
+  // Positive emotions - 다양한 긍정 표현
   happy: 'happy',
   excited: 'happy',
   joyful: 'happy',
@@ -14,38 +14,38 @@ const EMOTION_TO_ANIMATION = {
   delighted: 'happy',
   pleased: 'happy',
   
-  // 😠 Negative emotions - 공감 표현
-  sad: 'idle', // 😢 슬플 때는 차분하게
+  // Negative emotions - 공감 표현
+  sad: 'idle', // 슬플 때는 차분하게
   frustrated: 'mad',
   angry: 'mad',
   annoyed: 'mad',
   disappointed: 'mad',
   upset: 'mad',
   
-  // 🤔 Neutral/Thinking states
+  // Neutral/Thinking states
   neutral: 'idle',
   calm: 'idle',
   thoughtful: 'idle',
   confused: 'idle',
   curious: 'talk', // 궁금할 때는 귀 기울이는 느낌
   
-  // 🛍️ Product interest states
+  // Product interest states
   hungry: 'hungry',
   wanting: 'hungry',
   interested: 'hungry',
   craving: 'hungry',
   
-  // 💬 Conversation contexts - 상황별 의미있는 애니메이션
-  greeting: 'welcome_greeting', // 👋 처음 만남
-  farewell: 'walkback', // 👋 떠날 때
-  shopping: 'product_recommendation', // 🛒 쇼핑 관심
-  recommendation: 'product_recommendation', // 💝 추천 제시
-  searching: 'searching', // 🔍 정보 찾기
-  completed: 'task_complete', // ✅ 작업 완료
-  thanking: 'happy', // 🙏 감사 표현
+  // Conversation contexts - 상황별 의미있는 애니메이션
+  greeting: 'welcome_greeting', // 처음 만남
+  farewell: 'walkback', // 떠날 때
+  shopping: 'product_recommendation', // 쇼핑 관심
+  recommendation: 'product_recommendation', // 추천 제시
+  searching: 'searching', // 정보 찾기
+  completed: 'task_complete', // 작업 완료
+  thanking: 'happy', // 감사 표현
   apology: 'idle', // 죄송할 때는 차분하게
   
-  // 🎯 Success/Error states - 새로운 상황 추가
+  // Success/Error states - 새로운 상황 추가
   success: 'happy', // 성공 시 기쁨 표현
   error: 'mad', // 오류 시 당황 표현
   waiting: 'idle', // 대기 시 차분함
@@ -56,70 +56,70 @@ const EMOTION_TO_ANIMATION = {
 
 // Animation priorities (higher number = higher priority) - UX-focused
 const ANIMATION_PRIORITY = {
-  // 🚨 Critical feedback - Always show these
+  // Critical feedback - Always show these
   error: 120, // 오류는 가장 중요
   success: 115, // 성공도 중요 피드백
   
-  // 🎯 High priority interactions
+  // High priority interactions
   product_recommendation: 110, // 제품 추천은 핵심 기능
   welcome_greeting: 105, // 첫 만남은 중요
   task_complete: 105, // 작업 완료는 만족스러운 경험
   
-  // 🔍 Medium-high priority
+  // Medium-high priority
   searching: 100, // 검색 중 표시
   gift: 95, // 선물/보상
   walkback: 90, // 작별 인사
   walkforward: 90, // 다가오는 느낌
   
-  // 😠 Negative emotions - Need attention but not critical
+  // Negative emotions - Need attention but not critical
   mad: 85, // 화남 감정
   frustrated: 80, // 좌절
   
-  // 😊 Positive emotions - Nice to have
+  // Positive emotions - Nice to have
   happy: 70, // 기쁨
   hungry: 75, // 관심/호기심
   
-  // 🗣️ Communication states
+  // Communication states
   talk: 50, // 말하기/듣기
   listening: 45, // 듣는 중
   
-  // 😴 Base states - Can be interrupted easily
+  // Base states - Can be interrupted easily
   idle: 10, // 기본 대기
   waiting: 5 // 대기 상태
 };
 
 // Animation durations (in milliseconds) - UX-optimized
 const ANIMATION_DURATION = {
-  // 🎯 Core interactions - Important but not too long
+  // Core interactions - Important but not too long
   product_recommendation: 4000, // 추천은 충분히 보여주되 너무 길지 않게
   welcome_greeting: 3000, // 인사는 적당히
   task_complete: 3500, // 완료는 만족감 유지
   
-  // 🔍 Process indicators
+  // Process indicators
   searching: 2000, // 검색 중은 짧게 (계속 반복될 수 있음)
   waiting: 0, // 대기는 무한
   
-  // 🎁 Rewards/Special moments
+  // Rewards/Special moments
   gift: 4000, // 선물은 특별하게
   success: 3000, // 성공은 긍정적 느낌 오래 유지
   
-  // 😊 Emotions - Intensity-based duration
+  // Emotions - Intensity-based duration
   happy: 2500, // 기쁨은 중간 정도로
   mad: 3500, // 화남은 좀 더 길게 (주의를 끌기 위해)
   hungry: 4000, // 관심은 충분히 표현
   
-  // 🚶 Movement animations
+  // Movement animations
   walkback: 2500, // 작별은 적당히
   walkforward: 2500, // 다가오는 건 자연스럽게
   
-  // 🗣️ Communication - Context dependent
+  // Communication - Context dependent
   talk: 0, // 말하는 동안은 계속 (무한 반복)
   listening: 0, // 듣는 동안은 계속
   
-  // ⚠️ Feedback states
+  // Feedback states
   error: 2000, // 오류는 짧지만 확실하게
   
-  // 😴 Base states
+  // Base states
   idle: 0 // 기본은 무한
 };
 
@@ -153,13 +153,13 @@ export const useDuckAnimation = ({
   const sequenceProtectedRef = useRef(null);
   const pendingAnimRef = useRef(null);
   
-  // 🔒 Enhanced animation setting prevention
+  // Enhanced animation setting prevention
   const lastSetRef = useRef({ anim: null, at: 0 });
   
-  // 🔒 Happy debounce mechanism
+  // Happy debounce mechanism
   const lastTriggerAtRef = useRef({ happy: 0 });
 
-  // 🔍 DEBUG: Hook state logger
+  // DEBUG: Hook state logger
   useEffect(() => {
   }, [currentAnimation, triggerCount, emotion, isListening, isSpeaking, conversationContext, animationQueue]);
 
@@ -187,7 +187,7 @@ export const useDuckAnimation = ({
     const t = performance.now();
     const minRestartMs = 2000;
 
-    // 🔒 CRITICAL: Happy heartbeat 차단 (시퀀스 재생 중)
+    // CRITICAL: Happy heartbeat 차단 (시퀀스 재생 중)
     if (isFromHeartbeat && next === 'happy') {
       const isSequenceActive = currentAnimation && ANIMATION_PRIORITY[currentAnimation] >= 100;
       if (isSequenceActive) {
@@ -347,7 +347,7 @@ export const useDuckAnimation = ({
     const nonLoopingAnimations = ['gift', 'mad', 'happy', 'hungry', 'walkback', 'walkforward', 'product_recommendation', 'welcome_greeting', 'searching', 'task_complete'];
     
     if (nonLoopingAnimations.includes(completedAnimation)) {
-      // 🛡️ CRITICAL: 시퀀스 완료 시점에서만 보호 해제 + 상태 동기화
+      // CRITICAL: 시퀀스 완료 시점에서만 보호 해제 + 상태 동기화
       
       const newTarget = getTargetAnimation();
       if (newTarget === completedAnimation || !newTarget || newTarget === 'idle') {

@@ -406,7 +406,7 @@ export const MainScreen = () => {
         userProfileService.saveProfile();
       }
 
-      return "좋아! 이제 더 정확한 추천을 해줄 수 있을 거야! 😊";
+      return "좋아! 이제 더 정확한 추천을 해줄 수 있을 거야!";
     } else if (profileQuestion.type === "living") {
       let livingType = null;
       if (lowerAnswer.includes("원룸") || lowerAnswer.includes("오피스텔"))
@@ -420,7 +420,7 @@ export const MainScreen = () => {
         userProfileService.saveProfile();
       }
 
-      return `${livingType}에서 살고 있구나! 공간에 딱 맞는 제품들을 추천해줄게! 🏠`;
+      return `${livingType}에서 살고 있구나! 공간에 딱 맞는 제품들을 추천해줄게!`;
     } else if (profileQuestion.type === "hobbies") {
       const hobbies = [];
       if (lowerAnswer.includes("요리")) hobbies.push("cooking");
@@ -441,10 +441,10 @@ export const MainScreen = () => {
         userProfileService.saveProfile();
       }
 
-      return "오~ 취향을 알겠어! 이제 네 관심사에 맞는 상품들을 찾아줄 수 있을 거야! ✨";
+      return "오~ 취향을 알겠어! 이제 네 관심사에 맞는 상품들을 찾아줄 수 있을 거야!";
     }
 
-    return "답변 고마워! 이제 더 나은 추천을 해줄 수 있을 거야! 😊";
+    return "답변 고마워! 이제 더 나은 추천을 해줄 수 있을 거야!";
   };
 
   // 개인화된 일반 응답 생성
@@ -500,7 +500,7 @@ export const MainScreen = () => {
       lowerInput.includes("헬로")
     ) {
       const greetingResponses = [
-        "안녕! 오프라인 모드에서도 대화할 수 있어요 😊",
+        "안녕! 오프라인 모드에서도 대화할 수 있어요",
         "하이! 지금은 서버에 연결할 수 없지만, 계속 이야기 나눠요!",
         "안녕하세요! 오프라인 모드에서도 기분 좋은 대화 해보죠!"
       ];
@@ -510,9 +510,9 @@ export const MainScreen = () => {
     // 기분 관련 응답
     if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
       if (emotionAnalysis.dominant === "happy" || emotionAnalysis.dominant === "excited") {
-        return "와! 기분이 좋아 보여요! 오프라인 모드에서도 함께 기분 좋게 이야기해요 🎉";
+        return "와! 기분이 좋아 보여요! 오프라인 모드에서도 함께 기분 좋게 이야기해요";
       } else if (emotionAnalysis.dominant === "sad" || emotionAnalysis.dominant === "frustrated") {
-        return "괜찮아요... 오프라인 모드에서도 제가 여기 있어요. 힘내세요! 😊";
+        return "괜찮아요... 오프라인 모드에서도 제가 여기 있어요. 힘내세요!";
       } else {
         return "오프라인 모드에서도 당신의 기분을 함께 느껴보고 있어요!";
       }
@@ -522,7 +522,7 @@ export const MainScreen = () => {
     if (lowerInput.includes("고마워") || lowerInput.includes("감사")) {
       const thankResponses = [
         "천만에요! 오프라인 모드에서도 도움 드릴 수 있어 기분이 좋아요!",
-        "별말씀을요! 서버 연결이 되면 더 많은 도움을 드릴게요 😊",
+        "별말씀을요! 서버 연결이 되면 더 많은 도움을 드릴게요",
         "고마워요! 오프라인에서도 계속 이야기 나눠요!"
       ];
       return thankResponses[Math.floor(Math.random() * thankResponses.length)];
@@ -635,7 +635,7 @@ export const MainScreen = () => {
       // 감정 분석 결과가 있으면 사용, 없으면 voiceMetadata 사용
       const emotionData = result.serverLabels || voiceMetadata;
 
-      console.log('🎯 handleUserInput 호출:', result.transcript, emotionData);
+      console.log('handleUserInput 호출:', result.transcript, emotionData);
 
       // 자동으로 응답 생성 (클라이언트 -> 서버 흐름)
       setTimeout(() => {
@@ -826,16 +826,16 @@ export const MainScreen = () => {
             {showFloatingEmojis && (
               <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-4 left-4 animate-bounce delay-0 text-2xl">
-                  💕
+                  <span className="text-yellow-400">*</span>
                 </div>
                 <div className="absolute top-8 right-6 animate-bounce delay-200 text-xl">
-                  ✨
+                  <span className="text-yellow-400">*</span>
                 </div>
                 <div className="absolute bottom-12 left-8 animate-bounce delay-400 text-lg">
-                  🌟
+                  <span className="text-yellow-400">*</span>
                 </div>
                 <div className="absolute top-1/2 right-4 animate-bounce delay-600 text-xl">
-                  💫
+                  <span className="text-yellow-400">*</span>
                 </div>
               </div>
             )}
