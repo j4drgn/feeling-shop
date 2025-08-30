@@ -187,7 +187,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
             response.includes("플레이리스트")
           ) {
             context = "recommendation";
-            triggerAnimation("gift_sequence", true);
+            triggerAnimation("product_recommendation", true);
 
             // 추천 콘텐츠 데이터 가져오기
             const personalizedRecs =
@@ -303,7 +303,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
               "아직 너에 대해 더 알아야 좋은 추천을 해줄 수 있어! 조금 더 대화해볼까?";
           }
 
-          triggerAnimation("gift_sequence", true);
+          triggerAnimation("product_recommendation", true);
           context = "recommendation";
 
           // 4. 기본 감정/인사 응답
