@@ -79,7 +79,7 @@ export default {
 				}
 			},
 			fontFamily: {
-				'pretendard': ['PretendardVariable', 'Pretendard', 'system-ui', 'sans-serif'],
+				'pretendard': ['Pretendard', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'sans-serif'],
 			},
 			fontSize: {
 				'title': ['20px', { lineHeight: '1.4', fontWeight: '700' }], // Duck messages

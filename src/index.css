@@ -145,24 +145,13 @@ All colors MUST be HSL.
   }
 }
 
-/* Clean & Cute Design System - Pretendard Variable Font */
+/* Local Pretendard Variable Font */
 @font-face {
-  font-family: "PretendardVariable";
-  font-weight: 400 900;
+  font-family: 'Pretendard';
+  src: url('./assets/fonts/PretendardVariable.woff2') format('woff2-variations');
+  font-weight: 45 920;
   font-style: normal;
   font-display: swap;
-  src: url("/Pretendard/web/variable/woff2/PretendardVariable.woff2")
-    format("woff2-variations");
-}
-
-/* Fallback for older systems */
-@font-face {
-  font-family: "Pretendard";
-  font-weight: 400 900;
-  font-style: normal;
-  font-display: swap;
-  src: url("/Pretendard/web/variable/woff2/PretendardVariable.woff2")
-    format("woff2-variations");
 }
 
 @layer base {
@@ -174,13 +163,14 @@ All colors MUST be HSL.
   body {
     @apply bg-layer-background text-layer-content;
     font-family:
-      "PretendardVariable",
       "Pretendard",
       system-ui,
       -apple-system,
+      "Segoe UI",
+      "Roboto",
+      "Helvetica Neue",
       sans-serif;
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior: none;
   }
 
   /* Clean mobile app styling */
@@ -188,7 +178,6 @@ All colors MUST be HSL.
     @apply touch-manipulation bg-layer-background;
     width: 100%;
     min-height: 100%;
-    overscroll-behavior: none;
   }
 
   #root {
@@ -371,7 +360,7 @@ All colors MUST be HSL.
 
   /* 모바일 앱 스타일 유틸리티 */
   .app-container {
-    @apply max-w-md mx-auto h-full overflow-hidden;
+    @apply max-w-md mx-auto h-full;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
   }
 

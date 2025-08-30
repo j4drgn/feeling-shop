@@ -18,6 +18,21 @@ export const ProductCard = ({ product, onSwipe }) => {
   const [showLikeButton, setShowLikeButton] = useState(false);
   const [showLinkButton, setShowLinkButton] = useState(false);
 
+  // 컴포넌트 마운트 시 상세 정보 표시 설정
+  useEffect(() => {
+    // 초기에는 상세 정보 숨기기
+    setShowDetails(false);
+  }, [product.id]);
+
+  // 스와이프 후 상세 정보 즉시 표시
+  useEffect(() => {
+    // 스와이프 시 즉시 상세 정보 표시
+    if (isAnimating && (dragX > 80 || dragX < -80)) {
+      // 딜레이 없이 즉시 표시
+      setShowDetails(true);
+    }
+  }, [isAnimating, dragX]);
+
   // 터치 이벤트를 passive: false로 등록
   useEffect(() => {
     const card = cardRef.current;
@@ -167,51 +182,9 @@ export const ProductCard = ({ product, onSwipe }) => {
     touchModeRef.current = "none";
   };
 
-  return (
-    <div
-      ref={cardRef}
-      className={cn(
-        "product-card w-[350px] h-[520px] rounded-3xl p-6 cursor-grab active:cursor-grabbing select-none relative overflow-hidden glassmorphism-card",
-        isAnimating && dragX > 80 && "product-card-swipe-right",
-        isAnimating && dragX < -80 && "product-card-swipe-left",
-        isDragging && "shadow-2xl"
-      )}
-      style={{
-        transform: `translateX(${dragX}px) rotate(${dragX * 0.1}deg)`,
-        transition: isDragging ? "none" : "transform 0.3s ease",
-      }}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Category Badge */}
-      <Badge className="absolute top-4 left-4 bg-primary/10 text-primary hover:bg-primary/20">
-        {product.category}
-      </Badge>
-
-      {/* Product Image */}
-      <div className="w-full h-64 rounded-2xl overflow-hidden mb-5 bg-muted/30">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
-
-  // 컴포넌트 마운트 시 상세 정보 표시 설정
-  useEffect(() => {
-    // 초기에는 상세 정보 숨기기
-    setShowDetails(false);
-  }, [product.id]);
-
-  // 스와이프 후 상세 정보 즉시 표시
-  useEffect(() => {
-    // 스와이프 시 즉시 상세 정보 표시
-    if (isAnimating && (dragX > 80 || dragX < -80)) {
-      // 딜레이 없이 즉시 표시
-      setShowDetails(true);
-    }
-  }, [isAnimating, dragX]);
+  const toggleDetails = () => {
+    setShowDetails(!showDetails);
+  };
 
   return (
     <div className="relative">
@@ -233,7 +206,6 @@ export const ProductCard = ({ product, onSwipe }) => {
         }}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         {/* Category Badge */}
