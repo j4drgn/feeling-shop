@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
 import AnimatedDuckCharacter from "@/components/AnimatedDuckCharacter";
 import SpeechBubble from "@/components/SpeechBubble";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
@@ -23,12 +22,9 @@ import { emotionAnalysisEngine } from "@/services/emotionAnalysis";
 import { emotionCommerceEngine } from "@/services/emotionCommerceEngine";
 import { conversionTracking } from "@/services/conversionTracking";
 import healthApi from "@/api/healthApi";
-import emotionApi from "@/api/emotionApi";
-import contentApi from "@/api/contentApi";
 
 export const MainScreen = () => {
   const navigate = useNavigate();
-  const location = useLocation();
     const { toggleTheme } = useThemeContext();
   const [characterProfile, setCharacterProfile] = useState("F형"); // 'F형' or 'T형'
   const [characterText, setCharacterText] = useState(
@@ -43,96 +39,38 @@ export const MainScreen = () => {
   const [textInput, setTextInput] = useState("");
   const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [isAIThinking, setIsAIThinking] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState(null);
-  const [emotionResult, setEmotionResult] = useState(null);
-  const [recommendations, setRecommendations] = useState([]);
-  const [recommendationIndex, setRecommendationIndex] = useState(0);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
+  const [profileQuestion, setProfileQuestion] = useState(null);
+  const [chatSessionId, setChatSessionId] = useState(null);
+  const [contentRecommendations, setContentRecommendations] = useState([]);
+  const [conversationHistory, setConversationHistory] = useState([]);
+  const characterRef = useRef(null);
   const lastSpokenTextRef = useRef(null);
   const speakTimeoutRef = useRef(null);
 
-  const [chatSessionId, setChatSessionId] = useState(null);
-  const [conversationHistory, setConversationHistory] = useState([]);
-  const [profileQuestion, setProfileQuestion] = useState(null);
-  const [contentRecommendations, setContentRecommendations] = useState([]);
-  const characterRef = useRef(null);
-
-  // 오디오 녹음 시작
-  const startRecording = async () => {
+  // 서버 헬스체크 함수
+  const checkServerHealth = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        setAudioBlob(blob);
-        analyzeEmotion(blob);
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      setCharacterText("듣고 있어요... 감정을 분석할게요!");
+      const healthResponse = await healthApi.checkHealth();
+      if (healthResponse && healthResponse.success) {
+        console.log('Backend health OK');
+        const wasOffline = isOfflineMode;
+        setIsOfflineMode(false);
+        // 오프라인에서 온라인으로 전환된 경우에만 세션 초기화 재시도
+        if (wasOffline && !chatSessionId) {
+          initializeChatSession();
+        }
+        return true;
+      } else {
+        console.warn('Backend health check failed:', healthResponse && healthResponse.message);
+        setCharacterText('백엔드 서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
+        setIsOfflineMode(true);
+        return false;
+      }
     } catch (error) {
-      console.error('Recording failed:', error);
-      setCharacterText("마이크 권한이 필요해요!");
-    }
-  };
-
-  // 오디오 녹음 중지
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      // 스트림 정리
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-    }
-  };
-
-  // 감정 분석
-  const analyzeEmotion = async (blob) => {
-    setCharacterText("감정을 분석하고 있어요...");
-    const result = await emotionApi.analyzeEmotion(blob);
-    
-    if (result.success) {
-      setEmotionResult(result.data);
-      const emotion = result.data.split(',')[0].split(':')[1].trim();
-      
-      // 감정 분석 결과를 사용자 입력으로 처리
-      const emotionMessage = `감정 분석 결과: ${emotion}`;
-      const mockEmotion = {
-        emotion: emotion.toLowerCase(),
-        confidence: 0.8,
-        description: `감정 분석: ${emotion}`,
-      };
-      
-      // 기존 대화 흐름으로 연결
-      setTimeout(() => {
-        handleUserInput(emotionMessage, mockEmotion);
-      }, 1000);
-    } else {
-      setCharacterText("감정 분석에 실패했어요. 일반 대화를 이어가볼까요?");
-      setTimeout(() => {
-        setCharacterText("안녕! 나는 덕키야. 오늘 기분은 어때? 나를 터치하고 말해봐!");
-      }, 2000);
-    }
-  };
-
-  // 다음 추천 보기
-  const showNextRecommendation = () => {
-    if (recommendationIndex < recommendations.length - 1) {
-      setRecommendationIndex(recommendationIndex + 1);
-      setCharacterText(`${recommendations[recommendationIndex + 1].title} 어떠세요?`);
-    } else {
-      // 모든 추천을 본 후 선택권을 사용자에게 넘김
-      setCharacterText("이 콘텐츠들이 마음에 드시나요? 더 보고 싶으시면 '콘텐츠 보기' 버튼을 눌러주세요!");
-      setRecommendationIndex(0); // 인덱스 초기화
+      console.error('checkServerHealth exception', error);
+      setCharacterText('서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
+      setIsOfflineMode(true);
+      return false;
     }
   };
 
@@ -204,13 +142,11 @@ export const MainScreen = () => {
 
   // 애니메이션 완료 처리
   const handleAnimationComplete = (completedAnimation) => {
-    // product_recommendation 애니메이션이 끝나면 추천 콘텐츠 표시 (자동 이동하지 않음)
+    // product_recommendation 애니메이션이 끝나면 쇼츠 페이지로 이동
     if (completedAnimation === 'product_recommendation') {
-      if (contentRecommendations.length > 0) {
-        setRecommendations(contentRecommendations.slice(0, 5)); // 최대 5개 표시
-        setRecommendationIndex(0);
-        setCharacterText("이 콘텐츠들은 어떠세요? 마음에 드시면 '콘텐츠 보기' 버튼을 눌러주세요!");
-      }
+      setTimeout(() => {
+        navigate('/content');
+      }, 500); // 약간의 딜레이 후 이동
     }
   };
 
@@ -228,14 +164,6 @@ export const MainScreen = () => {
     // 로컬 스토리지에서 세션 ID 확인 및 유효성 검증
     initializeChatSession();
 
-    // 콘텐츠 페이지에서 돌아온 경우 처리
-    if (location.state?.fromContent) {
-      setTimeout(() => {
-        setCharacterText("쇼츠 어떠셨나요? 기분이 좀 나아지셨나요?");
-        triggerAnimation("happy");
-      }, 1500);
-    }
-
     // 서버 상태 주기적 모니터링 (오프라인 모드일 때만)
     const serverMonitorInterval = setInterval(async () => {
       if (isOfflineMode) {
@@ -250,7 +178,7 @@ export const MainScreen = () => {
       clearTimeout(welcomeTimer);
       clearInterval(serverMonitorInterval);
     };
-  }, [triggerAnimation, location.state]);
+  }, [triggerAnimation]);
 
   // 새 채팅 세션 생성 함수
   const createNewChatSession = async () => {
@@ -350,25 +278,6 @@ export const MainScreen = () => {
     }
   };
 
-  // 서버 헬스체크 함수
-  const checkServerHealth = async () => {
-    try {
-      const response = await healthApi.checkHealth();
-      if (response.success) {
-        setIsOfflineMode(false);
-        setCharacterText('서버에 연결되었습니다!');
-        // 세션 초기화 다시 시도
-        initializeChatSession();
-      } else {
-        setIsOfflineMode(true);
-        setCharacterText('서버 연결에 실패했습니다.');
-      }
-    } catch (error) {
-      setIsOfflineMode(true);
-      setCharacterText('서버 연결에 실패했습니다.');
-    }
-  };
-
   const handleUserInput = async (input, emotion) => {
     try {
       const accessToken = localStorage.getItem("accessToken") || null;
@@ -450,26 +359,13 @@ export const MainScreen = () => {
             throw new Error("API 응답이 올바르지 않습니다.");
           }
           
-          // 감정 분석 결과에 따라 콘텐츠 추천 트리거 (선택적)
-          if (emotionAnalysis && (emotionAnalysis.dominant === 'angry' || emotionAnalysis.dominant === 'sad' || emotionAnalysis.dominant === 'frustrated' || emotionAnalysis.dominant === '기쁨')) {
-            // 추천 콘텐츠 가져오기 (백그라운드에서)
-            contentApi.recommendContents(emotionAnalysis.dominant).then((recommendedContents) => {
-              if (recommendedContents.success && recommendedContents.data.length > 0) {
-                setContentRecommendations(recommendedContents.data);
-                // 대화 중에 자연스럽게 추천 제안
-                setTimeout(() => {
-                  if (emotionAnalysis.dominant === 'sad' || emotionAnalysis.dominant === 'angry' || emotionAnalysis.dominant === 'frustrated') {
-                    setCharacterText("기분이 좀 안 좋아 보이는데... 유튜브 쇼츠로 기분 전환해볼까요? 재미있는 콘텐츠들을 준비했어요!");
-                  } else if (emotionAnalysis.dominant === 'happy') {
-                    setCharacterText("기분이 좋아 보이네요! 더 즐거운 콘텐츠들도 있어요. 보고 싶으세요?");
-                  }
-                  triggerAnimation("product_recommendation");
-                }, 3000); // 3초 후 제안
-              }
-            }).catch((recommendError) => {
-              console.error('콘텐츠 추천 실패:', recommendError);
-            });
-          }
+          // AI 응답을 히스토리에 추가
+          const aiMessage = {
+            role: 'assistant',
+            content: response,
+            timestamp: new Date().toISOString()
+          };
+          setConversationHistory(prev => [...prev, aiMessage]);
 
           // 새 세션 ID가 생성되었으면 설정
           if (apiResponse.sessionId) {
@@ -684,12 +580,6 @@ export const MainScreen = () => {
       return;
     }
 
-    if (isRecording) {
-      stopRecording();
-      setCharacterText("녹음을 멈췄어요. 분석 중...");
-      return;
-    }
-
     if (isListening) {
       stopListening();
       setCharacterText("듣기를 멈췄어요. 다시 터치해서 말해보세요!");
@@ -702,8 +592,8 @@ export const MainScreen = () => {
       // 음성 녹음 시작시 사용자 상호작용 수동 설정 (TTS 허용)
       setUserInteracted();
       
-      startRecording();
-      setCharacterText("듣고 있어요... 감정을 분석할게요!");
+      startListening();
+      setCharacterText("듣고 있어요... 편안하게 말해보세요!");
       setUserText(""); // 이전 텍스트 초기화
     }
   };
@@ -996,15 +886,6 @@ export const MainScreen = () => {
 
               {/* Status indicators */}
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
-                {isRecording && (
-                  <div className="flex items-center gap-1.5 sm:gap-2 bg-red-100 text-red-700 px-2 sm:px-3 py-1 rounded-surface text-xs sm:text-caption font-medium shadow-surface border border-red-200">
-                    <div className="relative">
-                      <Mic className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-red-600" />
-                      <div className="absolute -inset-1 bg-red-500/20 rounded-full animate-pulse" />
-                    </div>
-                    <span>녹음 중...</span>
-                  </div>
-                )}
                 {isListening && (
                   <div className="flex items-center gap-1.5 sm:gap-2 bg-layer-surface text-layer-content px-2 sm:px-3 py-1 rounded-surface text-xs sm:text-caption font-medium shadow-surface border border-layer-border">
                     <div className="relative">
@@ -1058,20 +939,6 @@ export const MainScreen = () => {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Recommendation Display */}
-          {recommendations.length > 0 && (
-            <div className="space-y-3 sm:space-y-4 w-full max-w-[540px]">
-              <div className="bg-layer-surface rounded-surface px-3 sm:px-4 py-2 sm:py-3 shadow-surface border border-layer-border">
-                <p className="text-sm sm:text-body text-layer-content font-medium">
-                  {recommendations[recommendationIndex].title}
-                </p>
-                <p className="text-xs text-layer-muted mt-1">
-                  추천 {recommendationIndex + 1} / {recommendations.length}
-                </p>
-              </div>
             </div>
           )}
         </section>
