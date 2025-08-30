@@ -245,19 +245,19 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
   }, [characterText, isMuted, speak]);
 
   return (
-    <div className="min-h-[100dvh] bg-layer-background overflow-hidden overscroll-none">
-      <main className="relative grid min-h-[100dvh] grid-rows-[auto,1fr,auto]">
+    <div className="min-h-[100dvh] bg-layer-background">
+      <main className="relative flex flex-col min-h-[100dvh]">
         {/* Clean AppBar with warm background */}
-        <header className="sticky top-0 z-10 bg-layer-background/90 backdrop-blur mb-4">
-          <div className="mx-auto max-w-[560px] px-4 py-3">
+        <header className="sticky top-0 z-10 bg-layer-background/90 backdrop-blur mb-2 sm:mb-4">
+          <div className="mx-auto max-w-[560px] px-3 sm:px-4 py-2 sm:py-3">
             <div className="flex justify-between items-center">
               {/* MBTI Toggle - Simplified */}
-              <div className="flex items-center gap-3 bg-[#FDFBF6] rounded-3xl px-4 py-2 shadow-surface">
+              <div className="flex items-center gap-2 sm:gap-3 bg-[#FDFBF6] rounded-3xl px-3 sm:px-4 py-1.5 sm:py-2 shadow-surface">
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 bg-layer-muted rounded-full flex items-center justify-center">
-                    <Brain className="h-3 w-3 text-layer-surface" />
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 bg-layer-muted rounded-full flex items-center justify-center">
+                    <Brain className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-layer-surface" />
                   </div>
-                  <span className="text-caption text-layer-content">T</span>
+                  <span className="text-xs sm:text-caption text-layer-content">T</span>
                 </div>
 
                 <ThumbSwitch
@@ -271,25 +271,25 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
                 />
 
                 <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 bg-layer-muted rounded-full flex items-center justify-center">
-                    <Heart className="h-3 w-3 text-layer-surface" />
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 bg-layer-muted rounded-full flex items-center justify-center">
+                    <Heart className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-layer-surface" />
                   </div>
-                  <span className="text-caption text-layer-content">F</span>
+                  <span className="text-xs sm:text-caption text-layer-content">F</span>
                 </div>
               </div>
 
               {/* Minimal action buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={toggleMute}
-                  className="w-8 h-8 rounded-surface bg-layer-surface/80 hover:bg-layer-surface shadow-surface transition-colors"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-surface bg-layer-surface/80 hover:bg-layer-surface shadow-surface transition-colors"
                 >
                   {isMuted ? (
-                    <VolumeX className="h-4 w-4 text-layer-muted" />
+                    <VolumeX className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-layer-muted" />
                   ) : (
-                    <Volume2 className="h-4 w-4 text-layer-muted" />
+                    <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-layer-muted" />
                   )}
                 </Button>
 
@@ -297,9 +297,9 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
                   variant="ghost"
                   size="icon"
                   onClick={onNavigateToHistory}
-                  className="w-8 h-8 rounded-surface bg-layer-surface/80 hover:bg-layer-surface text-layer-muted shadow-surface transition-colors"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-surface bg-layer-surface/80 hover:bg-layer-surface text-layer-muted shadow-surface transition-colors"
                 >
-                  <User className="h-4 w-4" />
+                  <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </div>
@@ -307,7 +307,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
         </header>
 
         {/* Content Section */}
-        <section className="mx-auto w-full max-w-[560px] px-4 py-5 flex flex-col items-center gap-8">
+        <section className="flex-1 mx-auto w-full max-w-[560px] px-4 py-5 flex flex-col items-center justify-center gap-4 sm:gap-6 md:gap-8">
           {/* Speech Bubble - White Surface (위치 변경됨) */}
           <SpeechBubble text={characterText} />
 
@@ -332,7 +332,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
             )}
             <div
               className={cn(
-                "w-[280px] h-[280px] rounded-full bg-layer-surface shadow-surface grid place-items-center transition-all duration-300",
+                "w-[200px] h-[200px] sm:w-[240px] sm:h-[240px] md:w-[280px] md:h-[280px] rounded-full bg-layer-surface shadow-surface grid place-items-center transition-all duration-300",
                 isListening && "scale-[1.02] shadow-glow",
                 isSpeaking && "scale-[1.01]",
                 isAnimating && !isListening && !isSpeaking && "scale-[1.005]"
@@ -359,18 +359,18 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
               {/* Status indicators */}
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2">
                 {isListening && (
-                  <div className="flex items-center gap-2 bg-layer-surface text-layer-content px-3 py-1 rounded-surface text-caption font-medium shadow-surface border border-layer-border">
+                  <div className="flex items-center gap-1.5 sm:gap-2 bg-layer-surface text-layer-content px-2 sm:px-3 py-1 rounded-surface text-xs sm:text-caption font-medium shadow-surface border border-layer-border">
                     <div className="relative">
-                      <Mic className="h-3 w-3 text-accent-ducky" />
+                      <Mic className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-accent-ducky" />
                       <div className="absolute -inset-1 bg-accent-ducky/20 rounded-full animate-pulse" />
                     </div>
                     <span>듣는 중...</span>
                   </div>
                 )}
                 {isSpeaking && !isListening && (
-                  <div className="flex items-center gap-2 bg-layer-surface text-layer-content px-3 py-1 rounded-surface text-caption font-medium shadow-surface border border-layer-border">
+                  <div className="flex items-center gap-1.5 sm:gap-2 bg-layer-surface text-layer-content px-2 sm:px-3 py-1 rounded-surface text-xs sm:text-caption font-medium shadow-surface border border-layer-border">
                     <div className="relative">
-                      <Volume2 className="h-3 w-3 text-accent-ducky" />
+                      <Volume2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-accent-ducky" />
                       <div className="absolute -inset-1 bg-accent-ducky/20 rounded-full animate-pulse" />
                     </div>
                     <span>말하는 중...</span>
@@ -382,23 +382,23 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
 
           {/* User Response Display */}
           {userText && !isListening && (
-            <div className="space-y-4 w-full max-w-[540px]">
-              <div className="bg-layer-surface rounded-surface px-4 py-3 shadow-surface border border-layer-border">
-                <p className="text-body text-layer-content">{userText}</p>
+            <div className="space-y-3 sm:space-y-4 w-full max-w-[540px]">
+              <div className="bg-layer-surface rounded-surface px-3 sm:px-4 py-2 sm:py-3 shadow-surface border border-layer-border">
+                <p className="text-sm sm:text-body text-layer-content">{userText}</p>
               </div>
 
               {/* Emotion info */}
               {result?.emotion && (
-                <div className="bg-layer-surface rounded-surface px-4 py-3 shadow-surface border border-layer-border">
-                  <p className="text-caption text-layer-muted">
+                <div className="bg-layer-surface rounded-surface px-3 sm:px-4 py-2 sm:py-3 shadow-surface border border-layer-border">
+                  <p className="text-xs sm:text-caption text-layer-muted">
                     <span className="font-medium">감정:</span>{" "}
                     {result.emotion.description}
                   </p>
-                  <div className="flex gap-4 mt-1">
-                    <span className="text-caption text-layer-muted/70">
+                  <div className="flex gap-3 sm:gap-4 mt-1">
+                    <span className="text-xs sm:text-caption text-layer-muted/70">
                       음량 {Math.round(result.emotion.volume * 100)}%
                     </span>
-                    <span className="text-caption text-layer-muted/70">
+                    <span className="text-xs sm:text-caption text-layer-muted/70">
                       피치 {Math.round(result.emotion.pitch)}Hz
                     </span>
                   </div>
@@ -409,13 +409,13 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
         </section>
 
         {/* Bottom CTA - Fixed position */}
-        <footer className="sticky bottom-0 z-10">
-          <div className="mx-auto max-w-[560px] px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-4">
+        <footer className="sticky bottom-0 z-10 bg-layer-background/80 backdrop-blur-sm">
+          <div className="mx-auto max-w-[560px] px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-3 sm:pt-4">
             {/* CTA Button - Only show when user has spoken */}
             {userText && !isListening && (
               <Button
                 onClick={onNavigateToProducts}
-                className="w-full rounded-surface bg-layer-surface text-layer-content text-body font-bold py-4 shadow-surface border border-layer-border active:scale-[0.98] transition-all duration-150 hover:shadow-glow"
+                className="w-full rounded-surface bg-layer-surface text-layer-content text-sm sm:text-body font-bold py-3 sm:py-4 shadow-surface border border-layer-border active:scale-[0.98] transition-all duration-150 hover:shadow-glow"
               >
                 시작하기
               </Button>
@@ -452,7 +452,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
             {/* Tutorial hint */}
             {!userText && !isListening && !error && isSupported && (
               <div className="text-center">
-                <p className="text-caption text-layer-muted bg-layer-surface/80 px-4 py-2 rounded-surface border border-layer-border">
+                <p className="text-xs sm:text-caption text-layer-muted bg-layer-surface/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-surface border border-layer-border">
                   덕키를 터치하고 말해보세요
                 </p>
               </div>
@@ -461,7 +461,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
             {/* Error display */}
             {error && (
               <div className="text-center">
-                <p className="text-caption text-red-600 bg-red-50 px-4 py-2 rounded-surface border border-red-200">
+                <p className="text-xs sm:text-caption text-red-600 bg-red-50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-surface border border-red-200">
                   오류: {error}
                 </p>
               </div>
