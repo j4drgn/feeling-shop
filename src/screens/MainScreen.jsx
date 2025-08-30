@@ -211,6 +211,8 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
             context = "recommendation";
             triggerAnimation("product_recommendation", true);
 
+            console.log("🎁 상품 추천 애니메이션 시작:", currentAnimation);
+
             // 추천 콘텐츠 데이터 가져오기
             const personalizedRecs =
               await contentRecommendationEngine.getPersonalizedContentRecommendations(
