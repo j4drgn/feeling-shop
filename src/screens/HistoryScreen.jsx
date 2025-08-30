@@ -13,13 +13,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useThemeContext } from "@/context/ThemeContext";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const HistoryScreen = ({
-  onNavigateToMain,
-  onNavigateToProducts,
   likedProducts,
   chatHistory,
 }) => {
+  const navigate = useNavigate();
   const { colors } = useThemeContext();
   const [showHistoryDetails, setShowHistoryDetails] = useState(false);
   const [selectedChatSession, setSelectedChatSession] = useState(null);
@@ -214,7 +214,7 @@ export const HistoryScreen = ({
   };
 
   return (
-    <div className="min-h-screen relative overflow-y-auto">
+    <>
       {showHistoryDetails && renderChatSessionDetails()}
       <div
         className="fixed inset-0 -z-10"
@@ -230,7 +230,7 @@ export const HistoryScreen = ({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onNavigateToMain}
+            onClick={() => navigate('/')}
             className="rounded-full bg-white/40 hover:bg-white/60 text-foreground shadow-sm border border-white/40 mr-2"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -316,6 +316,6 @@ export const HistoryScreen = ({
           </CardContent>
         </Card>
       </main>
-    </div>
+    </>
   );
 };

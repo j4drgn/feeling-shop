@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import AnimatedDuckCharacter from "@/components/AnimatedDuckCharacter";
 import SpeechBubble from "@/components/SpeechBubble";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
@@ -21,7 +22,8 @@ import { emotionAnalysisEngine } from "@/services/emotionAnalysis";
 import { emotionCommerceEngine } from "@/services/emotionCommerceEngine";
 import { conversionTracking } from "@/services/conversionTracking";
 
-export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
+export const MainScreen = () => {
+  const navigate = useNavigate();
   const { isThinking, toggleTheme } = useThemeContext();
   const [characterText, setCharacterText] = useState(
     "안녕! 나는 덕키야. 오늘 기분은 어때? 나를 터치하고 말해봐!"
@@ -76,12 +78,12 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
     // product_recommendation 애니메이션이 끝나면 쇼츠 페이지로 이동
     if (completedAnimation === 'product_recommendation') {
       setTimeout(() => {
-        onNavigateToContent();
+        navigate('/content');
       }, 500); // 약간의 딜레이 후 이동
     }
   };
 
-  // 앱 시작시 환영 애니메이션과 채팅 세션 생성
+    // 앱 시작시 환영 애니메이션과 채팅 세션 생성
   useEffect(() => {
     const welcomeTimer = setTimeout(() => {
       if (triggerAnimation) {
@@ -89,14 +91,26 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
       }
     }, 1000);
 
-    // 로컬 스토리지에서 세션 ID 확인
-    const storedSessionId = localStorage.getItem("currentChatSessionId");
-    if (storedSessionId) {
-      setChatSessionId(parseInt(storedSessionId, 10));
-    } else {
-      // 새 세션 생성
-      createNewChatSession();
-    }
+    // 로컬 스토리지에서 세션 ID 확인 및 유효성 검증
+    const initializeChatSession = async () => {
+      const storedSessionId = localStorage.getItem("currentChatSessionId");
+      if (storedSessionId) {
+        const isValid = await validateChatSession(parseInt(storedSessionId, 10));
+        if (isValid) {
+          setChatSessionId(parseInt(storedSessionId, 10));
+          console.log("기존 세션 유효성 확인됨:", storedSessionId);
+        } else {
+          console.log("기존 세션이 유효하지 않아 새 세션 생성");
+          localStorage.removeItem("currentChatSessionId");
+          await createNewChatSession();
+        }
+      } else {
+        // 새 세션 생성
+        await createNewChatSession();
+      }
+    };
+
+    initializeChatSession();
 
     return () => clearTimeout(welcomeTimer);
   }, [triggerAnimation]);
@@ -119,7 +133,26 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
       }
     } catch (error) {
       console.error("채팅 세션 생성 오류:", error);
-      // 오류 발생 시 세션 없이 진행
+      // 세션 생성 실패 시 세션 없이 진행 (ChatGPT API는 정상 작동)
+      console.log("세션 없이 ChatGPT와 대화합니다.");
+    }
+  };
+
+  // 세션 유효성 검증 함수
+  const validateChatSession = async (sessionId) => {
+    try {
+      const accessToken = localStorage.getItem("accessToken") || null;
+      // 세션의 메시지를 가져와서 세션이 유효한지 확인
+      await chatApi.getSessionMessages(sessionId, accessToken);
+      return true;
+    } catch (error) {
+      console.error("세션 유효성 검증 실패:", error);
+      // 404 오류는 세션이 존재하지 않는다는 의미
+      if (error.message.includes("404") || error.message.includes("세션 메시지를 가져오는데 실패했습니다")) {
+        return false;
+      }
+      // 다른 오류는 일시적인 것으로 간주하고 true 반환
+      return true;
     }
   };
 
@@ -175,33 +208,48 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
               accessToken
             );
           } catch (sessionError) {
-            console.error("세션 메시지 전송 실패, 새 세션 생성 후 재시도:", sessionError);
-            // 새 세션 생성
-            try {
-              const sessionTitle = `대화 ${new Date().toLocaleString("ko-KR")}`;
-              const newSessionResponse = await chatApi.createChatSession(
-                sessionTitle,
-                accessToken
-              );
-              if (newSessionResponse && newSessionResponse.data) {
-                const newSessionId = newSessionResponse.data.id;
-                setChatSessionId(newSessionId);
-                localStorage.setItem("currentChatSessionId", newSessionId.toString());
-                console.log("새 채팅 세션이 생성되었습니다:", newSessionId);
-                // 새 세션으로 메시지 전송
-                apiResponse = await chatApi.sendSessionMessage(
-                  newSessionId,
+            console.error("세션 메시지 전송 실패:", sessionError);
+            // 세션이 존재하지 않거나 만료된 경우 새 세션 생성
+            if (sessionError.message.includes("채팅 세션을 찾을 수 없습니다") || 
+                sessionError.message.includes("400")) {
+              console.log("세션이 유효하지 않아 새 세션 생성 후 재시도");
+              try {
+                const sessionTitle = `대화 ${new Date().toLocaleString("ko-KR")}`;
+                const newSessionResponse = await chatApi.createChatSession(
+                  sessionTitle,
+                  accessToken
+                );
+                if (newSessionResponse && newSessionResponse.data) {
+                  const newSessionId = newSessionResponse.data.id;
+                  setChatSessionId(newSessionId);
+                  localStorage.setItem("currentChatSessionId", newSessionId.toString());
+                  console.log("새 채팅 세션이 생성되었습니다:", newSessionId);
+                  // 새 세션으로 메시지 전송
+                  apiResponse = await chatApi.sendSessionMessage(
+                    newSessionId,
+                    input,
+                    emotionType,
+                    emotionScore,
+                    accessToken
+                  );
+                } else {
+                  throw new Error("새 세션 생성 실패");
+                }
+              } catch (createError) {
+                console.error("새 세션 생성 실패, 일반 메시지로 폴백:", createError);
+                // 세션 ID를 null로 설정
+                setChatSessionId(null);
+                localStorage.removeItem("currentChatSessionId");
+                apiResponse = await chatApi.sendChatMessage(
                   input,
                   emotionType,
                   emotionScore,
                   accessToken
                 );
-              } else {
-                throw new Error("새 세션 생성 실패");
               }
-            } catch (createError) {
-              console.error("새 세션 생성 실패, 일반 메시지로 폴백:", createError);
-              // 세션 ID를 null로 설정
+            } else {
+              // 다른 오류의 경우 일반 메시지로 폴백
+              console.error("세션 메시지 전송 실패, 일반 메시지로 폴백:", sessionError);
               setChatSessionId(null);
               localStorage.removeItem("currentChatSessionId");
               apiResponse = await chatApi.sendChatMessage(
@@ -666,7 +714,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onNavigateToHistory}
+                  onClick={() => navigate('/history')}
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-surface bg-layer-surface/80 hover:bg-layer-surface text-layer-muted shadow-surface transition-colors"
                 >
                   <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -790,7 +838,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
             {/* CTA Button - Only show when user has spoken */}
             {userText && !isListening && (
               <Button
-                onClick={() => onNavigateToContent()}
+                onClick={() => navigate('/content')}
                 className="w-full rounded-surface bg-layer-surface text-layer-content text-sm sm:text-body font-bold py-3 sm:py-4 shadow-surface border border-layer-border active:scale-[0.98] transition-all duration-150 hover:shadow-glow"
               >
                 시작하기
@@ -850,7 +898,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
       <QuickAccessButton
         icon={<ShoppingBag className="h-5 w-5" />}
         label="콘텐츠 보기"
-        onClick={() => onNavigateToContent()}
+        onClick={() => navigate('/content')}
         position="bottom-right"
         variant="ghost"
         size="md"

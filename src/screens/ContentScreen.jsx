@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Heart,
@@ -11,20 +12,8 @@ import { cn } from "@/lib/utils";
 import { contentRecommendationEngine } from "@/services/contentRecommendationEngine";
 import { userProfileService } from "@/services/userProfile";
 
-export const ContentScreen = ({
-  onNavigateToMain,
-  onContentLiked,
-  selectedContent = null,
-}) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likedContents, setLikedContents] = useState([]);
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-  const [personalizedContents, setPersonalizedContents] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
+export const ContentScreen = ({ selectedContent = null }) => {
+  const navigate = useNavigate();
 
   // 개인화된 콘텐츠 또는 선택된 콘텐츠 사용
   const currentContents = selectedContent
@@ -244,7 +233,7 @@ export const ContentScreen = ({
           </p>
           <p className="text-white/70">덕키와 더 대화해서 취향을 알려줘!</p>
           <button
-            onClick={onNavigateToMain}
+            onClick={() => navigate('/')}
             className="mt-4 px-6 py-2 bg-white/20 text-white rounded-full"
           >
             대화하러 가기
@@ -287,14 +276,12 @@ export const ContentScreen = ({
   };
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden">
-      {/* 콘텐츠 컨테이너 */}
-      <div
-        className="relative w-full h-full flex items-center justify-center"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
+    <div
+      className="relative w-full h-full flex items-center justify-center"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
         {/* 배경 이미지 */}
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -307,7 +294,7 @@ export const ContentScreen = ({
         <div className="absolute top-0 left-0 right-0 z-20 pt-12 px-4">
           <div className="flex items-center justify-between">
             <button
-              onClick={onNavigateToMain}
+              onClick={() => navigate('/')}
               className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center"
             >
               <ArrowLeft className="w-5 h-5 text-white" />
@@ -467,7 +454,6 @@ export const ContentScreen = ({
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 };

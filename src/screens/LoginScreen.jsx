@@ -8,7 +8,7 @@ import DuckCharacter from "@/components/DuckCharacter";
 import { useToast } from "@/components/ui/use-toast";
 import TestNavigationArrow from "@/components/TestNavigationArrow";
 
-export const LoginScreen = ({ onNavigateToMain }) => {
+export const LoginScreen = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",

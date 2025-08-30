@@ -15,14 +15,14 @@ const DUCK_ANIMATIONS = {
   // 기본 대기 상태
   idle: {
     type: 'gif',
-    path: '/gif/gif_idle.gif',
+    path: '/gif/duck_idle.gif',
     loop: true
   },
   
   // 긍정적 반응 - 행복한 표정
   happy: {
     type: 'gif',
-    path: '/gif/gif_happy.gif',
+    path: '/gif/duck_happy.gif',
     loop: false,
     duration: 2000
   },
@@ -30,7 +30,7 @@ const DUCK_ANIMATIONS = {
   // 부정적 반응 - 화난 표정
   mad: {
     type: 'gif',
-    path: '/gif/gif_mad.gif',
+    path: '/gif/duck_mad.gif',
     loop: false,
     duration: 4000
   },
@@ -38,14 +38,14 @@ const DUCK_ANIMATIONS = {
   // 말하는 중 - AI 응답할 때
   talk: {
     type: 'gif',
-    path: '/gif/gif_talk.gif',
+    path: '/gif/duck_talk.gif',
     loop: true
   },
   
   // 배고프거나 관심 끄는 표현
   hungry: {
     type: 'gif',
-    path: '/gif/gif_hungry.gif',
+    path: '/gif/duck_hungry.gif',
     loop: false,
     duration: 4000
   },
@@ -53,7 +53,7 @@ const DUCK_ANIMATIONS = {
   // 뒤로 걸어가기
   walkback: {
     type: 'gif',
-    path: '/gif/gif_walkback.gif',
+    path: '/gif/duck_walkback.gif',
     loop: false,
     duration: 2500
   },
@@ -61,7 +61,7 @@ const DUCK_ANIMATIONS = {
   // 선물 주기
   gift: {
     type: 'gif',
-    path: '/gif/gif_gift.gif',
+    path: '/gif/duck_gift.gif',
     loop: false,
     duration: 4000
   },
@@ -69,7 +69,7 @@ const DUCK_ANIMATIONS = {
   // 앞으로 걸어오기
   walkforward: {
     type: 'gif',
-    path: '/gif/gif_walkforward.gif',
+    path: '/gif/duck_walkforward.gif',
     loop: false,
     duration: 2500
   },
@@ -77,7 +77,7 @@ const DUCK_ANIMATIONS = {
   // 제품 추천 시퀀스: 선물 주기
   product_recommendation: {
     type: 'gif',
-    path: '/gif/gif_gift.gif',
+    path: '/gif/duck_gift.gif',
     loop: false,
     duration: 4000
   },
@@ -85,7 +85,7 @@ const DUCK_ANIMATIONS = {
   // 환영 인사: 행복한 표정
   welcome_greeting: {
     type: 'gif',
-    path: '/gif/gif_happy.gif',
+    path: '/gif/duck_happy.gif',
     loop: false,
     duration: 2000
   },
@@ -93,7 +93,7 @@ const DUCK_ANIMATIONS = {
   // 검색 중: 앞으로 오기
   searching: {
     type: 'gif',
-    path: '/gif/gif_walkforward.gif',
+    path: '/gif/duck_walkforward.gif',
     loop: false,
     duration: 2500
   },
@@ -101,7 +101,7 @@ const DUCK_ANIMATIONS = {
   // 작업 완료: 선물 주기
   task_complete: {
     type: 'gif',
-    path: '/gif/gif_gift.gif',
+    path: '/gif/duck_gift.gif',
     loop: false,
     duration: 3500
   },
@@ -111,7 +111,7 @@ const DUCK_ANIMATIONS = {
   // 성공 상황 - 긍정적 피드백
   success: {
     type: 'gif',
-    path: '/gif/gif_happy.gif',
+    path: '/gif/duck_happy.gif',
     loop: false,
     duration: 3000
   },
@@ -119,7 +119,7 @@ const DUCK_ANIMATIONS = {
   // 오류 상황 - 부정적 피드백
   error: {
     type: 'gif',
-    path: '/gif/gif_mad.gif',
+    path: '/gif/duck_mad.gif',
     loop: false,
     duration: 2000
   },
@@ -127,7 +127,7 @@ const DUCK_ANIMATIONS = {
   // 대기 상태 - 차분한 준비
   waiting: {
     type: 'gif',
-    path: '/gif/gif_idle.gif',
+    path: '/gif/duck_idle.gif',
     loop: true
   }
 };
@@ -147,7 +147,7 @@ const AnimatedDuckCharacter = ({
   const [isPngAnimationPlaying, setIsPngAnimationPlaying] = useState(false);
   const [preloadedImages, setPreloadedImages] = useState({});
   const [imageLoadError, setImageLoadError] = useState(false);
-  const [fallbackImagePath, setFallbackImagePath] = useState('/gif/gif_idle.gif');
+  const [fallbackImagePath, setFallbackImagePath] = useState('/gif/duck_idle.gif');
   const sequenceTimeoutRef = useRef(null);
   const pngAnimationRef = useRef(null);
   const gifRef = useRef(null);
@@ -476,17 +476,17 @@ const AnimatedDuckCharacter = ({
       const animConfig = getAnimationConfigWithDefaults(animation);
       if (!animConfig) {
         // Return idle gif as fallback
-        return `/gif/gif_idle.gif`;
+        return `/gif/duck_idle.gif`;
       }
       
       if (animConfig.type === 'gif') {
         return animConfig.path;
       } else {
-        return animConfig.path || `/gif/gif_idle.gif`;
+        return animConfig.path || `/gif/duck_idle.gif`;
       }
     } catch (error) {
       // Always return a valid fallback
-      return `/gif/gif_idle.gif`;
+      return `/gif/duck_idle.gif`;
     }
   }, [animation]);
 
@@ -790,7 +790,7 @@ const AnimatedDuckCharacter = ({
             
             // If fallback also fails, try the most basic fallback
             if (e.target.src === fallbackImagePath) {
-              setFallbackImagePath('/gif/gif_idle.gif');
+              setFallbackImagePath('/gif/duck_idle.gif');
               
               // Stop current animation to prevent further errors
               if (pngAnimationRef.current) {
