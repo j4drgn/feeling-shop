@@ -25,6 +25,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [conversationContext, setConversationContext] = useState(null);
   const [textInput, setTextInput] = useState("");
+  const [isAIThinking, setIsAIThinking] = useState(false);
   const characterRef = useRef(null);
 
   const {
@@ -34,6 +35,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
     stopListening,
     isSupported,
     error,
+    resetResult,
   } = useSpeechRecognition();
 
   const { speak, isSpeaking, stopSpeaking } = useSpeechSynthesis({
@@ -152,6 +154,7 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
 
     setCharacterText(response);
     setConversationContext(context);
+    setIsAIThinking(false);
   };
 
   const handleCharacterClick = () => {
@@ -163,14 +166,10 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
     }
 
     if (error) {
-      if (error.includes("마이크 접근")) {
-        setCharacterText(
-          "마이크 접근 권한을 허용해주세요! 브라우저에서 마이크 권한을 확인해보세요."
-        );
-      } else {
-        setCharacterText(`오류가 발생했어요: ${error}`);
-      }
-      return;
+      // 오류 상태를 초기화
+      resetResult();
+      setCharacterText("다시 한 번 클릭해서 말해보세요!");
+      return; // 바로 듣기 모드로 전환하지 않고 사용자의 다음 클릭을 기다림
     }
 
     if (isSpeaking) {
@@ -206,6 +205,10 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
     if (!textInput.trim()) return;
 
     setUserText(textInput);
+    
+    // AI 응답 생성 중 표시
+    setIsAIThinking(true);
+    setCharacterText("생각하고 있어요...");
 
     // 텍스트 입력의 경우 기본 neutral 감정으로 처리
     const mockEmotion = {
@@ -231,6 +234,10 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
         console.log("감정 분석:", result.emotion);
       }
 
+      // AI 응답 생성 중 표시
+      setIsAIThinking(true);
+      setCharacterText("생각하고 있어요...");
+      
       // 자동으로 응답 생성
       setTimeout(() => {
         handleUserInput(result.transcript, result.emotion);
@@ -238,9 +245,16 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
     }
   }, [result]);
 
-  // 캐릭터 텍스트가 변경되면 음성 출력
+  // 캐릭터 텍스트가 변경되면 음성 출력 (특정 메시지 제외)
   useEffect(() => {
-    if (characterText && !isMuted && !characterText.includes("듣고 있어요")) {
+    if (characterText && 
+        !isMuted && 
+        !characterText.includes("듣고 있어요") &&
+        !characterText.includes("생각하고 있어요") &&
+        !characterText.includes("잘 들리지 않았어요") &&
+        !characterText.includes("마이크") &&
+        !characterText.includes("인터넷") &&
+        !characterText.includes("음성을 인식하지")) {
       speak(characterText);
     }
   }, [characterText, isMuted, speak]);
@@ -310,7 +324,11 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
         {/* Content Section */}
         <section className="flex-1 mx-auto w-full max-w-[560px] px-4 py-5 flex flex-col items-center justify-center gap-4 sm:gap-6 md:gap-8">
           {/* Speech Bubble - White Surface (위치 변경됨) */}
-          <SpeechBubble text={characterText} />
+          <SpeechBubble 
+            text={characterText} 
+            isListening={isListening} 
+            isThinking={isAIThinking} 
+          />
 
           {/* Duck Character - White Surface Container (위치 변경됨) */}
           <div ref={characterRef} className="relative mt-1">

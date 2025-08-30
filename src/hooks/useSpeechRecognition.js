@@ -11,6 +11,7 @@ export const useSpeechRecognition = () => {
   const analyserRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioDataRef = useRef(null);
+  const timeoutRef = useRef(null);
 
   // 브라우저 호환성 확인
   useEffect(() => {
@@ -136,9 +137,24 @@ export const useSpeechRecognition = () => {
       
       recognitionRef.current.onstart = () => {
         setIsListening(true);
+        
+        // 5초 후 자동 타임아웃
+        timeoutRef.current = setTimeout(() => {
+          if (recognitionRef.current) {
+            recognitionRef.current.stop();
+            setError("듣기 시간이 초과되었어요. 다시 시도해주세요!");
+            setIsListening(false);
+          }
+        }, 5000);
       };
       
       recognitionRef.current.onresult = (event) => {
+        // 타임아웃 클리어
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        
         if (!event.results || event.results.length === 0) return;
         
         const transcript = event.results[0][0].transcript;
@@ -183,11 +199,46 @@ export const useSpeechRecognition = () => {
       };
       
       recognitionRef.current.onerror = (event) => {
-        setError(`음성 인식 오류: ${event.error}`);
+        // 타임아웃 클리어
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        
+        let friendlyMessage;
+        switch (event.error) {
+          case 'no-speech':
+            friendlyMessage = "잘 들리지 않았어요. 다시 한 번 말해보세요!";
+            break;
+          case 'audio-capture':
+            friendlyMessage = "마이크에 문제가 있는 것 같아요. 마이크를 확인해주세요!";
+            break;
+          case 'not-allowed':
+            friendlyMessage = "마이크 사용 권한을 허용해주세요!";
+            break;
+          case 'network':
+            friendlyMessage = "인터넷 연결을 확인해주세요!";
+            break;
+          case 'language-not-supported':
+            friendlyMessage = "지원하지 않는 언어예요. 다른 언어로 말해보세요!";
+            break;
+          case 'service-not-allowed':
+            friendlyMessage = "음성 인식 서비스를 사용할 수 없어요. 잠시 후 다시 시도해주세요!";
+            break;
+          default:
+            friendlyMessage = "음성을 인식하지 못했어요. 다시 시도해주세요!";
+        }
+        setError(friendlyMessage);
         setIsListening(false);
       };
       
       recognitionRef.current.onend = () => {
+        // 타임아웃 클리어
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        
         setIsListening(false);
         cleanup();
       };
@@ -201,6 +252,12 @@ export const useSpeechRecognition = () => {
 
   // 음성 인식 중지
   const stopListening = useCallback(() => {
+    // 타임아웃 클리어
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
@@ -209,6 +266,12 @@ export const useSpeechRecognition = () => {
 
   // 리소스 정리
   const cleanup = useCallback(() => {
+    // 타임아웃 클리어
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
       mediaStreamRef.current = null;
