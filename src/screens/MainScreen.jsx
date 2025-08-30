@@ -242,7 +242,7 @@ export const MainScreen = () => {
 
   const handleUserInput = async (input, emotion) => {
     try {
-      // 1. 감정 분석 엔진으로 정밀 분석
+      const accessToken = localStorage.getItem("accessToken") || null;
       const emotionAnalysis = emotionAnalysisEngine.analyzeEmotion(input);
       
       // 2. 사용자 프로필에 반영

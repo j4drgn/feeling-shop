@@ -312,36 +312,65 @@ export const useSpeechRecognition = () => {
   useEffect(() => {
     const uploadAndTranscribe = async (audioBlob, prevResult) => {
       try {
+        setIsUploading(true);
+        setUploadProgress(0);
+
         // 액세스 토큰이 필요한 경우 로컬스토리지에서 가져옴
         const accessToken = localStorage.getItem('accessToken') || null;
 
-        // 기본 음성 메타데이터 (가능하면 더 정밀하게 채우세요)
+        // 음성 메타데이터 준비
         const voiceMetadata = {
-          duration: prevResult?.audioDuration || 1.0,
+          duration: prevResult?.emotion?.duration || prevResult?.audioDuration || 1.0,
           sampleRate: audioContextRef.current?.sampleRate || 16000,
+          pitch: prevResult?.emotion?.pitch || 0,
+          volume: prevResult?.emotion?.volume || 0,
+          speed: prevResult?.emotion?.speed || 0,
+          confidence: prevResult?.emotion?.confidence || prevResult?.confidence || 0.5,
         };
 
-        // 임시: 파일 업로드 생략하고 텍스트만 전송
+        // 서버로 음성 파일 업로드 및 전사 요청
+        const uploadResponse = await chatApi.sendVoiceFileAndTranscribe(
+          audioBlob,
+          prevResult?.transcript || '',
+          voiceMetadata,
+          accessToken,
+          null, // sessionId는 null로 시작
+          true, // asyncMode 활성화
+          (progress) => {
+            setUploadProgress(progress);
+          },
+          () => {
+            setUploadProgress(100);
+          }
+        );
+
+        // 업로드 성공 시 결과 업데이트
+        if (uploadResponse && uploadResponse.jobId) {
+          // 비동기 작업인 경우 jobId 저장
+          setResult(prev => ({
+            ...prev,
+            serverJobId: uploadResponse.jobId,
+            isProcessing: true,
+          }));
+        } else if (uploadResponse && uploadResponse.transcript) {
+          // 동기 응답인 경우 바로 결과 업데이트
+          setResult(prev => ({
+            ...prev,
+            transcript: uploadResponse.transcript || prev.transcript,
+            emotion: uploadResponse.emotion || prev.emotion,
+            serverLabels: uploadResponse.labels || null,
+            serverSessionId: uploadResponse.sessionId || null,
+            chatResponse: uploadResponse.chatResponse || null,
+          }));
+        }
+
         setIsUploading(false);
-        setUploadProgress(100);
-        
-        // 서버 응답 시뮬레이션 (실제로는 백엔드에서 받아와야 함)
-        setResult(prev => ({
-          ...prev,
-          transcript: prevResult?.transcript || '',
-          emotion: prevResult?.emotion || null,
-          serverLabels: null,
-          serverSessionId: null,
-          chatResponse: null,
-        }));
       } catch (err) {
-        // 서버 전송 실패 시 로컬 폴백을 사용하지 않고 오류로 노출
         console.error('오디오 업로드/전사 실패:', err);
         setIsUploading(false);
         setUploadProgress(0);
         setError('서버 업로드/전사 실패: ' + (err.message || String(err)));
-        // 더 이상 로컬에서 처리하지 않음
-        return;
+        // 서버 전송 실패 시 로컬 결과 유지
       }
     };
 
@@ -355,13 +384,15 @@ export const useSpeechRecognition = () => {
     let intervalId = null;
     const startPolling = (jobId) => {
       setIsProcessing(true);
-      setTaskStatus({ status: 'pending' });
+      setTaskStatus({ status: 'pending', jobId });
+      
       intervalId = setInterval(async () => {
         try {
           const status = await chatApi.getVoiceTaskStatus(jobId);
           setTaskStatus(status);
+          
           if (status && status.finished) {
-            // merge final result into result
+            // 작업 완료 시 최종 결과 업데이트
             setResult(prev => ({
               ...prev,
               transcript: status.transcript || prev.transcript,
@@ -370,6 +401,12 @@ export const useSpeechRecognition = () => {
               serverSessionId: status.sessionId || prev.serverSessionId,
               chatResponse: status.chatResponse || prev.chatResponse,
             }));
+            setIsProcessing(false);
+            clearInterval(intervalId);
+            intervalId = null;
+          } else if (status && status.status === 'failed') {
+            // 작업 실패 시 오류 처리
+            setError('음성 처리 작업이 실패했습니다.');
             setIsProcessing(false);
             clearInterval(intervalId);
             intervalId = null;
@@ -383,7 +420,7 @@ export const useSpeechRecognition = () => {
             intervalId = null;
           }
         }
-      }, 2000);
+      }, 2000); // 2초마다 상태 확인
     };
 
     if (result && result.serverJobId) {

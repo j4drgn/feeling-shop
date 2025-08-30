@@ -13,10 +13,7 @@ export const useSpeechSynthesis = (options = {}) => {
   useEffect(() => {
     const handleUserInteraction = () => {
       setHasUserInteracted(true);
-      // 이벤트 리스너 제거 (한 번만 필요)
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
+      // 이벤트 리스너는 유지 (여러 번 상호작용 가능)
     };
 
     document.addEventListener('click', handleUserInteraction);
@@ -42,13 +39,14 @@ export const useSpeechSynthesis = (options = {}) => {
         if (voices.length > 0) {
           setIsSupported(true);
         } else {
-          // 음성이 아직 로드되지 않은 경우 재시도
+          // 음성이 아직 로드되지 않은 경우 재시도 (최대 5번)
           setTimeout(checkVoices, 100);
         }
       };
       
       // voiceschanged 이벤트 리스너 추가
       window.speechSynthesis.addEventListener('voiceschanged', checkVoices);
+      // 초기 확인도 실행
       checkVoices();
       
       return () => {
@@ -204,30 +202,35 @@ export const useSpeechSynthesis = (options = {}) => {
 
     // 음성 선택 개선
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoices = voices.filter(voice => 
-      voice.lang.includes('en') && 
-      (voice.name.toLowerCase().includes('female') || 
-       voice.name.toLowerCase().includes('zira') ||
-       voice.name.toLowerCase().includes('susan') ||
-       voice.name.toLowerCase().includes('samantha') ||
-       voice.name.toLowerCase().includes('karen') ||
-       voice.name.toLowerCase().includes('sara'))
-    );
-    
-    // 우선순위에 따라 음성 선택
-    let selectedVoice = null;
-    if (preferredVoices.length > 0) {
-      selectedVoice = preferredVoices[0];
+    if (voices.length === 0) {
+      console.warn('No voices available, using default');
+      // 음성이 없어도 기본 utterance 사용
     } else {
-      // 기본 영어 음성 선택
-      const englishVoices = voices.filter(voice => voice.lang.includes('en'));
-      if (englishVoices.length > 0) {
-        selectedVoice = englishVoices[0];
+      const preferredVoices = voices.filter(voice => 
+        voice.lang.includes('en') && 
+        (voice.name.toLowerCase().includes('female') || 
+         voice.name.toLowerCase().includes('zira') ||
+         voice.name.toLowerCase().includes('susan') ||
+         voice.name.toLowerCase().includes('samantha') ||
+         voice.name.toLowerCase().includes('karen') ||
+         voice.name.toLowerCase().includes('sara'))
+      );
+      
+      // 우선순위에 따라 음성 선택
+      let selectedVoice = null;
+      if (preferredVoices.length > 0) {
+        selectedVoice = preferredVoices[0];
+      } else {
+        // 기본 영어 음성 선택
+        const englishVoices = voices.filter(voice => voice.lang.includes('en'));
+        if (englishVoices.length > 0) {
+          selectedVoice = englishVoices[0];
+        }
       }
-    }
-    
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
     }
 
     // 이벤트 리스너
@@ -246,6 +249,12 @@ export const useSpeechSynthesis = (options = {}) => {
 
     utterance.onerror = (event) => {
       console.error('TTS error:', event);
+      // 'canceled' 오류는 무시 (의도적인 중지)
+      if (event.error === 'canceled') {
+        setIsSpeaking(false);
+        utteranceRef.current = null;
+        return;
+      }
       setError(`Animalese 음성 재생 오류: ${event.error || 'Unknown error'}`);
       setIsSpeaking(false);
       utteranceRef.current = null;
@@ -272,10 +281,13 @@ export const useSpeechSynthesis = (options = {}) => {
       return;
     }
 
-    // TTS 지원하지 않는 경우 스킵
+    // TTS 지원하지 않는 경우 voices를 다시 확인
     if (!isSupported) {
-      console.warn('TTS not supported, skipping speech');
-      return;
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        console.warn('TTS not supported, skipping speech');
+        return;
+      }
     }
 
     // TTS만 사용하도록 간소화
