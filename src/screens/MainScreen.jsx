@@ -25,7 +25,8 @@ import healthApi from "@/api/healthApi";
 
 export const MainScreen = () => {
   const navigate = useNavigate();
-  const { isThinking, toggleTheme } = useThemeContext();
+    const { toggleTheme } = useThemeContext();
+  const [characterProfile, setCharacterProfile] = useState("F형"); // 'F형' or 'T형'
   const [characterText, setCharacterText] = useState(
     "안녕! 나는 덕키야. 오늘 기분은 어때? 나를 터치하고 말해봐!"
   );
@@ -325,110 +326,15 @@ export const MainScreen = () => {
           return;
         }
 
-        // 세션 ID가 있으면 세션 기반 API 호출, 없으면 일반 API 호출
-        let apiResponse;
-        if (chatSessionId) {
-          try {
-            // 음성 입력인 경우 메타데이터를 함께 전송
-            apiResponse = await chatApi.sendSessionMessageWithVoice(
-              chatSessionId,
-              input,
-              emotion,
-              accessToken
-            );
-          } catch (sessionError) {
-            console.error('세션 기반 채팅 실패:', sessionError);
-            // 인증 오류인 경우 로그인 페이지로 리다이렉트
-            if (sessionError.message && (sessionError.message.includes('인증') || sessionError.message.includes('토큰') || sessionError.message.includes('401') || sessionError.message.includes('403'))) {
-              console.log('인증 오류로 로그인 페이지로 이동합니다.');
-              navigate('/login');
-              return;
-            }
-            // 세션이 존재하지 않거나 만료된 경우 새 세션 생성
-            if (sessionError.message.includes("채팅 세션을 찾을 수 없습니다") || 
-                sessionError.message.includes("400") ||
-                sessionError.message.includes("유효하지 않은")) {
-              try {
-                const sessionTitle = `대화 ${new Date().toLocaleString("ko-KR")}`;
-                const newSessionResponse = await chatApi.createChatSession(
-                  sessionTitle,
-                  accessToken
-                );
-                let newSessionId = null;
-                if (newSessionResponse && newSessionResponse.data) {
-                  if (newSessionResponse.data.data && newSessionResponse.data.data.id) {
-                    newSessionId = newSessionResponse.data.data.id;
-                  } else if (newSessionResponse.data.id) {
-                    newSessionId = newSessionResponse.data.id;
-                  } else if (newSessionResponse.data.sessionId) {
-                    newSessionId = newSessionResponse.data.sessionId;
-                  }
-                }
-                if (newSessionId && !isNaN(newSessionId) && newSessionId > 0) {
-                  setChatSessionId(newSessionId);
-                  localStorage.setItem("currentChatSessionId", newSessionId.toString());
-                  // 새 세션으로 메시지 전송
-                  apiResponse = await chatApi.sendSessionMessageWithVoice(
-                    newSessionId,
-                    input,
-                    emotion,
-                    accessToken
-                  );
-                } else {
-                  throw new Error("새 세션 생성 실패: 유효한 세션 ID를 받지 못했습니다.");
-                }
-              } catch (createError) {
-                // 인증 오류인 경우 로그인 페이지로 리다이렉트
-                if (createError.message && (createError.message.includes('인증') || createError.message.includes('토큰') || createError.message.includes('401') || createError.message.includes('403'))) {
-                  console.log('인증 오류로 로그인 페이지로 이동합니다.');
-                  navigate('/login');
-                  return;
-                }
-                // 세션 ID를 null로 설정
-                setChatSessionId(null);
-                localStorage.removeItem("currentChatSessionId");
-                apiResponse = await chatApi.sendVoiceChatMessage(
-                  input,
-                  emotion,
-                  accessToken,
-                  null
-                );
-                // 새 세션 ID가 생성되었으면 설정
-                if (apiResponse.sessionId) {
-                  setChatSessionId(apiResponse.sessionId);
-                  localStorage.setItem("currentChatSessionId", apiResponse.sessionId.toString());
-                }
-              }
-            } else {
-              // 다른 오류의 경우 일반 메시지로 폴백
-              setChatSessionId(null);
-              localStorage.removeItem("currentChatSessionId");
-              apiResponse = await chatApi.sendVoiceChatMessage(
-                input,
-                emotion, // voiceMetadata
-                accessToken,
-                null
-              );
-              // 새 세션 ID가 생성되었으면 설정
-              if (apiResponse.sessionId) {
-                setChatSessionId(apiResponse.sessionId);
-                localStorage.setItem("currentChatSessionId", apiResponse.sessionId.toString());
-              }
-            }
-          }
-        } else {
-          apiResponse = await chatApi.sendVoiceChatMessage(
-            input,
-            emotion,
-            accessToken,
-            chatSessionId
-          );
-          // 새 세션 ID가 생성되었으면 설정
-          if (apiResponse.sessionId) {
-            setChatSessionId(apiResponse.sessionId);
-            localStorage.setItem("currentChatSessionId", apiResponse.sessionId.toString());
-          }
-        }
+        // Duckey Chat API 호출
+        const apiResponse = await chatApi.sendDuckyChatMessage(
+          {
+            message: input,
+            characterProfile: characterProfile, // "F형" or "T형"
+            extractedLabelsJson: emotion ? JSON.stringify(emotion) : null, // 감정 분석 결과를 JSON으로
+          },
+          accessToken
+        );
 
         if (apiResponse && apiResponse.data) {
           // 백엔드 응답 구조에 따라 content 추출
@@ -440,6 +346,12 @@ export const MainScreen = () => {
             response = apiResponse.data.data.content;
           } else {
             throw new Error("API 응답이 올바르지 않습니다.");
+          }
+          
+          // 새 세션 ID가 생성되었으면 설정
+          if (apiResponse.sessionId) {
+            setChatSessionId(apiResponse.sessionId);
+            localStorage.setItem("currentChatSessionId", apiResponse.sessionId.toString());
           }
 
           // API 응답을 사용하므로 로컬 로직 건너뜀
@@ -465,124 +377,11 @@ export const MainScreen = () => {
           return;
         }
         // 다른 API 오류는 로컬 로직으로 폴백
-      }
-
-      // API 호출 실패 시 로컬 로직 실행 (서버가 다운되었을 때)
-      if (!response || response.trim() === "") {
-        const personalizedRecs =
-          await contentRecommendationEngine.getPersonalizedContentRecommendations(
-            {
-              mood: emotionContext,
-              context: "content_request",
-            }
-          );
-
-        setContentRecommendations(personalizedRecs.slice(0, 3));
-
-        if (personalizedRecs.length > 0) {
-          const content = personalizedRecs[0];
-          const contentType =
-            content.type === "book"
-              ? "책"
-              : content.type === "movie"
-                ? "영화"
-                : content.type === "music"
-                  ? "음악"
-                  : "플레이리스트";
-
-          response =
-            `너의 감성에 맞는 ${contentType} 추천이야! 🎯\n\n` +
-            `**${content.title}**\n` +
-            `${content.creator}\n` +
-            `${content.recommendationReason}\n\n` +
-            `지금 바로 쇼츠 페이지에서 확인해봐!`;
-
-          // 애니메이션 트리거
-          triggerAnimation("product_recommendation", true);
-        } else {
-          response =
-            "아직 너에 대해 더 알아야 좋은 추천을 해줄 수 있어! 조금 더 대화해볼까?";
-        }
-
-        context = "recommendation";
-      } else if (
-        lowerInput.includes("안녕") ||
-        lowerInput.includes("하이") ||
-        lowerInput.includes("헬로")
-      ) {
-        const profileCompleteness =
-          userProfileService.getProfileCompleteness();
-
-        if (profileCompleteness < 50) {
-          response =
-            "안녕! 나는 덕키야 🦆 너에게 딱 맞는 상품을 추천해주고 싶어! 먼저 너에 대해 알려줄래?";
-
-          const questions = recommendationEngine.generateProfileQuestions();
-          if (questions.length > 0) {
-            setProfileQuestion(questions[0]);
-            response += `\n\n${questions[0].question}`;
-          }
-        } else {
-          response = `안녕! 반가워 😊 오늘은 어떤 걸 찾고 있어?`;
-        }
-
-        context = "greeting";
-        triggerAnimation("happy", true);
-        setShowFloatingEmojis(true);
-        setTimeout(() => setShowFloatingEmojis(false), 3000);
-      } else if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
-        if (emotionContext === "happy" || emotionContext === "excited") {
-          response =
-            "와! 정말 기분이 좋아 보여! 나도 기뻐~ 🎉 기분 좋을 때 뭔가 특별한 걸 사보는 건 어때?";
-          context = "happy";
-        } else if (
-          emotionContext === "sad" ||
-          emotionContext === "frustrated"
-        ) {
-          response =
-            "괜찮아... 내가 여기 있을게. 힘내! 😊 가끔은 자신에게 선물을 해주는 것도 좋아!";
-          context = "sad";
-        } else {
-          response = "너의 기분을 이해해! 내가 여기 있어줄게~";
-          context = "neutral";
-        }
-      } else if (
-        lowerInput.includes("고마워") ||
-        lowerInput.includes("감사")
-      ) {
-        response = "천만에! 또 도움이 필요하면 언제든지 말해~";
-        context = "thanking";
-        triggerAnimation("happy", true);
-        setShowFloatingEmojis(true);
-        setTimeout(() => setShowFloatingEmojis(false), 3000);
-      } else {
-        // 5. 개인화된 일반 응답
-        const profile = userProfileService.getProfile();
-        const responses = generatePersonalizedResponse(
-          input,
-          profile,
-          emotionContext
-        );
-        response = responses[Math.floor(Math.random() * responses.length)];
-        context = emotionContext;
-
-        // 가끔 프로필 질문 삽입
-        if (
-          Math.random() < 0.3 &&
-          userProfileService.getProfileCompleteness() < 80
-        ) {
-          const questions = recommendationEngine.generateProfileQuestions();
-          if (questions.length > 0) {
-            setProfileQuestion(questions[0]);
-            response += `\n\n그런데 ${questions[0].question}`;
-          }
-        }
-      }
-
-        // 로컬 응답 설정
-        setCharacterText(response);
-        setConversationContext(context);
+        const offlineResponse = generateOfflineResponse(input, emotionAnalysis);
+        setCharacterText(offlineResponse);
+        setConversationContext(emotionAnalysis.dominant);
         setIsAIThinking(false);
+      }
     } catch (error) {
       console.error("Error in handleUserInput:", error);
       setCharacterText("어? 뭔가 문제가 생겼어! 다시 말해줄래?");
@@ -819,6 +618,10 @@ export const MainScreen = () => {
 
       setUserText(result.transcript);
 
+      // AI 응답 생성 중 표시
+      setIsAIThinking(true);
+      setCharacterText("생각하고 있어요...");
+
       // 음성 메타데이터 수집 개선
       const voiceMetadata = {
         duration: result.emotion?.duration || 1.0,
@@ -829,43 +632,19 @@ export const MainScreen = () => {
         confidence: result.emotion?.confidence || 0.5,
       };
 
-      // 서버에서 이미 chatResponse를 제공한 경우, 그것을 우선 사용
-      if (result.chatResponse && result.chatResponse.content) {
-        console.log('🎯 서버에서 chatResponse 받음:', result.chatResponse);
-        const resp = result.chatResponse;
-        // 서버가 세션 ID를 돌려주면 갱신
-        if (result.serverSessionId) {
-          setChatSessionId(result.serverSessionId);
-          localStorage.setItem('currentChatSessionId', result.serverSessionId.toString());
-        }
+      // 감정 분석 결과가 있으면 사용, 없으면 voiceMetadata 사용
+      const emotionData = result.serverLabels || voiceMetadata;
 
-        setIsAIThinking(false);
-        setCharacterText(resp.content);
-        setConversationContext(resp.action || (result.emotion && result.emotion.emotion) || null);
+      console.log('🎯 handleUserInput 호출:', result.transcript, emotionData);
 
-        // result 초기화하여 재처리 방지
-        resetResult();
-      } else if (result.audioBlob) {
-        // 음성 파일이 있지만 서버 응답이 아직 없는 경우
-        console.log('⏳ 음성 파일 있음, 서버 응답 대기 중...');
-        // 서버 응답을 기다리기 위해 아무것도 하지 않음
-        // useSpeechRecognition에서 result가 업데이트되면 이 useEffect가 다시 실행됨
-      } else {
-        // 서버 응답이 없고 음성 파일도 없는 경우 (텍스트 입력 등)
-        console.log('💬 서버 응답 없음, 로컬 처리 시작');
-        // AI 응답 생성 중 표시
-        setIsAIThinking(true);
-        setCharacterText("생각하고 있어요...");
-
-        // 자동으로 응답 생성 (클라이언트 -> 서버 흐름)
-        setTimeout(() => {
-          handleUserInput(result.transcript, voiceMetadata)
-            .finally(() => {
-              // API 호출 완료 후 result 초기화
-              resetResult();
-            });
-        }, 500);
-      }
+      // 자동으로 응답 생성 (클라이언트 -> 서버 흐름)
+      setTimeout(() => {
+        handleUserInput(result.transcript, emotionData)
+          .finally(() => {
+            // API 호출 완료 후 result 초기화
+            resetResult();
+          });
+      }, 500);
     }
   }, [result]);  useEffect(() => {
     // 이전에 말한 텍스트와 같으면 스킵
@@ -921,10 +700,14 @@ export const MainScreen = () => {
                 </div>
 
                 <ThumbSwitch
-                  checked={!isThinking}
-                  onCheckedChange={toggleTheme}
+                  checked={characterProfile === 'F형'}
+                  onCheckedChange={(checked) => {
+                    const newProfile = checked ? 'F형' : 'T형';
+                    setCharacterProfile(newProfile);
+                    toggleTheme();
+                  }}
                   aria-label="Toggle between T and F"
-                  thumbColor={!isThinking ? "#6B7280" : "#6B7280"}
+                  thumbColor={characterProfile === 'F형' ? "#6B7280" : "#6B7280"}
                   borderColor="#E5E7EB"
                   backgroundColor="#FDFBF6"
                   trackColor="#E5E7EB"
