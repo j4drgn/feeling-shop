@@ -73,11 +73,8 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToContent }) => {
 
   // 애니메이션 완료 처리
   const handleAnimationComplete = (completedAnimation) => {
-    console.log('🎬 애니메이션 완료:', completedAnimation);
-    
     // product_recommendation 애니메이션이 끝나면 쇼츠 페이지로 이동
     if (completedAnimation === 'product_recommendation') {
-      console.log('🎯 상품 추천 애니메이션 완료 - 쇼츠 페이지로 이동');
       setTimeout(() => {
         onNavigateToContent();
       }, 500); // 약간의 딜레이 후 이동

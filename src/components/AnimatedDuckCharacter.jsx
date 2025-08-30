@@ -47,28 +47,31 @@ const DUCK_ANIMATIONS = {
     type: 'gif',
     path: '/gif/gif_hungry.gif',
     loop: false,
-    duration: 6000
+    duration: 4000
   },
   
   // 뒤로 걸어가기
   walkback: {
     type: 'gif',
     path: '/gif/gif_walkback.gif',
-    loop: false
+    loop: false,
+    duration: 2500
   },
   
   // 선물 주기
   gift: {
     type: 'gif',
     path: '/gif/gif_gift.gif',
-    loop: false
+    loop: false,
+    duration: 4000
   },
   
   // 앞으로 걸어오기
   walkforward: {
     type: 'gif',
     path: '/gif/gif_walkforward.gif',
-    loop: false
+    loop: false,
+    duration: 2500
   },
 
   // 제품 추천 시퀀스: 선물 주기
@@ -76,7 +79,7 @@ const DUCK_ANIMATIONS = {
     type: 'gif',
     path: '/gif/gif_gift.gif',
     loop: false,
-    duration: 5000
+    duration: 4000
   },
   
   // 환영 인사: 행복한 표정
@@ -100,7 +103,32 @@ const DUCK_ANIMATIONS = {
     type: 'gif',
     path: '/gif/gif_gift.gif',
     loop: false,
-    duration: 5000
+    duration: 3500
+  },
+
+  // === 새로운 피드백 애니메이션들 ===
+  
+  // 성공 상황 - 긍정적 피드백
+  success: {
+    type: 'gif',
+    path: '/gif/gif_happy.gif',
+    loop: false,
+    duration: 3000
+  },
+  
+  // 오류 상황 - 부정적 피드백
+  error: {
+    type: 'gif',
+    path: '/gif/gif_mad.gif',
+    loop: false,
+    duration: 2000
+  },
+  
+  // 대기 상태 - 차분한 준비
+  waiting: {
+    type: 'gif',
+    path: '/gif/gif_idle.gif',
+    loop: true
   }
 };
 
@@ -152,25 +180,36 @@ const AnimatedDuckCharacter = ({
 
   // 🎯 Animation Priority System - Define animation groups and priorities
   const ANIMATION_PRIORITIES = {
-    // High priority - Cannot be interrupted
-    product_recommendation: 100,
-    welcome_greeting: 100,
+    // 🚨 Critical feedback - Always show these
+    error: 120,
+    success: 115,
+    
+    // 🎯 High priority interactions
+    product_recommendation: 110,
+    welcome_greeting: 105,
+    task_complete: 105,
+    
+    // 🔍 Medium-high priority
     searching: 100,
-    task_complete: 100,
+    gift: 95,
+    walkback: 90,
+    walkforward: 90,
     
-    // Medium priority - Can be interrupted by high priority
-    gift: 50,
-    walkforward: 50,
-    walkback: 50,
-    hungry: 50,
+    // 😠 Negative emotions
+    mad: 85,
+    frustrated: 80,
     
-    // Low priority - Can be interrupted by any higher priority
-    happy: 20,
-    mad: 20,
-    talk: 20,
+    // 😊 Positive emotions
+    happy: 70,
+    hungry: 75,
     
-    // Base priority - Always interruptible
-    idle: 0
+    // 🗣️ Communication states
+    talk: 50,
+    listening: 45,
+    
+    // 😴 Base states
+    idle: 10,
+    waiting: 5
   };
 
   // Clear all animations
@@ -687,12 +726,6 @@ const AnimatedDuckCharacter = ({
 
   // 🚪 Main Animation Effect - Routes all animation changes through the gate
   useLayoutEffect(() => {
-    console.log('🚪 [MAIN EFFECT] Animation prop changed:', {
-      animation,
-      trigger,
-      timestamp: new Date().toISOString()
-    });
-    
     // Route all animation requests through the gate system
     if (requestAnimationChangeRef.current) {
       requestAnimationChangeRef.current(animation, trigger);

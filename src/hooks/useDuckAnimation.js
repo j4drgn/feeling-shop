@@ -1,73 +1,126 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-// Duck emotion/state mapping
+// Duck emotion/state mapping - Enhanced for better UX
 const EMOTION_TO_ANIMATION = {
-  // Speech recognition states
-  listening: 'idle', // Attentive but calm
-  speaking: 'talk',  // Duck is talking
+  // 🎤 Speech recognition states - More engaging animations
+  listening: 'talk', // 👂 귀 기울이는 느낌으로 talk 사용 (더 자연스러움)
+  speaking: 'talk',  // 🗣️ AI 응답 시
   
-  // User emotions detected from speech
+  // 😊 Positive emotions - 다양한 긍정 표현
   happy: 'happy',
   excited: 'happy',
   joyful: 'happy',
-  enthusiastic: 'product_recommendation', // Special celebration with walk sequence
+  enthusiastic: 'happy',
+  delighted: 'happy',
+  pleased: 'happy',
   
-  sad: 'idle', // Calm, empathetic
+  // 😠 Negative emotions - 공감 표현
+  sad: 'idle', // 😢 슬플 때는 차분하게
   frustrated: 'mad',
   angry: 'mad',
   annoyed: 'mad',
+  disappointed: 'mad',
+  upset: 'mad',
   
+  // 🤔 Neutral/Thinking states
   neutral: 'idle',
   calm: 'idle',
   thoughtful: 'idle',
+  confused: 'idle',
+  curious: 'talk', // 궁금할 때는 귀 기울이는 느낌
   
-  // New emotions for product interactions
+  // 🛍️ Product interest states
   hungry: 'hungry',
   wanting: 'hungry',
+  interested: 'hungry',
+  craving: 'hungry',
   
-  // Conversation context  
-  greeting: 'welcome_greeting', // 앞으로와서 인사
-  farewell: 'walkback',
-  shopping: 'product_recommendation', // Full sequence: walk back -> get gift -> walk forward
-  recommendation: 'product_recommendation', // 제품 추천
-  searching: 'searching', // 정보 검색 중
-  completed: 'task_complete', // 작업 완료
-  thanking: 'happy',
+  // 💬 Conversation contexts - 상황별 의미있는 애니메이션
+  greeting: 'welcome_greeting', // 👋 처음 만남
+  farewell: 'walkback', // 👋 떠날 때
+  shopping: 'product_recommendation', // 🛒 쇼핑 관심
+  recommendation: 'product_recommendation', // 💝 추천 제시
+  searching: 'searching', // 🔍 정보 찾기
+  completed: 'task_complete', // ✅ 작업 완료
+  thanking: 'happy', // 🙏 감사 표현
+  apology: 'idle', // 죄송할 때는 차분하게
   
-  // Default
+  // 🎯 Success/Error states - 새로운 상황 추가
+  success: 'happy', // 성공 시 기쁨 표현
+  error: 'mad', // 오류 시 당황 표현
+  waiting: 'idle', // 대기 시 차분함
+  
+  // Default fallback
   default: 'idle'
 };
 
-// Animation priorities (higher number = higher priority)
+// Animation priorities (higher number = higher priority) - UX-focused
 const ANIMATION_PRIORITY = {
-  product_recommendation: 110, // Highest - full sequence 
-  welcome_greeting: 105, // Very high - greeting sequence
-  searching: 100,   // High - searching sequence
-  task_complete: 100, // High - completion sequence
-  gift: 95,      // High - special celebrations
-  walkback: 90,  // High - movement animations
-  walkforward: 90, // High - movement animations
-  mad: 85,       // High - negative emotions need attention
-  hungry: 75,    // Medium-high - wanting emotions
-  happy: 70,     // Medium-high - positive emotions
-  talk: 50,      // Medium - speaking state
-  idle: 10       // Lowest - default state
+  // 🚨 Critical feedback - Always show these
+  error: 120, // 오류는 가장 중요
+  success: 115, // 성공도 중요 피드백
+  
+  // 🎯 High priority interactions
+  product_recommendation: 110, // 제품 추천은 핵심 기능
+  welcome_greeting: 105, // 첫 만남은 중요
+  task_complete: 105, // 작업 완료는 만족스러운 경험
+  
+  // 🔍 Medium-high priority
+  searching: 100, // 검색 중 표시
+  gift: 95, // 선물/보상
+  walkback: 90, // 작별 인사
+  walkforward: 90, // 다가오는 느낌
+  
+  // 😠 Negative emotions - Need attention but not critical
+  mad: 85, // 화남 감정
+  frustrated: 80, // 좌절
+  
+  // 😊 Positive emotions - Nice to have
+  happy: 70, // 기쁨
+  hungry: 75, // 관심/호기심
+  
+  // 🗣️ Communication states
+  talk: 50, // 말하기/듣기
+  listening: 45, // 듣는 중
+  
+  // 😴 Base states - Can be interrupted easily
+  idle: 10, // 기본 대기
+  waiting: 5 // 대기 상태
 };
 
-// Animation durations (in milliseconds)
+// Animation durations (in milliseconds) - UX-optimized
 const ANIMATION_DURATION = {
-  product_recommendation: 0, // ⚠️ 시퀀스는 내부 step duration으로 자동 관리 - 타임아웃 금지
-  welcome_greeting: 0, // ⚠️ 시퀀스는 내부 step duration으로 자동 관리 - 타임아웃 금지
-  searching: 0,  // ⚠️ 시퀀스는 내부 step duration으로 자동 관리 - 타임아웃 금지
-  task_complete: 5000, // 5 seconds for gift animation
-  gift: 5000,    // 5 seconds for gift animation
-  walkback: 3000, // 3 seconds for walking back (61 frames @ 20fps)
-  walkforward: 3000, // 3 seconds for walking forward (61 frames @ 20fps)
-  mad: 4000,     // 4 seconds for mad animation (81 frames @ 20fps)
-  hungry: 8000,  // 8 seconds for hungry (117 frames @ 15fps)
-  happy: 2000,   // 2 seconds for happy (40 frames @ 24fps)
-  talk: 0,       // Continuous while speaking
-  idle: 0        // Continuous
+  // 🎯 Core interactions - Important but not too long
+  product_recommendation: 4000, // 추천은 충분히 보여주되 너무 길지 않게
+  welcome_greeting: 3000, // 인사는 적당히
+  task_complete: 3500, // 완료는 만족감 유지
+  
+  // 🔍 Process indicators
+  searching: 2000, // 검색 중은 짧게 (계속 반복될 수 있음)
+  waiting: 0, // 대기는 무한
+  
+  // 🎁 Rewards/Special moments
+  gift: 4000, // 선물은 특별하게
+  success: 3000, // 성공은 긍정적 느낌 오래 유지
+  
+  // 😊 Emotions - Intensity-based duration
+  happy: 2500, // 기쁨은 중간 정도로
+  mad: 3500, // 화남은 좀 더 길게 (주의를 끌기 위해)
+  hungry: 4000, // 관심은 충분히 표현
+  
+  // 🚶 Movement animations
+  walkback: 2500, // 작별은 적당히
+  walkforward: 2500, // 다가오는 건 자연스럽게
+  
+  // 🗣️ Communication - Context dependent
+  talk: 0, // 말하는 동안은 계속 (무한 반복)
+  listening: 0, // 듣는 동안은 계속
+  
+  // ⚠️ Feedback states
+  error: 2000, // 오류는 짧지만 확실하게
+  
+  // 😴 Base states
+  idle: 0 // 기본은 무한
 };
 
 export const useDuckAnimation = ({ 
@@ -79,7 +132,6 @@ export const useDuckAnimation = ({
 }) => {
   // Safety check for required parameters
   if (typeof initialAnimation !== 'string') {
-    console.warn('🦆 [DUCK HOOK] initialAnimation must be a string, falling back to "idle"');
     initialAnimation = 'idle';
   }
   
@@ -109,19 +161,6 @@ export const useDuckAnimation = ({
 
   // 🔍 DEBUG: Hook state logger
   useEffect(() => {
-    console.log('🦆 [DUCK HOOK STATE]', {
-      timestamp: new Date().toISOString(),
-      currentAnimation,
-      triggerCount,
-      emotion: emotion?.emotion,
-      emotionConfidence: emotion?.confidence,
-      isListening,
-      isSpeaking,
-      conversationContext,
-      lastEmotion: lastEmotionRef.current,
-      hasTimeout: !!timeoutRef.current,
-      queueLength: animationQueue.length
-    });
   }, [currentAnimation, triggerCount, emotion, isListening, isSpeaking, conversationContext, animationQueue]);
 
   // Helper functions for improved animation setting
@@ -135,10 +174,6 @@ export const useDuckAnimation = ({
     if (protectedAnim) {
       // 보호 중이면 상태를 바꾸지 않고 대기열에만 적재
       pendingAnimRef.current = { targetAnim, opts, ts: performance.now() };
-      console.log('🛡️ [DUCK HOOK] Animation queued during protection', { 
-        protectedAnim, 
-        requestedAnim: targetAnim 
-      });
       return false;
     }
     
@@ -156,19 +191,12 @@ export const useDuckAnimation = ({
     if (isFromHeartbeat && next === 'happy') {
       const isSequenceActive = currentAnimation && ANIMATION_PRIORITY[currentAnimation] >= 100;
       if (isSequenceActive) {
-        console.log('💓 [DUCK HOOK] Happy heartbeat blocked - sequence active', { 
-          currentAnimation, 
-          currentPriority: ANIMATION_PRIORITY[currentAnimation] 
-        });
         return;
       }
       
       // Happy 디바운스 (3초)
       const happyLastTrigger = lastTriggerAtRef.current.happy;
       if (t - happyLastTrigger < 3000) {
-        console.log('💓 [DUCK HOOK] Happy heartbeat debounced', { 
-          timeSince: t - happyLastTrigger 
-        });
         return;
       }
       lastTriggerAtRef.current.happy = t;
@@ -181,29 +209,17 @@ export const useDuckAnimation = ({
     lastSetRef.current = { anim: next, at: t };
 
     // ✅ 트리거는 "강제 재시작"이 정말 필요할 때만
-    if (forceRestart) {
-      console.log('🔄 [DUCK HOOK] Force restart trigger increment', { animation: next });
-    }
+    // Note: forceRestart handling can be added here if needed
   }, [requestAnimationSafe, currentAnimation]);
 
   // Determine target animation based on current state
   const getTargetAnimation = useCallback(() => {
-    console.log('🎯 [DUCK HOOK] Determining target animation...', {
-      isSpeaking,
-      isListening,
-      emotion: emotion?.emotion,
-      conversationContext,
-      lastEmotion: lastEmotionRef.current
-    });
-
     try {
       // Priority 1: Speech states
       if (isSpeaking) {
-        console.log('🗣️ [DUCK HOOK] Speaking detected -> talk');
         return 'talk';
       }
       if (isListening) {
-        console.log('👂 [DUCK HOOK] Listening detected -> idle');
         return 'idle'; // Calm while listening
       }
       
@@ -211,11 +227,6 @@ export const useDuckAnimation = ({
       if (emotion?.emotion && emotion.emotion !== lastEmotionRef.current) {
         const emotionKey = emotion.emotion.toLowerCase();
         const targetAnim = EMOTION_TO_ANIMATION[emotionKey];
-        console.log('😊 [DUCK HOOK] New emotion detected', {
-          emotion: emotionKey,
-          previousEmotion: lastEmotionRef.current,
-          targetAnimation: targetAnim
-        });
         if (targetAnim) {
           return targetAnim;
         }
@@ -224,33 +235,20 @@ export const useDuckAnimation = ({
       // Priority 3: Conversation context
       if (conversationContext && EMOTION_TO_ANIMATION[conversationContext]) {
         const targetAnim = EMOTION_TO_ANIMATION[conversationContext];
-        console.log('💬 [DUCK HOOK] Context detected', {
-          context: conversationContext,
-          targetAnimation: targetAnim
-        });
         return targetAnim;
       }
       
       // Default: idle
-      console.log('😴 [DUCK HOOK] No specific state -> idle');
       return 'idle';
     } catch (error) {
-      console.error('💥 [DUCK HOOK] Error in getTargetAnimation:', error);
       return 'idle';
     }
   }, [emotion, isListening, isSpeaking, conversationContext]);
 
   // Queue animation with strict priority system - only allow one animation at a time
   const queueAnimation = useCallback((targetAnim) => {
-    console.log('📥 [DUCK HOOK] Queue animation request', {
-      targetAnim,
-      currentAnimation,
-      isSame: targetAnim === currentAnimation
-    });
-
     // CRITICAL: Ignore if same animation is already playing - prevents ping-pong
     if (targetAnim === currentAnimation) {
-      console.log('⏭️ [DUCK HOOK] Same animation already playing, ignoring to prevent restart');
       return;
     }
     
@@ -263,25 +261,8 @@ export const useDuckAnimation = ({
     const isLowPriority = targetPriority <= 70; // happy and below
     const inCooldown = isLowPriority && timeSinceLastChange < COOLDOWN_DURATION;
     
-    console.log('⚖️ [DUCK HOOK] Priority check', {
-      currentAnimation,
-      currentPriority,
-      targetAnim,
-      targetPriority,
-      timeSinceLastChange,
-      inCooldown,
-      isSequenceActive: currentAnimation && ANIMATION_PRIORITY[currentAnimation] >= 100,
-      canInterrupt: '(calculated below)'
-    });
-    
     // Block low-priority animations during cooldown
     if (inCooldown) {
-      console.log('❄️ [DUCK HOOK] Animation blocked by cooldown mechanism', {
-        targetAnim,
-        targetPriority,
-        timeSinceLastChange,
-        cooldownRemaining: COOLDOWN_DURATION - timeSinceLastChange
-      });
       return;
     }
     
@@ -293,12 +274,9 @@ export const useDuckAnimation = ({
     if (canInterrupt) {
       // Clear any existing timeout before setting new animation
       if (timeoutRef.current) {
-        console.log('🛑 [DUCK HOOK] Clearing existing timeout');
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
-      
-      console.log('✅ [DUCK HOOK] Setting new animation:', targetAnim);
       
       // Update cooldown timestamp
       lastAnimationChangeRef.current = Date.now();
@@ -306,15 +284,11 @@ export const useDuckAnimation = ({
       // Set timeout for temporary animations
       const duration = ANIMATION_DURATION[targetAnim];
       if (duration > 0) {
-        console.log('⏰ [DUCK HOOK] Setting timeout for', duration, 'ms');
         const timeoutId = setTimeout(() => {
           // Prevent timeout execution if hook was unmounted or timeout was replaced
           if (timeoutRef.current === timeoutId) {
-            console.log('⏰ [DUCK HOOK] Timeout fired - returning to idle');
             setAnimationSafely('idle'); // 일반 전환 (트리거 증가 ❌)
             timeoutRef.current = null;
-          } else {
-            console.log('⏰ [DUCK HOOK] Timeout cancelled - different timeout is active');
           }
         }, duration);
         timeoutRef.current = timeoutId;
@@ -332,8 +306,6 @@ export const useDuckAnimation = ({
         forceRestart: needsForceRestart, 
         isFromHeartbeat: isHappyHeartbeat 
       });
-    } else {
-      console.log('❌ [DUCK HOOK] Animation blocked by priority system');
     }
   }, [currentAnimation, setAnimationSafely]);
 
@@ -344,19 +316,10 @@ export const useDuckAnimation = ({
     
     // Prevent re-entry
     if (isExecutingRef.current) {
-      console.log('🔒 [DUCK HOOK] Effect re-entry blocked', { executionId: currentExecutionId });
       return;
     }
     
     isExecutingRef.current = true;
-    
-    console.log('🚀 [DUCK HOOK] Effect execution started', { 
-      executionId: currentExecutionId,
-      emotion: emotion?.emotion,
-      isSpeaking,
-      isListening,
-      conversationContext 
-    });
     
     try {
       const targetAnim = getTargetAnimation();
@@ -374,7 +337,6 @@ export const useDuckAnimation = ({
       // Always reset execution flag
       setTimeout(() => {
         isExecutingRef.current = false;
-        console.log('🔓 [DUCK HOOK] Effect execution completed', { executionId: currentExecutionId });
       }, 0);
     }
   }, [emotion, isListening, isSpeaking, conversationContext, currentAnimation, getTargetAnimation, queueAnimation]);
@@ -386,7 +348,6 @@ export const useDuckAnimation = ({
     
     if (nonLoopingAnimations.includes(completedAnimation)) {
       // 🛡️ CRITICAL: 시퀀스 완료 시점에서만 보호 해제 + 상태 동기화
-      console.log('✅ [DUCK HOOK] Animation completed, clearing protection', { completedAnimation });
       
       const newTarget = getTargetAnimation();
       if (newTarget === completedAnimation || !newTarget || newTarget === 'idle') {
