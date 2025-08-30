@@ -157,10 +157,12 @@ export const useSpeechRecognition = (sessionId = null) => {
           // 동기 응답인 경우 (content 있음)
           else if (uploadResponse.success && uploadResponse.data && uploadResponse.data.content) {
             console.log('✅ 동기 응답 받음:', uploadResponse.data.content);
+            // 서버 응답에 sessionId 또는 chatSessionId 중 어떤 키로 올지 불확실하므로 둘 다 확인
+            const returnedSessionId = (uploadResponse.data.sessionId || uploadResponse.data.chatSessionId) || sessionId;
             setResult(prev => ({
               ...prev,
               chatResponse: uploadResponse.data,
-              serverSessionId: uploadResponse.data.chatSessionId || sessionId,
+              serverSessionId: returnedSessionId,
               audioBlob: null, // 업로드 완료 후 audioBlob 제거
             }));
           }
@@ -249,13 +251,14 @@ export const useSpeechRecognition = (sessionId = null) => {
               setResult(prev => ({
                 ...prev,
                 transcript: taskData.transcript || prev.transcript,
+                // 서버가 반환할 수 있는 sessionId 필드 이름이 다양할 수 있으므로 둘 다 확인
                 chatResponse: taskData.assistantResponse ? {
                   content: taskData.assistantResponse,
                   type: 'ASSISTANT',
                   timestamp: new Date().toISOString(),
-                  chatSessionId: taskData.sessionId || prev.serverSessionId
+                  chatSessionId: (taskData.sessionId || taskData.chatSessionId) || prev.serverSessionId
                 } : prev.chatResponse,
-                serverSessionId: taskData.sessionId || prev.serverSessionId,
+                serverSessionId: (taskData.sessionId || taskData.chatSessionId) || prev.serverSessionId,
                 serverLabels: taskData.analysisJson ? (() => {
                   try {
                     return JSON.parse(taskData.analysisJson);

@@ -259,7 +259,6 @@ export const useSpeechSynthesis = (options = {}) => {
     };
 
     utterance.onerror = (event) => {
-      console.error('TTS error:', event);
       // 'canceled' 오류는 무시 (의도적인 중지)
       if (event.error === 'canceled') {
         setIsSpeaking(false);
@@ -273,6 +272,7 @@ export const useSpeechSynthesis = (options = {}) => {
         utteranceRef.current = null;
         return;
       }
+      console.error('TTS error:', event);
       setError(`Animalese 음성 재생 오류: ${event.error || 'Unknown error'}`);
       setIsSpeaking(false);
       utteranceRef.current = null;
