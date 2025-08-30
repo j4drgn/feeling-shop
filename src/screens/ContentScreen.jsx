@@ -16,6 +16,7 @@ import contentApi from "@/api/contentApi";
 export const ContentScreen = ({ selectedContent = null, onContentLiked, onNavigateToMain }) => {
   const navigate = useNavigate();
   const [personalizedContents, setPersonalizedContents] = useState([]);
+  const [loadError, setLoadError] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [touchStart, setTouchStart] = useState(null);
@@ -51,33 +52,15 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
         if (response.success && response.data.length > 0) {
           setPersonalizedContents(response.data);
         } else {
-          // API 실패 시 추천 엔진 사용
-          const recommendations =
-            await contentRecommendationEngine.getPersonalizedContentRecommendations(
-              {
-                mood: "neutral", // 기본 감정 상태
-              }
-            );
-          if (recommendations.length > 0) {
-            setPersonalizedContents(recommendations);
-          }
+          // API 호출이 정상적이지 않음 — 로컬 폴백을 사용하지 않음
+          const msg = '콘텐츠 API 호출에 실패했습니다.';
+          console.error(msg, response);
+          setLoadError(msg);
         }
       } catch (error) {
         console.error("Failed to load personalized recommendations:", error);
-        // API 실패 시 추천 엔진 사용
-        try {
-          const recommendations =
-            await contentRecommendationEngine.getPersonalizedContentRecommendations(
-              {
-                mood: "neutral",
-              }
-            );
-          if (recommendations.length > 0) {
-            setPersonalizedContents(recommendations);
-          }
-        } catch (fallbackError) {
-          console.error("Fallback recommendation also failed:", fallbackError);
-        }
+        // 로컬 폴백 제거: 에러 상태로 표시
+        setLoadError(error.message || String(error));
       } finally {
         setIsLoading(false);
       }
@@ -199,6 +182,18 @@ export const ContentScreen = ({ selectedContent = null, onContentLiked, onNaviga
           <p className="text-white text-lg">
             🦆 너에게 딱 맞는 콘텐츠를 찾고 있어...
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-white text-lg mb-4">😵‍💫 콘텐츠 로드 중 오류가 발생했습니다.</p>
+          <p className="text-white/70 mb-6">{loadError}</p>
+          <button onClick={() => navigate('/')} className="mt-4 px-6 py-2 bg-white/20 text-white rounded-full">대화하러 가기</button>
         </div>
       </div>
     );

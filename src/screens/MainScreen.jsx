@@ -160,7 +160,9 @@ export const MainScreen = () => {
         throw new Error("세션 생성 실패");
       }
     } catch (error) {
-      // 세션 생성 실패 시 세션 없이 진행 (ChatGPT API는 정상 작동)
+  // 세션 생성 실패 시 더 이상 로컬 폴백으로 조용히 계속하지 않음
+  console.error('채팅 세션 생성 실패:', error);
+  setCharacterText('서버에서 채팅 세션을 생성하지 못했습니다. 서버 상태를 확인하세요.');
     }
   };
 
@@ -173,14 +175,17 @@ export const MainScreen = () => {
       return true;
     } catch (error) {
       // 404 오류 또는 세션 관련 오류는 세션이 존재하지 않는다는 의미
-      if (error.message.includes("404") || 
-          error.message.includes("세션 메시지를 가져오는데 실패했습니다") ||
-          error.message.includes("채팅 세션을 찾을 수 없습니다") ||
-          error.message.includes("400")) {
+      if (
+        error.message.includes("404") ||
+        error.message.includes("세션 메시지를 가져오는데 실패했습니다") ||
+        error.message.includes("채팅 세션을 찾을 수 없습니다") ||
+        error.message.includes("400")
+      ) {
         return false;
       }
-      // 다른 오류는 일시적인 것으로 간주하고 true 반환
-      return true;
+      // 다른 오류는 서버 문제로 간주하고 false 반환하여 새 세션 또는 오류를 유도
+      console.error('세션 검증 중 서버 오류:', error);
+      return false;
     }
   };
 

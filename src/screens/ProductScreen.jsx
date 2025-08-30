@@ -82,6 +82,7 @@ const sampleProducts = [
 
 export const ProductScreen = ({ onNavigateToMain, onProductLiked }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loadError, setLoadError] = useState(null);
   const [isLiked, setIsLiked] = useState(false);
   const [likedProducts, setLikedProducts] = useState([]);
   const [touchStart, setTouchStart] = useState(null);
@@ -119,61 +120,14 @@ export const ProductScreen = ({ onNavigateToMain, onProductLiked }) => {
           }));
           setPersonalizedProducts(formattedProducts);
         } else {
-          // API 실패 시 추천 엔진 사용
-          const recommendations = await recommendationEngine.getPersonalizedRecommendations({
-            context: 'product_browsing'
-          });
-          
-          if (recommendations.length > 0) {
-            const formattedProducts = recommendations.map((product, index) => ({
-              id: product.id,
-              brand: product.brand,
-              name: product.name,
-              price: `₩${product.price.toLocaleString()}`,
-              originalPrice: product.originalPrice ? `₩${product.originalPrice.toLocaleString()}` : null,
-              discount: product.originalPrice ? 
-                `${Math.round((1 - product.price / product.originalPrice) * 100)}%` : null,
-              tags: [product.tags?.[0] || "추천"],
-              image: product.image,
-              description: product.recommendationReason || product.description || "개인화 추천 상품입니다",
-              creator: "덕키 AI",
-              creatorAvatar: "🦆",
-              hashtags: product.tags ? product.tags.map(tag => `#${tag}`) : ["#AI추천", "#맞춤상품"]
-            }));
-            
-            setPersonalizedProducts(formattedProducts);
-          }
+          // API 호출이 정상적이지 않음 — 로컬 폴백을 사용하지 않음
+          const msg = '상품 API 호출에 실패했습니다.';
+          console.error(msg, response);
+          setLoadError(msg);
         }
       } catch (error) {
         console.error('Failed to load personalized recommendations:', error);
-        // API 실패 시 추천 엔진 사용
-        try {
-          const recommendations = await recommendationEngine.getPersonalizedRecommendations({
-            context: 'product_browsing'
-          });
-          
-          if (recommendations.length > 0) {
-            const formattedProducts = recommendations.map((product, index) => ({
-              id: product.id,
-              brand: product.brand,
-              name: product.name,
-              price: `₩${product.price.toLocaleString()}`,
-              originalPrice: product.originalPrice ? `₩${product.originalPrice.toLocaleString()}` : null,
-              discount: product.originalPrice ? 
-                `${Math.round((1 - product.price / product.originalPrice) * 100)}%` : null,
-              tags: [product.tags?.[0] || "추천"],
-              image: product.image,
-              description: product.recommendationReason || product.description || "개인화 추천 상품입니다",
-              creator: "덕키 AI",
-              creatorAvatar: "🦆",
-              hashtags: product.tags ? product.tags.map(tag => `#${tag}`) : ["#AI추천", "#맞춤상품"]
-            }));
-            
-            setPersonalizedProducts(formattedProducts);
-          }
-        } catch (fallbackError) {
-          console.error('Fallback recommendation also failed:', fallbackError);
-        }
+        setLoadError(error.message || String(error));
       } finally {
         setIsLoading(false);
       }

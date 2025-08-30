@@ -38,24 +38,7 @@ const authApi = {
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
-          // 백엔드 서버가 실행되지 않는 경우, 개발 모드에서 모킹 데이터 사용
-          return {
-            success: true,
-            message: "로그인이 완료되었습니다.",
-            data: {
-              accessToken: "",
-              refreshToken: "",
-              user: {
-                id: 1,
-                email: credentials.email,
-                nickname: "테스트 사용자",
-                profileImageUrl: null,
-                mbtiType: null
-              }
-            }
-          };
-        }
+  // 서버가 응답하지 않거나 에러를 반환하면 그대로 예외로 처리
         const errorData = await response.json();
         throw new Error(errorData.message || '로그인에 실패했습니다.');
       }
@@ -79,17 +62,7 @@ const authApi = {
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
-          // 백엔드 서버가 실행되지 않는 경우, 개발 모드에서 모킹 데이터 사용
-          return {
-            success: true,
-            message: "토큰이 성공적으로 갱신되었습니다.",
-            data: {
-              accessToken: "",
-              refreshToken: "",
-            }
-          };
-        }
+  // 서버가 응답하지 않거나 에러를 반환하면 그대로 예외로 처리
         const errorData = await response.json();
         throw new Error(errorData.message || '토큰 갱신에 실패했습니다.');
       }

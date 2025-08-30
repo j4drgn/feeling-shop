@@ -8,14 +8,7 @@ const productApi = {
     try {
       const response = await fetch(`${API_BASE_URL}/products`);
       if (!response.ok) {
-        if (response.status === 404) {
-          // 백엔드 서버가 실행되지 않는 경우, 개발 모드에서 모킹 데이터 사용
-          return {
-            success: true,
-            message: "상품 목록을 성공적으로 가져왔습니다.",
-            data: [],
-          };
-        }
+  // 서버가 에러를 반환하면 그대로 예외로 처리
         const errorData = await response.json();
         throw new Error(errorData.message || '상품 목록을 가져오는데 실패했습니다.');
       }

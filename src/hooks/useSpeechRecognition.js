@@ -352,10 +352,13 @@ export const useSpeechRecognition = () => {
           }));
         }
       } catch (err) {
-        // 서버 전송 실패 시 로컬 분석 결과를 그대로 사용
-        console.warn('오디오 업로드/전사 실패:', err);
+        // 서버 전송 실패 시 로컬 폴백을 사용하지 않고 오류로 노출
+        console.error('오디오 업로드/전사 실패:', err);
         setIsUploading(false);
         setUploadProgress(0);
+        setError('서버 업로드/전사 실패: ' + (err.message || String(err)));
+        // 더 이상 로컬에서 처리하지 않음
+        return;
       }
     };
 
@@ -389,8 +392,13 @@ export const useSpeechRecognition = () => {
             intervalId = null;
           }
         } catch (err) {
-          console.warn('Polling task failed', err);
-          // keep trying; if persistent fail, stop after N attempts? For now continue
+          console.error('Polling task failed', err);
+          setIsProcessing(false);
+          setError('서버 작업 상태 조회 실패: ' + (err.message || String(err)));
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+          }
         }
       }, 2000);
     };
