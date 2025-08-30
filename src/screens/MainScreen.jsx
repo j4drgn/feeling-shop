@@ -22,6 +22,7 @@ import { emotionAnalysisEngine } from "@/services/emotionAnalysis";
 import { emotionCommerceEngine } from "@/services/emotionCommerceEngine";
 import { conversionTracking } from "@/services/conversionTracking";
 import healthApi from "@/api/healthApi";
+import videoRecommendationService from "@/services/videoRecommendationService";
 
 export const MainScreen = () => {
   const navigate = useNavigate();
@@ -71,6 +72,52 @@ export const MainScreen = () => {
       setCharacterText('서버에 연결할 수 없습니다. 오프라인 모드로 전환합니다.');
       setIsOfflineMode(true);
       return false;
+    }
+  };
+
+  // 동영상 피드백 처리 함수
+  const handleVideoFeedbackInput = async (input, feedbackDataStr) => {
+    try {
+      const feedbackData = JSON.parse(feedbackDataStr);
+      
+      // 피드백을 videoRecommendationService에 전달
+      const result = videoRecommendationService.processFeedback(input, feedbackData.videos);
+      
+      // 피드백에 따른 응답 생성
+      const isPositive = result.rating === 'positive';
+      let responseText;
+      
+      if (isPositive) {
+        responseText = `좋게 봐주셔서 감사해요! 😊 다음에도 ${feedbackData.emotion} 기분일 때 비슷한 동영상을 더 추천해드릴게요. 어떤 부분이 특히 마음에 드셨나요?`;
+        
+        // 긍정적 피드백 시 애니메이션
+        if (triggerAnimation) {
+          triggerAnimation("happy", true);
+        }
+      } else {
+        responseText = `아쉽네요 😔 다음에는 더 마음에 드는 동영상을 찾아서 추천해드릴게요! 어떤 종류의 동영상을 더 선호하시는지 알려주시면 도움이 될 것 같아요.`;
+        
+        // 부정적 피드백 시 애니메이션
+        if (triggerAnimation) {
+          triggerAnimation("sad", true);
+        }
+      }
+      
+      setCharacterText(responseText);
+      setIsAIThinking(false);
+      
+      // 피드백 처리 완료, 대기 상태 해제
+      localStorage.removeItem('waitingForVideoFeedback');
+      
+      // 통계 출력 (개발용)
+      console.log('업데이트된 동영상 추천 통계:', videoRecommendationService.getStats());
+      
+      return;
+      
+    } catch (error) {
+      console.error('동영상 피드백 처리 오류:', error);
+      setCharacterText('피드백을 처리하는데 오류가 발생했어요. 다시 말씀해주시겠어요?');
+      localStorage.removeItem('waitingForVideoFeedback');
     }
   };
 
@@ -189,6 +236,9 @@ export const MainScreen = () => {
           if (triggerAnimation) {
             triggerAnimation("curious", true);
           }
+          
+          // 피드백 대기 상태 설정 (다음 사용자 입력을 피드백으로 처리)
+          localStorage.setItem('waitingForVideoFeedback', JSON.stringify(feedbackData));
         }, 2500);
         
         // 플래그 제거
@@ -319,6 +369,13 @@ export const MainScreen = () => {
   const handleUserInput = async (input, emotion) => {
     try {
       const accessToken = localStorage.getItem("accessToken") || null;
+      
+      // 동영상 피드백 대기 중인지 확인
+      const waitingForVideoFeedback = localStorage.getItem('waitingForVideoFeedback');
+      if (waitingForVideoFeedback) {
+        return handleVideoFeedbackInput(input, waitingForVideoFeedback);
+      }
+      
       const emotionAnalysis = emotionAnalysisEngine.analyzeEmotion(input);
       
       // 2. 사용자 프로필에 반영
@@ -815,9 +872,17 @@ export const MainScreen = () => {
       const hasVideoKeyword = videoKeywords.some(keyword => content.includes(keyword));
       
       if (hasVideoKeyword) {
-        // 3초 후 동영상 페이지로 자동 이동
+        // 감정과 채팅 컨텍스트 추출
+        const emotion = result.serverLabels?.primaryEmotion || '기쁨';
+        const context = result.chatResponse.content;
+        
+        // 3초 후 동영상 페이지로 자동 이동 (감정과 컨텍스트 전달)
         setTimeout(() => {
-          navigate('/videos');
+          const params = new URLSearchParams({
+            emotion: emotion,
+            context: context
+          });
+          navigate(`/videos?${params.toString()}`);
         }, 3000);
         
         // 이동 안내 메시지 추가

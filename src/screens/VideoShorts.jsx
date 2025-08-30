@@ -1,25 +1,51 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import videoRecommendationService from '../services/videoRecommendationService';
 
 const VideoShorts = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token } = useAuth();
   const [videos, setVideos] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [currentEmotion, setCurrentEmotion] = useState('기쁨');
+  const [chatContext, setChatContext] = useState('');
   const videoRefs = useRef([]);
 
   useEffect(() => {
-    fetchVideos();
-  }, []);
+    // URL 파라미터에서 감정과 채팅 컨텍스트 가져오기
+    const params = new URLSearchParams(location.search);
+    const emotion = params.get('emotion') || '기쁨';
+    const context = params.get('context') || '';
+    
+    setCurrentEmotion(emotion);
+    setChatContext(context);
+    fetchVideos(emotion, context);
+  }, [location.search]);
 
-  const fetchVideos = async () => {
+  const fetchVideos = async (emotion = currentEmotion, context = chatContext) => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8090/api/videos/list', {
+      
+      // 이미 본 동영상 ID 목록 가져오기
+      const watchedIds = videoRecommendationService.getWatchedVideoIds();
+      const excludeIds = watchedIds.join(',');
+      
+      // 개인화된 추천 API 호출
+      const url = new URL(`http://localhost:8090/api/videos/recommend/${encodeURIComponent(emotion)}`);
+      if (excludeIds) {
+        url.searchParams.append('excludeIds', excludeIds);
+      }
+      if (context) {
+        url.searchParams.append('chatContext', context);
+      }
+      url.searchParams.append('limit', '3');
+      
+      const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -33,7 +59,16 @@ const VideoShorts = () => {
       const data = await response.json();
       
       if (data.success) {
-        setVideos(data.data);
+        if (data.data && data.data.length > 0) {
+          setVideos(data.data);
+          // 추천받은 동영상들을 시청 이력에 기록 준비
+          data.data.forEach(video => {
+            video.emotion = emotion;
+            video.chatContext = context;
+          });
+        } else {
+          setError('추천할 새로운 동영상이 없습니다. 모든 동영상을 시청하신 것 같습니다!');
+        }
       } else {
         setError(data.message);
       }
@@ -60,7 +95,21 @@ const VideoShorts = () => {
         video.currentTime = 0;
       }
     });
-  }, [currentIndex, isPlaying]);
+
+    // 새 동영상 시청 시작 시 이력에 기록
+    if (videos[currentIndex] && !videos[currentIndex].watchRecorded) {
+      const videoData = videos[currentIndex];
+      videoRecommendationService.addWatchHistory({
+        id: videoData.id,
+        title: videoData.title,
+        filename: videoData.filename,
+        chatContext: chatContext
+      }, null, currentEmotion);
+      
+      // 중복 기록 방지
+      videos[currentIndex].watchRecorded = true;
+    }
+  }, [currentIndex, isPlaying, videos, currentEmotion, chatContext]);
 
   const handleSwipeUp = () => {
     if (currentIndex < videos.length - 1) {
@@ -82,18 +131,27 @@ const VideoShorts = () => {
   };
 
   const handleVideoFeedback = () => {
+    // 시청한 동영상들의 정보를 정리
+    const watchedVideos = videos.slice(0, currentIndex + 1);
+    
     // 동영상 시청 완료 정보를 localStorage에 저장
     const feedbackData = {
-      watchedVideos: videos.length,
+      watchedVideos: watchedVideos.length,
       lastVideoIndex: currentIndex,
       timestamp: new Date().toISOString(),
-      videoTitles: videos.map(video => video.title)
+      videoTitles: watchedVideos.map(video => video.title),
+      videos: watchedVideos,
+      emotion: currentEmotion,
+      chatContext: chatContext
     };
     
     localStorage.setItem('videoFeedback', JSON.stringify(feedbackData));
     
     // 피드백 요청 플래그 설정
     localStorage.setItem('requestVideoFeedback', 'true');
+    
+    // 추천 서비스 통계 로깅
+    console.log('동영상 세션 완료:', videoRecommendationService.getStats());
     
     // 메인 화면으로 이동
     navigate('/');
