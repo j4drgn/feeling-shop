@@ -117,7 +117,10 @@ const App = () => {
   };
 
   const handleProductLiked = (product) => {
-    setLikedProducts((prev) => [...prev, product]);
+    // 중복 방지 - 이미 좋아요한 상품이 아닌 경우만 추가
+    if (!likedProducts.some(p => p.id === product.id)) {
+      setLikedProducts((prev) => [...prev, product]);
+    }
   };
 
   const renderScreen = (screenType) => {
