@@ -205,37 +205,39 @@ export const useSpeechRecognition = (sessionId = null) => {
         console.log('🔄 이미 폴링 중:', jobId);
         return;
       }
-      
       // 기존 폴링 중지 (다른 jobId인 경우만)
       if (intervalId && currentJobId !== jobId) {
         console.log('🛑 기존 폴링 중지 (새 작업):', currentJobId, '->', jobId);
-        clearInterval(intervalId);
+        clearTimeout(intervalId);
         intervalId = null;
       }
-      
       currentJobId = jobId;
       pollCount = 0;
       console.log('🔄 폴링 시작, jobId:', jobId);
       setIsProcessing(true);
-      setTaskStatus({ status: 'pending', jobId });
-      
-      intervalId = setInterval(async () => {
+      setTaskStatus({ status: 'pending', jobId, message: '음성 처리 중입니다. 잠시만 기다려주세요.' });
+
+      // 지수 백오프 방식으로 interval을 점진적으로 늘림
+      const getInterval = (count) => {
+        if (count < 3) return 1000; // 처음 3회는 1초 간격
+        if (count < 8) return 2000; // 4~8회는 2초 간격
+        if (count < 20) return 3000; // 9~20회는 3초 간격
+        return 5000; // 이후는 5초 간격
+      };
+
+      const poll = async () => {
         pollCount++;
-        
         try {
+          setTaskStatus(ts => ({ ...(ts || {}), message: `음성 처리 중... (${pollCount}회 시도)` }));
           console.log(`📡 작업 상태 조회 중... (${pollCount}/${maxPollAttempts})`);
           const status = await chatApi.getVoiceTaskStatus(jobId);
           console.log('📊 작업 상태 상세:', JSON.stringify(status, null, 2));
-          
           if (status && status.success && status.data) {
             const taskData = status.data;
             console.log('🔍 DuckK 작업 데이터:', JSON.stringify(taskData, null, 2));
-            
-            // DuckK API 완료 조건 체크
             const isCompleted = taskData.status === 'DONE' || 
                                taskData.status === 'COMPLETED' ||
                                (taskData.assistantResponse && taskData.assistantResponse.trim());
-                               
             if (isCompleted) {
               console.log('✅ DuckK 작업 완료!', { 
                 status: taskData.status,
@@ -267,32 +269,32 @@ export const useSpeechRecognition = (sessionId = null) => {
                 isProcessing: false,
               }));
               setIsProcessing(false);
-              clearInterval(intervalId);
+              clearTimeout(intervalId);
               intervalId = null;
               currentJobId = null;
-              
-              // 완료 후 serverJobId를 제거하여 재폴링 방지
               setTimeout(() => {
                 setResult(prev => ({
                   ...prev,
                   serverJobId: null
                 }));
               }, 100);
-              
+              return;
             } else if (taskData.status === 'FAILED' || taskData.errorMessage) {
               console.log('❌ DuckK 작업 실패:', taskData.errorMessage);
               setError(taskData.errorMessage || '음성 처리 작업이 실패했습니다.');
               setIsProcessing(false);
-              clearInterval(intervalId);
+              clearTimeout(intervalId);
               intervalId = null;
               currentJobId = null;
+              return;
             } else if (pollCount >= maxPollAttempts) {
               console.log('⏰ 폴링 타임아웃');
               setError('음성 처리 작업이 시간 초과되었습니다. 다시 시도해주세요.');
               setIsProcessing(false);
-              clearInterval(intervalId);
+              clearTimeout(intervalId);
               intervalId = null;
               currentJobId = null;
+              return;
             } else {
               const eta = Math.max(0, (maxPollAttempts - pollCount) * 3);
               console.log('⏳ DuckK 작업 진행 중:', taskData.status || 'PENDING', `(남은 시간: ~${eta}초)`);
@@ -303,9 +305,10 @@ export const useSpeechRecognition = (sessionId = null) => {
             if (pollCount >= maxPollAttempts) {
               setError('음성 처리 작업 상태를 가져올 수 없습니다.');
               setIsProcessing(false);
-              clearInterval(intervalId);
+              clearTimeout(intervalId);
               intervalId = null;
               currentJobId = null;
+              return;
             }
           }
         } catch (err) {
@@ -313,14 +316,17 @@ export const useSpeechRecognition = (sessionId = null) => {
           if (pollCount >= maxPollAttempts) {
             setError('서버 작업 상태 조회 실패: ' + (err.message || String(err)));
             setIsProcessing(false);
-            clearInterval(intervalId);
+            clearTimeout(intervalId);
             intervalId = null;
             currentJobId = null;
+            return;
           } else {
             console.log(`🔄 폴링 재시도 중... (${pollCount}/${maxPollAttempts})`);
           }
         }
-      }, 3000); // 3초마다 상태 확인
+        intervalId = setTimeout(poll, getInterval(pollCount));
+      };
+      poll();
     };
 
 
