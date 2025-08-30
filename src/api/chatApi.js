@@ -461,6 +461,28 @@ const chatApi = {
       throw error;
     }
   },
+
+  // Duckey Chat (F/T type)
+  sendDuckyChatMessage: async (request, accessToken) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/chatgpt/ducky-chat`, {
+        method: "POST",
+        headers: createAuthHeader(accessToken),
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('sendDuckyChatMessage error:', error);
+      throw error;
+    }
+  },
 };
 
 export default chatApi;
