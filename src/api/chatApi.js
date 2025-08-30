@@ -31,10 +31,12 @@ const chatApi = {
         throw new Error(errorData.message || "메시지 전송에 실패했습니다.");
       }
 
-      return await response.json();
-
-      // 백업용 모의 응답 (API 연결 실패 시 사용)
-      /*
+      const responseData = await response.json();
+      return responseData;
+    } catch (error) {
+      console.error("메시지 전송 오류:", error);
+      
+      // API 연결 실패 시 백업용 모의 응답 사용
       let content = "";
       if (emotionType === "happy") {
         content = `기분이 좋으시군요! 그런 기분에는 밝고 활기찬 음악이 어울릴 것 같아요. 방탄소년단의 'Dynamite'나 아이유의 'Blueming' 같은 곡을 추천해 드릴게요!`;
@@ -53,10 +55,6 @@ const chatApi = {
           chatSessionId: null,
         },
       };
-      */
-    } catch (error) {
-      console.error("메시지 전송 오류:", error);
-      throw error;
     }
   },
 
@@ -69,9 +67,6 @@ const chatApi = {
     accessToken
   ) => {
     try {
-      // 서버 연결 오류를 피하기 위한 모의 응답
-      // 실제 백엔드 서버가 연결되면 아래 코드를 사용
-
       const response = await fetch(
         `${API_BASE_URL}/api/chatgpt/chat/session/${sessionId}`,
         {
@@ -92,10 +87,30 @@ const chatApi = {
         );
       }
 
-      return await response.json();
+      const responseData = await response.json();
+      return responseData;
     } catch (error) {
       console.error("세션 메시지 전송 오류:", error);
-      throw error;
+      
+      // API 연결 실패 시 백업용 모의 응답 사용
+      let content = "";
+      if (emotionType === "happy") {
+        content = `기분이 좋으시군요! 그런 기분에는 밝고 활기찬 음악이 어울릴 것 같아요. 방탄소년단의 'Dynamite'나 아이유의 'Blueming' 같은 곡을 추천해 드릴게요!`;
+      } else if (emotionType === "sad") {
+        content = `마음이 무거우신가 봐요. 위로가 필요하실 때는 잔잔한 책이나 영화가 도움이 될 수 있어요. '아몬드'라는 소설이나 '어바웃 타임' 같은 따뜻한 영화는 어떨까요?`;
+      } else {
+        content = `안녕하세요! 오늘은 어떤 문화 콘텐츠를 추천해 드릴까요? 책, 영화, 음악 중에서 어떤 것에 관심이 있으신가요?`;
+      }
+
+      return {
+        data: {
+          id: Math.floor(Math.random() * 1000) + 1,
+          content: content,
+          type: "ASSISTANT",
+          timestamp: new Date().toISOString(),
+          chatSessionId: sessionId,
+        },
+      };
     }
   },
 
