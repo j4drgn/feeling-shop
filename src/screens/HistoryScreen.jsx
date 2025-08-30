@@ -5,6 +5,8 @@ import {
   ShoppingBag,
   User,
   ChevronRight,
+  ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +22,7 @@ export const HistoryScreen = ({
   const { colors, isThinking } = useThemeContext();
   const [showHistoryDetails, setShowHistoryDetails] = useState(false);
   const [selectedChatSession, setSelectedChatSession] = useState(null);
+  const [selectedProducts, setSelectedProducts] = useState([]);
 
   // 채팅 세션을 날짜별로 그룹화하는 함수
   const groupChatBySession = () => {
@@ -170,40 +173,81 @@ export const HistoryScreen = ({
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Heart className="h-5 w-5 text-red-500" />
-              Liked Products
+              좋아요한 상품
               <Badge
                 variant="secondary"
                 className="ml-auto bg-white/50 text-foreground"
               >
                 {likedProducts.length}
               </Badge>
+              
+              {selectedProducts.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-2 h-8 bg-white/60 hover:bg-white/80 text-red-500"
+                  onClick={() => setSelectedProducts([])}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  {selectedProducts.length}개 선택 해제
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {likedProducts.length > 0 ? (
               <div className="grid gap-3">
-                {likedProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-white/50 backdrop-blur-sm border border-white/40 shadow-sm"
-                  >
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-12 h-12 rounded-lg object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm text-foreground truncate">
-                        {product.name}
-                      </h3>
-                      <p className="text-primary font-semibold text-sm">
-                        {product.price}
-                      </p>
+                                  {likedProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg bg-white/50 backdrop-blur-sm border ${selectedProducts.includes(product.id) ? 'border-primary/60 bg-primary/5' : 'border-white/40'} shadow-sm relative`}
+                      onClick={() => {
+                        if (selectedProducts.includes(product.id)) {
+                          setSelectedProducts(selectedProducts.filter(id => id !== product.id));
+                        } else {
+                          setSelectedProducts([...selectedProducts, product.id]);
+                        }
+                      }}
+                    >
+                      {selectedProducts.includes(product.id) && (
+                        <div className="absolute -left-1 -top-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
+                      )}
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-12 h-12 rounded-lg object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-sm text-foreground truncate">
+                          {product.name}
+                        </h3>
+                        <p className="text-primary font-semibold text-sm">
+                          {product.price}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {product.category}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-full bg-white/60 hover:bg-white/80"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (product.productUrl) {
+                              window.open(product.productUrl, '_blank');
+                            } else {
+                              window.open('https://example.com/product', '_blank');
+                            }
+                          }}
+                        >
+                          <ExternalLink className="h-4 w-4 text-blue-500" />
+                        </Button>
+                      </div>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {product.category}
-                    </Badge>
-                  </div>
                 ))}
               </div>
             ) : (
