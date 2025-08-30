@@ -118,6 +118,51 @@ const authApi = {
       throw error;
     }
   },
+
+  // 사용자 프로필 조회
+  getUserProfile: async (accessToken) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/me/profile`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '사용자 프로필을 가져오는데 실패했습니다.');
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // 사용자 프로필 업데이트
+  updateUserProfile: async (profileData, accessToken) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/me/profile`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || '사용자 프로필 업데이트에 실패했습니다.');
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default authApi;

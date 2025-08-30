@@ -1,5 +1,6 @@
 // 사용자 프로파일링 및 개인화 추천 시스템
 import { emotionAnalysisEngine } from './emotionAnalysis.js';
+import authApi from '../api/authApi.js';
 
 export class UserProfileService {
   constructor() {
@@ -16,6 +17,32 @@ export class UserProfileService {
       return saved ? JSON.parse(saved) : this.getDefaultProfile();
     } catch (error) {
       return this.getDefaultProfile();
+    }
+  }
+
+  // 서버에서 프로필 불러오기
+  async loadProfileFromServer() {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        console.log('액세스 토큰이 없어 서버에서 프로필을 불러올 수 없습니다.');
+        return this.loadProfile(); // 로컬에서 불러오기
+      }
+
+      const response = await authApi.getUserProfile(accessToken);
+      if (response.success && response.data) {
+        const serverProfile = JSON.parse(response.data);
+        // 서버 데이터를 로컬에 저장
+        localStorage.setItem(this.storageKey, JSON.stringify(serverProfile));
+        this.userProfile = serverProfile;
+        return serverProfile;
+      } else {
+        console.log('서버에서 프로필을 불러오는데 실패했습니다. 로컬 데이터를 사용합니다.');
+        return this.loadProfile();
+      }
+    } catch (error) {
+      console.error('서버에서 프로필을 불러오는 중 오류 발생:', error);
+      return this.loadProfile(); // 오류 시 로컬 데이터 사용
     }
   }
 
@@ -119,7 +146,26 @@ export class UserProfileService {
   saveProfile() {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.userProfile));
+      this.saveProfileToServer(); // 서버에도 저장
     } catch (error) {
+      console.error('프로필 저장 중 오류:', error);
+    }
+  }
+
+  // 서버에 프로필 저장
+  async saveProfileToServer() {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        console.log('액세스 토큰이 없어 서버에 프로필을 저장할 수 없습니다.');
+        return;
+      }
+
+      const profileData = JSON.stringify(this.userProfile);
+      await authApi.updateUserProfile(profileData, accessToken);
+      console.log('프로필이 서버에 성공적으로 저장되었습니다.');
+    } catch (error) {
+      console.error('서버에 프로필을 저장하는 중 오류 발생:', error);
     }
   }
 

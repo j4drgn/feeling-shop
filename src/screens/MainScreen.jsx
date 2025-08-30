@@ -42,6 +42,7 @@ export const MainScreen = () => {
   const [profileQuestion, setProfileQuestion] = useState(null);
   const [chatSessionId, setChatSessionId] = useState(null);
   const [contentRecommendations, setContentRecommendations] = useState([]);
+  const [conversationHistory, setConversationHistory] = useState([]);
   const characterRef = useRef(null);
   const lastSpokenTextRef = useRef(null);
   const speakTimeoutRef = useRef(null);
@@ -293,6 +294,15 @@ export const MainScreen = () => {
           'conversation'
         );
       }
+
+      // 사용자 메시지를 히스토리에 추가
+      const userMessage = {
+        role: 'user',
+        content: input,
+        emotion: emotionAnalysis,
+        timestamp: new Date().toISOString()
+      };
+      setConversationHistory(prev => [...prev, userMessage]);
       
       // 오프라인 모드 처리
       if (isOfflineMode) {
@@ -326,12 +336,13 @@ export const MainScreen = () => {
           return;
         }
 
-        // Duckey Chat API 호출
+        // Duckey Chat API 호출 - 대화 히스토리 포함
         const apiResponse = await chatApi.sendDuckyChatMessage(
           {
             message: input,
             characterProfile: characterProfile, // "F형" or "T형"
             extractedLabelsJson: emotion ? JSON.stringify(emotion) : null, // 감정 분석 결과를 JSON으로
+            conversationHistory: conversationHistory.slice(-5), // 최근 5개의 메시지만 포함
           },
           accessToken
         );
@@ -348,6 +359,14 @@ export const MainScreen = () => {
             throw new Error("API 응답이 올바르지 않습니다.");
           }
           
+          // AI 응답을 히스토리에 추가
+          const aiMessage = {
+            role: 'assistant',
+            content: response,
+            timestamp: new Date().toISOString()
+          };
+          setConversationHistory(prev => [...prev, aiMessage]);
+
           // 새 세션 ID가 생성되었으면 설정
           if (apiResponse.sessionId) {
             setChatSessionId(apiResponse.sessionId);
