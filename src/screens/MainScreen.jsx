@@ -116,7 +116,7 @@ export const MainScreen = () => {
     taskStatus,
   } = useSpeechRecognition(chatSessionId);
 
-  const { speak, isSpeaking, stopSpeaking, hasUserInteracted } = useSpeechSynthesis({
+  const { speak, isSpeaking, stopSpeaking, hasUserInteracted, setUserInteracted } = useSpeechSynthesis({
     onEnd: () => {
       // 음성 출력이 끝났을 때 애니메이션을 idle로 복원
       if (currentAnimation !== "idle" && !isListening) {
@@ -771,6 +771,9 @@ export const MainScreen = () => {
         triggerAnimation("happy");
       }
 
+      // 음성 녹음 시작시 사용자 상호작용 수동 설정 (TTS 허용)
+      setUserInteracted();
+      
       startListening();
       setCharacterText("듣고 있어요... 편안하게 말해보세요!");
       setUserText(""); // 이전 텍스트 초기화

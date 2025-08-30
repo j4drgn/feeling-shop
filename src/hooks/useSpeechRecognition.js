@@ -11,120 +11,23 @@ export const useSpeechRecognition = (sessionId = null) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [taskStatus, setTaskStatus] = useState(null);
   
-  const recognitionRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
   const mediaStreamRef = useRef(null);
-  const audioDataRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
   const timeoutRef = useRef(null);
+  const recordingStartTimeRef = useRef(null);
 
-  // 브라우저 호환성 확인
+  // 미디어 호환성 확인 (음성 녹음만)
   useEffect(() => {
-    const SpeechRecognition = 
-      window.SpeechRecognition || 
-      window.webkitSpeechRecognition;
-    
-    if (SpeechRecognition && navigator.mediaDevices?.getUserMedia) {
+    if (navigator.mediaDevices?.getUserMedia) {
       setIsSupported(true);
     } else {
-      setError('음성 인식을 지원하지 않는 브라우저입니다.');
+      setError('음성 녹음을 지원하지 않는 브라우저입니다.');
     }
   }, []);
 
-  // 음성 특징 분석 함수
-  const analyzeAudioFeatures = useCallback((audioData) => {
-    // 음량 계산
-    const volume = audioData.reduce((sum, sample) => sum + Math.abs(sample), 0) / audioData.length;
-    
-    // 피치 추정 (간단한 자기상관 방식)
-    let pitch = 0;
-    const sampleRate = audioContextRef.current?.sampleRate || 44100;
-    const minPeriod = Math.floor(sampleRate / 500); // 최대 500Hz
-    const maxPeriod = Math.floor(sampleRate / 50);  // 최소 50Hz
-    
-    let maxCorrelation = 0;
-    for (let period = minPeriod; period < maxPeriod && period < audioData.length / 2; period++) {
-      let correlation = 0;
-      for (let i = 0; i < audioData.length - period; i++) {
-        correlation += audioData[i] * audioData[i + period];
-      }
-      if (correlation > maxCorrelation) {
-        maxCorrelation = correlation;
-        pitch = sampleRate / period;
-      }
-    }
-    
-    // 속도 추정 (음성의 변화율)
-    let speed = 0;
-    for (let i = 1; i < audioData.length; i++) {
-      speed += Math.abs(audioData[i] - audioData[i - 1]);
-    }
-    speed = speed / (audioData.length - 1);
-    
-    return {
-      confidence: Math.min(volume * 10, 1), // 0-1 범위로 정규화
-      pitch: Math.min(pitch, 500),
-      speed: Math.min(speed * 1000, 10), // 적절한 범위로 스케일링
-      volume: Math.min(volume * 10, 1)
-    };
-  }, []);
 
-  // 감정 분석 함수
-  const analyzeEmotion = useCallback((transcript, audioFeatures) => {
-    const { pitch, speed, volume, confidence } = audioFeatures;
-    
-    // 텍스트 패턴 분석
-    const elongatedPattern = /(.)\1{2,}/g; // "아~~~", "네~~~" 등
-    const hasElongation = elongatedPattern.test(transcript);
-    const exclamationCount = (transcript.match(/[!?~]/g) || []).length;
-    
-    // 의문문 패턴 감지 (한국어)
-    const questionPatterns = [
-      /\b(왜|어떻게|무엇|언제|어디|누구|뭐|어떤|어느)\b/,
-      /\b(해|돼|돼요|인가요|나요|까|을까|ㄹ까)\b$/,
-      /\b(있어|없어|할까|먹을까|갈까)\b$/
-    ];
-    
-    const hasQuestionWords = questionPatterns.some(pattern => pattern.test(transcript));
-    
-    // 감정 규칙 기반 분석
-    let emotion = 'neutral';
-    let description = '중립적인 톤';
-    
-    if (hasElongation && pitch > 200 && exclamationCount > 0) {
-      emotion = 'sarcastic';
-      description = '비꼬는 듯한 톤으로 들립니다';
-    } else if (pitch > 250 && speed > 5 && volume > 0.7) {
-      emotion = 'excited';
-      description = '흥미롭고 활기찬 톤입니다';
-    } else if (pitch > 200 && volume > 0.6) {
-      emotion = 'happy';
-      description = '밝고 긍정적인 톤입니다';
-    } else if (pitch < 150 && speed < 3) {
-      emotion = 'sad';
-      description = '침울하고 느린 톤입니다';
-    } else if (volume > 0.8 && speed > 6) {
-      emotion = 'angry';
-      description = '화가 난 듯한 강한 톤입니다';
-    } else if (speed < 2 && volume < 0.3) {
-      emotion = 'frustrated';
-      description = '답답하고 조용한 톤입니다';
-    }
-    
-    return {
-      confidence,
-      emotion,
-      pitch,
-      speed,
-      volume,
-      description,
-      hasQuestionWords // 의문문 감지 결과 추가
-    };
-  }, []);
-
-  // 음성 인식 시작
+  // 음성 녹음 시작 (Whisper 전용)
   const startListening = useCallback(async () => {
     if (!isSupported || isListening) return;
 
@@ -132,11 +35,20 @@ export const useSpeechRecognition = (sessionId = null) => {
       setError(null);
       setResult(null);
       
-      // MediaStream 가져오기 (오디오 분석용)
-      mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // MediaStream 가져오기 (녹음용)
+      mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        } 
+      });
       
       // MediaRecorder 초기화 (음성 데이터 녹음용)
-      mediaRecorderRef.current = new MediaRecorder(mediaStreamRef.current);
+      mediaRecorderRef.current = new MediaRecorder(mediaStreamRef.current, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
       recordedChunksRef.current = [];
       
       mediaRecorderRef.current.ondataavailable = (event) => {
@@ -150,163 +62,38 @@ export const useSpeechRecognition = (sessionId = null) => {
         const audioBlob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
         const audioUrl = URL.createObjectURL(audioBlob);
         
-        // 기존 결과에 음성 데이터 추가
-        setResult(prevResult => ({
-          ...prevResult,
+        // 음성 파일을 결과에 추가 (Whisper가 처리)
+        setResult({
           audioBlob,
           audioUrl,
-          audioDuration: 0, // 추후 계산 가능
-        }));
+          audioDuration: recordingStartTimeRef.current ? Date.now() - recordingStartTimeRef.current : 0,
+          timestamp: Date.now(),
+          isVoiceInput: true,
+          // transcript는 Whisper가 처리 후 서버에서 받음
+          transcript: null,
+          emotion: null
+        });
       };
       
       // 녹음 시작
+      recordingStartTimeRef.current = Date.now();
       mediaRecorderRef.current.start();
+      setIsListening(true);
       
-      // Speech Recognition 설정
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'ko-KR';
-      
-      recognitionRef.current.onstart = () => {
-        setIsListening(true);
-        
-        // 5초 후 자동 타임아웃
-        timeoutRef.current = setTimeout(() => {
-          if (recognitionRef.current) {
-            recognitionRef.current.stop();
-            setError("듣기 시간이 초과되었어요. 다시 시도해주세요!");
-            setIsListening(false);
-          }
-        }, 5000);
-      };
-      
-      recognitionRef.current.onresult = (event) => {
-        // 타임아웃 클리어
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
-        
-        if (!event.results || event.results.length === 0) return;
-        
-        let transcript = event.results[0][0].transcript;
-        const speechConfidence = event.results[0][0].confidence;
-        
-        // 중복 방지: 이전 결과와 같으면 무시
-        if (result && result.transcript === transcript) {
-          return;
-        }
-        
-        // 의문문 패턴 감지 및 물음표 추가
-        const questionPatterns = [
-          /\b(왜|어떻게|무엇|언제|어디|누구|뭐|어떤|어느)\b/,
-          /\b(해|돼|돼요|인가요|나요|까|을까|ㄹ까)\b$/,
-          /\b(있어|없어|할까|먹을까|갈까)\b$/
-        ];
-        
-        const isQuestion = questionPatterns.some(pattern => pattern.test(transcript));
-        if (isQuestion && !transcript.includes('?')) {
-          transcript += '?';
-        }
-        
-        // 오디오 특징 추출
-        if (analyserRef.current && audioDataRef.current) {
-          analyserRef.current.getFloatTimeDomainData(audioDataRef.current);
-          const audioFeatures = analyzeAudioFeatures(audioDataRef.current);
-          const emotion = analyzeEmotion(transcript, audioFeatures);
-          
-          setResult({
-            transcript,
-            emotion: {
-              ...emotion,
-              isVoiceInput: true,
-              questionDetected: isQuestion,
-              timestamp: Date.now(),
-              duration: 0, // 추후 녹음 시간 추가 가능
-            },
-            confidence: speechConfidence
-          });
-        } else {
-          // 오디오 분석이 실패한 경우 기본값
-          setResult({
-            transcript,
-            emotion: {
-              confidence: speechConfidence,
-              emotion: 'neutral',
-              pitch: 0,
-              speed: 0,
-              volume: 0,
-              description: '음성 분석을 완료했습니다',
-              hasQuestionWords: isQuestion
-            },
-            confidence: speechConfidence
-          });
-        }
-        
-        // 음성 인식 완료 후 즉시 중지
-        if (recognitionRef.current) {
-          recognitionRef.current.stop();
-        }
-        
-        // 녹음 중지
+      // 10초 후 자동 녹음 중지 (사용자가 길게 말할 수 있도록 연장)
+      timeoutRef.current = setTimeout(() => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
           mediaRecorderRef.current.stop();
+          setIsListening(false);
         }
-      };
+      }, 10000); // 10초로 연장
       
-      recognitionRef.current.onerror = (event) => {
-        // 타임아웃 클리어
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
-        
-        let friendlyMessage;
-        switch (event.error) {
-          case 'no-speech':
-            friendlyMessage = "잘 들리지 않았어요. 다시 한 번 말해보세요!";
-            break;
-          case 'audio-capture':
-            friendlyMessage = "마이크에 문제가 있는 것 같아요. 마이크를 확인해주세요!";
-            break;
-          case 'not-allowed':
-            friendlyMessage = "마이크 사용 권한을 허용해주세요!";
-            break;
-          case 'network':
-            friendlyMessage = "인터넷 연결을 확인해주세요!";
-            break;
-          case 'language-not-supported':
-            friendlyMessage = "지원하지 않는 언어예요. 다른 언어로 말해보세요!";
-            break;
-          case 'service-not-allowed':
-            friendlyMessage = "음성 인식 서비스를 사용할 수 없어요. 잠시 후 다시 시도해주세요!";
-            break;
-          default:
-            friendlyMessage = "음성을 인식하지 못했어요. 다시 시도해주세요!";
-        }
-        setError(friendlyMessage);
-        setIsListening(false);
-      };
-      
-      recognitionRef.current.onend = () => {
-        // 타임아웃 클리어
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-          timeoutRef.current = null;
-        }
-        
-        setIsListening(false);
-        cleanup();
-      };
-      
-      recognitionRef.current.start();
     } catch (err) {
       setError('마이크 접근 권한이 필요합니다.');
       setIsListening(false);
+      console.error('음성 녹음 시작 실패:', err);
     }
-  }, [isSupported, analyzeAudioFeatures, analyzeEmotion]);
+  }, [isSupported]);
 
   // audioBlob이 setResult에 들어오면 서버에 업로드하여 Whisper 등으로 전사 및 라벨링 요청
   useEffect(() => {
@@ -320,14 +107,14 @@ export const useSpeechRecognition = (sessionId = null) => {
         const accessToken = localStorage.getItem('accessToken') || null;
         console.log('🔑 액세스 토큰:', accessToken ? '있음' : '없음');
 
-        // 음성 메타데이터 준비
+        // 음성 메타데이터 준비 (Whisper가 처리하므로 기본값 사용)
         const voiceMetadata = {
-          duration: prevResult?.emotion?.duration || prevResult?.audioDuration || 1.0,
-          sampleRate: audioContextRef.current?.sampleRate || 16000,
-          pitch: prevResult?.emotion?.pitch || 0,
-          volume: prevResult?.emotion?.volume || 0,
-          speed: prevResult?.emotion?.speed || 0,
-          confidence: prevResult?.emotion?.confidence || prevResult?.confidence || 0.5,
+          duration: prevResult?.audioDuration || 1.0,
+          sampleRate: 16000, // 고정값 사용
+          pitch: 0,
+          volume: 0,
+          speed: 0,
+          confidence: 0.5,
         };
 
         console.log('📊 음성 메타데이터:', voiceMetadata);
@@ -363,7 +150,7 @@ export const useSpeechRecognition = (sessionId = null) => {
             setResult(prev => ({
               ...prev,
               serverJobId: jobId,
-              isProcessing: true,
+              isProcessing: false, // 폴링을 시작하기 위해 false로 설정
               audioBlob: null, // 업로드 완료 후 audioBlob 제거
             }));
           } 
@@ -476,13 +263,22 @@ export const useSpeechRecognition = (sessionId = null) => {
                   }
                 })() : prev.serverLabels,
                 audioBlob: null,
-                serverJobId: null, // 완료 후 serverJobId 제거
+                // serverJobId를 완료 후에도 유지하여 폴링이 중단되지 않도록 함
                 isProcessing: false,
               }));
               setIsProcessing(false);
               clearInterval(intervalId);
               intervalId = null;
               currentJobId = null;
+              
+              // 완료 후 serverJobId를 제거하여 재폴링 방지
+              setTimeout(() => {
+                setResult(prev => ({
+                  ...prev,
+                  serverJobId: null
+                }));
+              }, 100);
+              
             } else if (taskData.status === 'FAILED' || taskData.errorMessage) {
               console.log('❌ DuckK 작업 실패:', taskData.errorMessage);
               setError(taskData.errorMessage || '음성 처리 작업이 실패했습니다.');
@@ -527,22 +323,24 @@ export const useSpeechRecognition = (sessionId = null) => {
       }, 3000); // 3초마다 상태 확인
     };
 
-    if (result && result.serverJobId) {
-      console.log('🚀 serverJobId 감지됨, 폴링 시작');
+
+    if (result && result.serverJobId && result.isProcessing === false) {
+      console.log('🚀 serverJobId 감지됨, 폴링 시작:', result.serverJobId);
       startPolling(result.serverJobId);
     }
 
     return () => {
-      if (intervalId) {
+      // 완료된 작업의 경우 cleanup을 하지 않음
+      if (intervalId && result && result.isProcessing !== false) {
         console.log('🛑 폴링 중지 (cleanup)');
         clearInterval(intervalId);
         intervalId = null;
         currentJobId = null;
       }
     };
-  }, [result?.serverJobId]);
+  }, [result?.serverJobId, result?.isProcessing]);
 
-  // 음성 인식 중지
+  // 음성 녹음 중지
   const stopListening = useCallback(() => {
     // 타임아웃 클리어
     if (timeoutRef.current) {
@@ -550,9 +348,12 @@ export const useSpeechRecognition = (sessionId = null) => {
       timeoutRef.current = null;
     }
     
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
+    // 녹음 중지
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
     }
+    
+    setIsListening(false);
     cleanup();
   }, []);
 
@@ -562,11 +363,6 @@ export const useSpeechRecognition = (sessionId = null) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
-    }
-    
-    // 음성 인식 중지
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
     }
     
     // 녹음 중지
@@ -579,15 +375,9 @@ export const useSpeechRecognition = (sessionId = null) => {
       mediaStreamRef.current = null;
     }
     
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-    
-    analyserRef.current = null;
-    audioDataRef.current = null;
     mediaRecorderRef.current = null;
     recordedChunksRef.current = [];
+    recordingStartTimeRef.current = null;
   }, []);
 
   // 컴포넌트 언마운트 시 정리

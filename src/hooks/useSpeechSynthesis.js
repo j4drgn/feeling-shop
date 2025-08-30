@@ -19,11 +19,16 @@ export const useSpeechSynthesis = (options = {}) => {
     document.addEventListener('click', handleUserInteraction);
     document.addEventListener('touchstart', handleUserInteraction);
     document.addEventListener('keydown', handleUserInteraction);
+    // 음성 녹음 관련 상호작용 감지
+    document.addEventListener('pointerdown', handleUserInteraction);
+    document.addEventListener('mousedown', handleUserInteraction);
 
     return () => {
       document.removeEventListener('click', handleUserInteraction);
       document.removeEventListener('touchstart', handleUserInteraction);
       document.removeEventListener('keydown', handleUserInteraction);
+      document.removeEventListener('pointerdown', handleUserInteraction);
+      document.removeEventListener('mousedown', handleUserInteraction);
     };
   }, []);
 
@@ -177,6 +182,12 @@ export const useSpeechSynthesis = (options = {}) => {
       return;
     }
 
+    // 사용자 상호작용이 없으면 TTS 스킵
+    if (!hasUserInteracted) {
+      console.warn('User interaction required for TTS, skipping:', text);
+      return;
+    }
+
     // 이미 말하고 있는 경우 스킵
     if (isSpeaking) {
       console.warn('Already speaking in TTS, skipping:', text);
@@ -255,6 +266,13 @@ export const useSpeechSynthesis = (options = {}) => {
         utteranceRef.current = null;
         return;
       }
+      // 'not-allowed' 오류는 무시 (브라우저 정책으로 인한 차단)
+      if (event.error === 'not-allowed') {
+        console.warn('TTS blocked by browser policy, user interaction required');
+        setIsSpeaking(false);
+        utteranceRef.current = null;
+        return;
+      }
       setError(`Animalese 음성 재생 오류: ${event.error || 'Unknown error'}`);
       setIsSpeaking(false);
       utteranceRef.current = null;
@@ -269,7 +287,7 @@ export const useSpeechSynthesis = (options = {}) => {
       setError('Animalese 음성 재생에 실패했습니다.');
       setIsSpeaking(false);
     }
-  }, [isSupported, isSpeaking]);
+  }, [isSupported, isSpeaking, hasUserInteracted]);
 
   // 메인 speak 함수 - TTS만 사용 (음성 파일 생략)
   const speak = useCallback((text, options = {}) => {
@@ -328,6 +346,11 @@ export const useSpeechSynthesis = (options = {}) => {
     }
   }, []);
 
+  // 수동으로 사용자 상호작용 설정하는 함수
+  const setUserInteracted = useCallback(() => {
+    setHasUserInteracted(true);
+  }, []);
+
   return {
     isSpeaking,
     isSupported,
@@ -336,6 +359,7 @@ export const useSpeechSynthesis = (options = {}) => {
     speak,
     stopSpeaking,
     pauseSpeaking,
-    resumeSpeaking
+    resumeSpeaking,
+    setUserInteracted
   };
 };
