@@ -4,13 +4,14 @@ import SpeechBubble from "@/components/SpeechBubble";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { useSpeechSynthesis } from "@/hooks/useSpeechSynthesis";
 import { useDuckAnimation } from "@/hooks/useDuckAnimation";
-import { User, Mic, Volume2, VolumeX, Send } from "lucide-react";
+import { User, Mic, Volume2, VolumeX, Send, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThumbSwitch } from "@/components/ui/ThumbSwitch";
 import { Brain, Heart } from "lucide-react";
 import { useThemeContext } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import QuickAccessButton from "@/components/QuickAccessButton";
 
 export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
   const { isThinking, toggleTheme } = useThemeContext();
@@ -469,6 +470,20 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
           </div>
         </footer>
       </main>
+
+      {/* 상세 제품 화면으로 이동하는 퀵 액세스 버튼 */}
+      <QuickAccessButton
+        icon={<ShoppingBag className="h-5 w-5" />}
+        label="상품 보기"
+        onClick={onNavigateToProducts}
+        position="bottom-right"
+        variant="ghost"
+        size="md"
+        showLabel={true}
+        labelPosition="top"
+        className="z-50"
+        data-testid="product-quick-access"
+      />
     </div>
   );
 };

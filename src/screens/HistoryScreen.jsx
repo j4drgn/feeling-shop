@@ -16,6 +16,7 @@ import { useState } from "react";
 
 export const HistoryScreen = ({
   onNavigateToMain,
+  onNavigateToProducts,
   likedProducts,
   chatHistory,
 }) => {
@@ -23,6 +24,10 @@ export const HistoryScreen = ({
   const [showHistoryDetails, setShowHistoryDetails] = useState(false);
   const [selectedChatSession, setSelectedChatSession] = useState(null);
   const [selectedProducts, setSelectedProducts] = useState([]);
+  const [showAllProducts, setShowAllProducts] = useState(false);
+
+  // 초기에 표시할 상품 개수
+  const initialProductCount = 2;
 
   // 채팅 세션을 날짜별로 그룹화하는 함수
   const groupChatBySession = () => {
@@ -55,7 +60,113 @@ export const HistoryScreen = ({
 
   // 채팅 세션 상세 보기 렌더링
   const renderChatSessionDetails = () => {
-    if (!selectedChatSession) return null;
+    if (!selectedChatSession) {
+      // 선택된 세션이 없으면 전체 채팅 히스토리 표시
+      return (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 flex items-center justify-center p-4">
+          <Card className="glassmorphism-card border border-white/60 shadow-lg w-full max-w-md max-h-[80vh] overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowHistoryDetails(false)}
+                  className="rounded-full bg-white/40 hover:bg-white/60 text-foreground shadow-sm border border-white/40 -ml-2"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <CardTitle className="text-lg">대화 내역</CardTitle>
+                <div className="w-8"></div> {/* 균형을 위한 빈 공간 */}
+              </div>
+            </CardHeader>
+            <CardContent className="overflow-y-auto max-h-[60vh]">
+              <div className="space-y-4">
+                {chatSessions.length > 0 ? (
+                  <>
+                    {/* 최신 대화 세션 표시 */}
+                    {latestSession && (
+                      <div className="bg-white/50 backdrop-blur-sm border border-white/40 rounded-lg p-3 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-xs text-muted-foreground">
+                              Latest Chat Session
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {latestSession.date}
+                          </span>
+                        </div>
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {latestSession.messages.slice(0, 2).map((message) => (
+                            <div key={message.id} className="text-sm">
+                              <span
+                                className={`font-medium ${
+                                  message.role === "user"
+                                    ? "text-primary"
+                                    : "text-foreground"
+                                }`}
+                              >
+                                {message.role === "user" ? "You: " : "Duck: "}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {message.content.length > 80
+                                  ? `${message.content.substring(0, 80)}...`
+                                  : message.content}
+                              </span>
+                            </div>
+                          ))}
+                          {latestSession.messages.length > 2 && (
+                            <div
+                              className="text-xs text-primary font-medium text-right cursor-pointer"
+                              onClick={() =>
+                                setSelectedChatSession(latestSession)
+                              }
+                            >
+                              {latestSession.messages.length - 2}개 더보기...
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 이전 대화 세션 목록 */}
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium mb-2">이전 대화</h3>
+                      <div className="space-y-2">
+                        {chatSessions.slice(0, -1).map((session) => (
+                          <div
+                            key={session.id}
+                            className="flex items-center justify-between p-3 rounded-lg bg-white/30 backdrop-blur-sm border border-white/30 shadow-sm cursor-pointer hover:bg-white/40 transition-colors"
+                            onClick={() => setSelectedChatSession(session)}
+                          >
+                            <div>
+                              <div className="text-sm font-medium">
+                                {session.date}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {session.messages.length}개의 메시지
+                              </div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-lg p-4 shadow-sm">
+                    <p className="text-muted-foreground text-sm text-center">
+                      No conversations yet. Tap the duck to start chatting!
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
 
     return (
       <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 flex items-center justify-center p-4">
@@ -65,7 +176,7 @@ export const HistoryScreen = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowHistoryDetails(false)}
+                onClick={() => setSelectedChatSession(null)}
                 className="rounded-full bg-white/40 hover:bg-white/60 text-foreground shadow-sm border border-white/40 -ml-2"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -101,11 +212,12 @@ export const HistoryScreen = ({
       </div>
     );
   };
+
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-y-auto">
       {showHistoryDetails && renderChatSessionDetails()}
       <div
-        className="absolute inset-0"
+        className="fixed inset-0 -z-10"
         style={{
           backgroundColor: colors.background,
           backgroundImage:
@@ -157,208 +269,49 @@ export const HistoryScreen = ({
       </div>
 
       {/* Content */}
-      <main className="p-4 space-y-8 relative z-10">
+      <main className="p-4 space-y-4 relative z-10">
         {/* Liked Products Section */}
         <Card className="glassmorphism-card border border-white/60 shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Heart className="h-5 w-5 text-red-500" />
-              좋아요한 상품
-              <Badge
-                variant="secondary"
-                className="ml-auto bg-white/50 text-foreground"
-              >
-                {likedProducts.length}
-              </Badge>
-              
-              {selectedProducts.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-2 h-8 bg-white/60 hover:bg-white/80 text-red-500"
-                  onClick={() => setSelectedProducts([])}
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  {selectedProducts.length}개 선택 해제
-                </Button>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {likedProducts.length > 0 ? (
-              <div className="grid gap-3">
-                                  {likedProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg bg-white/50 backdrop-blur-sm border ${selectedProducts.includes(product.id) ? 'border-primary/60 bg-primary/5' : 'border-white/40'} shadow-sm relative`}
-                      onClick={() => {
-                        if (selectedProducts.includes(product.id)) {
-                          setSelectedProducts(selectedProducts.filter(id => id !== product.id));
-                        } else {
-                          setSelectedProducts([...selectedProducts, product.id]);
-                        }
-                      }}
-                    >
-                      {selectedProducts.includes(product.id) && (
-                        <div className="absolute -left-1 -top-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs">✓</span>
-                        </div>
-                      )}
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm text-foreground truncate">
-                          {product.name}
-                        </h3>
-                        <p className="text-primary font-semibold text-sm">
-                          {product.price}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {product.category}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-full bg-white/60 hover:bg-white/80"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (product.productUrl) {
-                              window.open(product.productUrl, '_blank');
-                            } else {
-                              window.open('https://example.com/product', '_blank');
-                            }
-                          }}
-                        >
-                          <ExternalLink className="h-4 w-4 text-blue-500" />
-                        </Button>
-                      </div>
-                    </div>
-                ))}
-              </div>
-            ) : (
-              <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-lg p-4 shadow-sm">
-                <p className="text-muted-foreground text-sm text-center">
-                  No liked products yet. Start swiping to add favorites!
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Chat History Section */}
-        <Card className="glassmorphism-card border border-white/60 shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <MessageCircle className="h-5 w-5 text-primary" />
-              Recent Conversations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {chatSessions.length > 0 ? (
-              <div className="space-y-3">
-                {/* 최신 대화 세션 표시 */}
-                {latestSession && (
-                  <div className="bg-white/50 backdrop-blur-sm border border-white/40 rounded-lg p-3 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-xs text-muted-foreground">
-                          Latest Chat Session
-                        </span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {latestSession.date}
-                      </span>
-                    </div>
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {latestSession.messages.slice(0, 2).map((message) => (
-                        <div key={message.id} className="text-sm">
-                          <span
-                            className={`font-medium ${
-                              message.role === "user"
-                                ? "text-primary"
-                                : "text-foreground"
-                            }`}
-                          >
-                            {message.role === "user" ? "You: " : "Duck: "}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {message.content.length > 80
-                              ? `${message.content.substring(0, 80)}...`
-                              : message.content}
-                          </span>
-                        </div>
-                      ))}
-                      {latestSession.messages.length > 2 && (
-                        <div className="text-xs text-primary font-medium text-right">
-                          {latestSession.messages.length - 2}개 더보기...
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* 이전 대화 세션 목록 */}
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium mb-2">이전 대화</h3>
-                  <div className="space-y-2">
-                    {chatSessions.slice(0, -1).map((session) => (
-                      <div
-                        key={session.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-white/30 backdrop-blur-sm border border-white/30 shadow-sm cursor-pointer hover:bg-white/40 transition-colors"
-                        onClick={() => {
-                          setSelectedChatSession(session);
-                          setShowHistoryDetails(true);
-                        }}
-                      >
-                        <div>
-                          <div className="text-sm font-medium">
-                            {session.date}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {session.messages.length}개의 메시지
-                          </div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                    ))}
-                  </div>
+          <CardContent className="p-4">
+            <div
+              className="flex items-center justify-between cursor-pointer"
+              onClick={() => onNavigateToProducts && onNavigateToProducts()}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <Heart className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-medium">좋아요</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {likedProducts.length}개의 상품
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-lg p-4 shadow-sm">
-                <p className="text-muted-foreground text-sm text-center">
-                  No conversations yet. Tap the duck to start chatting!
-                </p>
-              </div>
-            )}
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
           </CardContent>
         </Card>
 
-        {/* Purchases Section (Placeholder) */}
+        {/* Chat History Section - 간결하게 수정 */}
         <Card className="glassmorphism-card border border-white/60 shadow-lg">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ShoppingBag className="h-5 w-5 text-green-600" />
-              Purchase History
-              <Badge
-                variant="secondary"
-                className="ml-auto bg-white/50 text-foreground"
-              >
-                0
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-lg p-4 shadow-sm">
-              <p className="text-muted-foreground text-sm text-center">
-                No purchases yet. Complete your first purchase to see it here!
-              </p>
+          <CardContent className="p-4">
+            <div
+              className="flex items-center justify-between cursor-pointer"
+              onClick={() => setShowHistoryDetails(true)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <MessageCircle className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-medium">ChatHistory</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {chatSessions.length}개의 대화
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
