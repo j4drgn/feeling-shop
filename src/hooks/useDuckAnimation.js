@@ -10,7 +10,7 @@ const EMOTION_TO_ANIMATION = {
   happy: 'happy',
   excited: 'happy',
   joyful: 'happy',
-  enthusiastic: 'gift', // Special celebration
+  enthusiastic: 'gift_sequence', // Special celebration with walk sequence
   
   sad: 'idle', // Calm, empathetic
   frustrated: 'mad',
@@ -21,10 +21,14 @@ const EMOTION_TO_ANIMATION = {
   calm: 'idle',
   thoughtful: 'idle',
   
-  // Conversation context
+  // New emotions for product interactions
+  hungry: 'hungry',
+  wanting: 'hungryfast',
+  
+  // Conversation context  
   greeting: 'happy',
-  farewell: 'gift',
-  shopping: 'gift',
+  farewell: 'walkback',
+  shopping: 'gift_sequence', // Full sequence: walk back -> get gift -> walk forward
   thanking: 'happy',
   
   // Default
@@ -33,8 +37,13 @@ const EMOTION_TO_ANIMATION = {
 
 // Animation priorities (higher number = higher priority)
 const ANIMATION_PRIORITY = {
-  gift: 100,     // Highest - special celebrations
+  gift_sequence: 110, // Highest - full sequence 
+  gift: 100,     // High - special celebrations
+  walkback: 95,  // High - movement animations
+  walkforward: 95, // High - movement animations
   mad: 90,       // High - negative emotions need attention
+  hungryfast: 80, // Medium-high - urgent emotions
+  hungry: 75,    // Medium-high - wanting emotions
   happy: 70,     // Medium-high - positive emotions
   talk: 50,      // Medium - speaking state
   idle: 10       // Lowest - default state
@@ -42,9 +51,14 @@ const ANIMATION_PRIORITY = {
 
 // Animation durations (in milliseconds)
 const ANIMATION_DURATION = {
-  gift: 5000,    // 5 seconds for gift animation
+  gift_sequence: 6000, // 6 seconds for full sequence
+  gift: 3000,    // 3 seconds for gift animation
+  walkback: 1500, // 1.5 seconds for walking back
+  walkforward: 1500, // 1.5 seconds for walking forward
   mad: 3500,     // 3.5 seconds for mad animation  
-  happy: 2000,   // 2 seconds for happy (shorter for better responsiveness)
+  hungry: 3000,  // 3 seconds for hungry
+  hungryfast: 2500, // 2.5 seconds for hungry fast
+  happy: 2000,   // 2 seconds for happy
   talk: 0,       // Continuous while speaking
   idle: 0        // Continuous
 };

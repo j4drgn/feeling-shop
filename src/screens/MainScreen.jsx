@@ -95,8 +95,8 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
     ) {
       response = "좋아! 내가 너한테 딱 맞는 걸 찾아줄게! 잠깐만 기다려~";
       context = "shopping";
-      triggerAnimation("gift", true);
-      setTimeout(() => onNavigateToProducts(), 3000);
+      triggerAnimation("gift_sequence", true);
+      setTimeout(() => onNavigateToProducts(), 6000); // Increased delay for full sequence
     } else if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
       if (emotionContext === "happy" || emotionContext === "excited") {
         response = "와! 정말 기분이 좋아 보여! 나도 기뻐~";
