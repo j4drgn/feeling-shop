@@ -125,8 +125,8 @@ export const MainScreen = () => {
         accessToken
       );
 
-      if (response && response.data) {
-        const newSessionId = response.data.id;
+      if (response && response.data && response.data.data) {
+        const newSessionId = response.data.data.id;
         setChatSessionId(newSessionId);
         localStorage.setItem("currentChatSessionId", newSessionId.toString());
         console.log("새 채팅 세션이 생성되었습니다:", newSessionId);
@@ -147,8 +147,11 @@ export const MainScreen = () => {
       return true;
     } catch (error) {
       console.error("세션 유효성 검증 실패:", error);
-      // 404 오류는 세션이 존재하지 않는다는 의미
-      if (error.message.includes("404") || error.message.includes("세션 메시지를 가져오는데 실패했습니다")) {
+      // 404 오류 또는 세션 관련 오류는 세션이 존재하지 않는다는 의미
+      if (error.message.includes("404") || 
+          error.message.includes("세션 메시지를 가져오는데 실패했습니다") ||
+          error.message.includes("채팅 세션을 찾을 수 없습니다") ||
+          error.message.includes("400")) {
         return false;
       }
       // 다른 오류는 일시적인 것으로 간주하고 true 반환
@@ -219,8 +222,8 @@ export const MainScreen = () => {
                   sessionTitle,
                   accessToken
                 );
-                if (newSessionResponse && newSessionResponse.data) {
-                  const newSessionId = newSessionResponse.data.id;
+                if (newSessionResponse && newSessionResponse.data && newSessionResponse.data.data) {
+                  const newSessionId = newSessionResponse.data.data.id;
                   setChatSessionId(newSessionId);
                   localStorage.setItem("currentChatSessionId", newSessionId.toString());
                   console.log("새 채팅 세션이 생성되었습니다:", newSessionId);
@@ -271,7 +274,16 @@ export const MainScreen = () => {
         }
 
         if (apiResponse && apiResponse.data) {
-          response = apiResponse.data.content;
+          // 백엔드 응답 구조에 따라 content 추출
+          if (typeof apiResponse.data === 'string') {
+            response = apiResponse.data;
+          } else if (apiResponse.data.content) {
+            response = apiResponse.data.content;
+          } else if (apiResponse.data.data && apiResponse.data.data.content) {
+            response = apiResponse.data.data.content;
+          } else {
+            throw new Error("API 응답이 올바르지 않습니다.");
+          }
 
           // 문화 콘텐츠 추천 관련 응답인 경우
           if (

@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import DuckCharacter from "@/components/DuckCharacter";
 import { useToast } from "@/components/ui/use-toast";
 import TestNavigationArrow from "@/components/TestNavigationArrow";
+import authApi from "@/api/authApi";
+import { useAuth } from "@/context/AuthContext";
 
 export const LoginScreen = () => {
   const [formData, setFormData] = useState({
@@ -16,94 +18,60 @@ export const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    console.log('로그인 시도:', formData);
 
-    // 로컬 스토리지에서 사용자 목록 가져오기
-    const usersString = localStorage.getItem("users");
-    const users = usersString ? JSON.parse(usersString) : [];
+    try {
+      console.log('API 호출 시작');
+      // API를 통해 로그인
+      const response = await authApi.login({
+        email: formData.email,
+        password: formData.password,
+      });
+      console.log('API 응답:', response);
 
-    // 사용자 인증
-    const user = users.find(
-      (u) => u.email === formData.email && u.password === formData.password
-    );
-
-    if (user) {
       // 로그인 성공
+      console.log('로그인 함수 호출 전');
+      await login(response.data);
+      console.log('로그인 함수 호출 후');
+
       toast({
         title: "로그인 성공",
-        description: `${user.nickname}님, 환영합니다!`,
+        description: `${response.data.user.nickname}님, 환영합니다!`,
       });
-
-      // 로그인 상태 저장
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem(
-        "currentUser",
-        JSON.stringify({
-          id: user.id,
-          email: user.email,
-          nickname: user.nickname,
-          profileImageUrl: user.profileImageUrl,
-        })
-      );
 
       // 메인 화면으로 이동
       setTimeout(() => {
         setIsLoading(false);
         window.location.href = "/";
       }, 1000);
-    } else {
+    } catch (error) {
+      console.log('로그인 에러:', error);
       // 로그인 실패
       toast({
         title: "로그인 실패",
-        description: "이메일 또는 비밀번호가 올바르지 않습니다.",
+        description: error.message || "이메일 또는 비밀번호가 올바르지 않습니다.",
         variant: "destructive",
       });
       setIsLoading(false);
     }
   };
 
-  // 테스트 계정 생성
+  // 테스트 계정 생성 (개발용)
   const createTestAccounts = () => {
-    const testAccounts = [
-      {
-        id: 1,
-        email: "test1@example.com",
-        password: "password1",
-        nickname: "테스트 사용자 1",
-        profileImageUrl: null,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        email: "test2@example.com",
-        password: "password2",
-        nickname: "테스트 사용자 2",
-        profileImageUrl: null,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 3,
-        email: "test3@example.com",
-        password: "password3",
-        nickname: "테스트 사용자 3",
-        profileImageUrl: null,
-        createdAt: new Date().toISOString(),
-      },
-    ];
-
-    localStorage.setItem("users", JSON.stringify(testAccounts));
-
+    // API를 통해 테스트 계정 생성 (필요시 백엔드에서 구현)
     toast({
-      title: "테스트 계정 생성 완료",
-      description: "3개의 테스트 계정이 생성되었습니다.",
+      title: "테스트 계정 생성",
+      description: "백엔드 API를 통해 테스트 계정을 생성하세요.",
     });
   };
 

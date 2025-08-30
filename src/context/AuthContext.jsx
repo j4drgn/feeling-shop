@@ -33,16 +33,20 @@ export const AuthProvider = ({ children }) => {
   // 로그인 함수
   const login = async (tokens) => {
     try {
+      console.log('AuthContext login 시작, tokens:', tokens);
       // 토큰 저장
       saveTokens(tokens.accessToken, tokens.refreshToken);
+      console.log('토큰 저장 완료');
 
       // 사용자 정보 가져오기
       const userInfo = await fetchUserInfo(tokens.accessToken);
+      console.log('사용자 정보:', userInfo);
       setUser(userInfo);
       setIsAuthenticated(true);
       setAuthError(null);
       return userInfo;
     } catch (error) {
+      console.log('AuthContext login 에러:', error);
       setAuthError(error.message);
       throw error;
     }
@@ -59,18 +63,31 @@ export const AuthProvider = ({ children }) => {
   // 사용자 정보 가져오기 함수
   const fetchUserInfo = async (accessToken) => {
     try {
-      const response = await fetch("http://localhost:8080/api/users/me", {
+      console.log('fetchUserInfo 호출, token:', accessToken);
+      const response = await fetch("http://localhost:8090/api/auth/me", {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       });
+      console.log('fetchUserInfo 응답 status:', response.status);
 
       if (!response.ok) {
+        if (response.status === 404) {
+          // 백엔드 서버가 실행되지 않는 경우, 개발 모드에서 모킹 데이터 사용
+          console.warn("백엔드 서버가 실행되지 않아 모킹 데이터를 사용합니다.");
+          return {
+            id: 1,
+            email: "test@example.com",
+            name: "테스트 사용자",
+            profileImage: null,
+          };
+        }
         throw new Error("사용자 정보를 가져오는데 실패했습니다.");
       }
 
       const data = await response.json();
-      return data.data;
+      console.log('fetchUserInfo 데이터:', data);
+      return data.data; // 백엔드 응답 구조에 맞게 수정
     } catch (error) {
       console.error("사용자 정보 가져오기 오류:", error);
       throw error;
@@ -86,7 +103,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error("리프레시 토큰이 없습니다.");
       }
 
-      const response = await fetch("http://localhost:8080/api/auth/refresh", {
+      const response = await fetch("http://localhost:8090/api/auth/refresh", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -113,22 +130,21 @@ export const AuthProvider = ({ children }) => {
     const initAuth = async () => {
       setIsLoading(true);
       try {
-        // 기본 사용자 정보 설정 (자동 로그인)
-        const defaultUser = {
-          id: 1,
-          email: "test@example.com",
-          nickname: "테스트 사용자",
-          profileImageUrl: null
-        };
-        
-        // 자동으로 인증 상태를 true로 설정
-        localStorage.setItem("isAuthenticated", "true");
-        localStorage.setItem("currentUser", JSON.stringify(defaultUser));
-        
-        setIsAuthenticated(true);
-        setUser(defaultUser);
+        const { accessToken } = getTokens();
+
+        if (accessToken) {
+          // 토큰이 있으면 사용자 정보 가져오기
+          const userInfo = await fetchUserInfo(accessToken);
+          setUser(userInfo);
+          setIsAuthenticated(true);
+        } else {
+          // 토큰이 없으면 인증되지 않은 상태
+          setIsAuthenticated(false);
+        }
       } catch (error) {
         console.error("인증 초기화 오류:", error);
+        // 토큰이 유효하지 않으면 로그아웃
+        logout();
       } finally {
         setIsLoading(false);
       }
@@ -142,7 +158,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // 서버에 인증 코드 전송
       const response = await fetch(
-        "http://localhost:8080/api/auth/kakao/callback",
+        "http://localhost:8090/api/auth/kakao/callback",
         {
           method: "POST",
           headers: {

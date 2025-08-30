@@ -30,26 +30,20 @@ const router = createBrowserRouter(
           path: "history",
           element: <HistoryScreen />,
         },
+        {
+          path: "login",
+          element: <LoginScreen />,
+        },
+        {
+          path: "signup",
+          element: <SignupScreen />,
+        },
       ],
-    },
-    {
-      path: "/login",
-      element: <LoginScreen />,
-    },
-    {
-      path: "/signup",
-      element: <SignupScreen />,
     },
   ],
   {
-    // v7 future flags 설정
     future: {
       v7_startTransition: true,
-      v7_relativeSplatPath: true,
-      v7_fetcherPersist: true,
-      v7_normalizeFormMethod: true,
-      v7_partialHydration: true,
-      v7_skipActionErrorRevalidation: true,
     },
   }
 );

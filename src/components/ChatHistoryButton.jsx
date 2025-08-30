@@ -16,8 +16,8 @@ const ChatHistoryButton = ({ onSelectSession }) => {
         const accessToken = localStorage.getItem("accessToken") || null;
         const response = await chatApi.getChatSessions(accessToken);
 
-        if (response && response.data) {
-          setSessions(response.data);
+        if (response && response.data && response.data.data) {
+          setSessions(response.data.data);
         }
       } catch (error) {
         console.error("채팅 세션 목록 가져오기 오류:", error);

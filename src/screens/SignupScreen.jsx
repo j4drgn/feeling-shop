@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import DuckCharacter from "@/components/DuckCharacter";
 import { useToast } from "@/components/ui/use-toast";
+import authApi from "@/api/authApi";
 
 export const SignupScreen = () => {
   const [formData, setFormData] = useState({
@@ -23,7 +24,7 @@ export const SignupScreen = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -38,45 +39,32 @@ export const SignupScreen = () => {
       return;
     }
 
-    // 로컬 스토리지에서 사용자 목록 가져오기
-    const usersString = localStorage.getItem("users");
-    let users = usersString ? JSON.parse(usersString) : [];
+    try {
+      // API를 통해 회원가입
+      await authApi.signup({
+        email: formData.email,
+        password: formData.password,
+        nickname: formData.nickname,
+      });
 
-    // 이메일 중복 확인
-    const existingUser = users.find((user) => user.email === formData.email);
-    if (existingUser) {
       toast({
-        title: "이메일 중복",
-        description: "이미 사용 중인 이메일입니다.",
+        title: "회원가입 성공",
+        description: "회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.",
+      });
+
+      // 로그인 페이지로 이동
+      setTimeout(() => {
+        setIsLoading(false);
+        navigate("/login");
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "회원가입 실패",
+        description: error.message || "회원가입에 실패했습니다.",
         variant: "destructive",
       });
       setIsLoading(false);
-      return;
     }
-
-    // 새 사용자 추가
-    const newUser = {
-      id: Date.now(),
-      email: formData.email,
-      password: formData.password, // 실제로는 암호화해야 함
-      nickname: formData.nickname,
-      profileImageUrl: null,
-      createdAt: new Date().toISOString(),
-    };
-
-    users.push(newUser);
-    localStorage.setItem("users", JSON.stringify(users));
-
-    toast({
-      title: "회원가입 성공",
-      description: "회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.",
-    });
-
-    // 로그인 페이지로 이동
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate("/login");
-    }, 1500);
   };
 
   return (

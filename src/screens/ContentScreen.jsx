@@ -12,8 +12,17 @@ import { cn } from "@/lib/utils";
 import { contentRecommendationEngine } from "@/services/contentRecommendationEngine";
 import { userProfileService } from "@/services/userProfile";
 
-export const ContentScreen = ({ selectedContent = null }) => {
+export const ContentScreen = ({ selectedContent = null, onContentLiked, onNavigateToMain }) => {
   const navigate = useNavigate();
+  const [personalizedContents, setPersonalizedContents] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likedContents, setLikedContents] = useState([]);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
 
   // 개인화된 콘텐츠 또는 선택된 콘텐츠 사용
   const currentContents = selectedContent
