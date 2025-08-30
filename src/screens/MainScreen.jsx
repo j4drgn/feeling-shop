@@ -104,7 +104,7 @@ export const MainScreen = () => {
           console.log('Backend health OK');
         } else {
           console.warn('Backend health check failed:', healthResponse && healthResponse.message);
-          setCharacterText('백엔드 서버에 연결할 수 없습니다. 일부 기능이 제한됩니다.');
+          setCharacterText('백엔드 서버에 연결할 수 없습니다. 서버를 시작하려면 터미널에서 백엔드 프로젝트를 실행하세요.');
         }
       } catch (error) {
         console.error('checkServerHealth exception', error);
@@ -116,18 +116,23 @@ export const MainScreen = () => {
 
     // 로컬 스토리지에서 세션 ID 확인 및 유효성 검증
     const initializeChatSession = async () => {
-      const storedSessionId = localStorage.getItem("currentChatSessionId");
-      if (storedSessionId) {
-        const isValid = await validateChatSession(parseInt(storedSessionId, 10));
-        if (isValid) {
-          setChatSessionId(parseInt(storedSessionId, 10));
+      try {
+        const storedSessionId = localStorage.getItem("currentChatSessionId");
+        if (storedSessionId) {
+          const isValid = await validateChatSession(parseInt(storedSessionId, 10));
+          if (isValid) {
+            setChatSessionId(parseInt(storedSessionId, 10));
+          } else {
+            localStorage.removeItem("currentChatSessionId");
+            await createNewChatSession();
+          }
         } else {
-          localStorage.removeItem("currentChatSessionId");
+          // 새 세션 생성
           await createNewChatSession();
         }
-      } else {
-        // 새 세션 생성
-        await createNewChatSession();
+      } catch (error) {
+        console.error('채팅 세션 초기화 실패:', error);
+        setCharacterText('채팅 세션 초기화에 실패했습니다. 서버 상태를 확인하세요.');
       }
     };
 
@@ -162,9 +167,11 @@ export const MainScreen = () => {
         throw new Error('세션 ID를 응답에서 찾을 수 없습니다.');
       }
     } catch (error) {
-  // 세션 생성 실패 시 더 이상 로컬 폴백으로 조용히 계속하지 않음
-  console.error('채팅 세션 생성 실패:', error);
-  setCharacterText('서버에서 채팅 세션을 생성하지 못했습니다. 서버 상태를 확인하세요.');
+      console.error('채팅 세션 생성 실패:', error);
+      setCharacterText('서버에서 채팅 세션을 생성하지 못했습니다. 백엔드 서버가 실행 중인지 확인하세요.');
+      // 세션 ID를 null로 설정하여 세션 없는 모드로 전환
+      setChatSessionId(null);
+      localStorage.removeItem("currentChatSessionId");
     }
   };
 
@@ -226,9 +233,8 @@ export const MainScreen = () => {
       let context = null;
       const emotionContext = emotion?.emotion || "neutral";
 
+      // API 호출 시도
       try {
-        // OpenAI API를 통한 응답 생성
-
         // 로컬 스토리지에서 토큰 가져오기 (없으면 null)
         const accessToken = localStorage.getItem("accessToken") || null;
 
@@ -339,174 +345,142 @@ export const MainScreen = () => {
             throw new Error("API 응답이 올바르지 않습니다.");
           }
 
-          // 문화 콘텐츠 추천 관련 응답인 경우
-          if (
-            response.includes("추천") ||
-            response.includes("콘텐츠") ||
-            response.includes("영화") ||
-            response.includes("책") ||
-            response.includes("음악") ||
-            response.includes("플레이리스트")
-          ) {
-            context = "recommendation";
-            triggerAnimation("product_recommendation", true);
-
-            // 추천 콘텐츠 데이터 가져오기
-            const personalizedRecs =
-              await contentRecommendationEngine.getPersonalizedContentRecommendations(
-                {
-                  mood: emotionContext,
-                  context: "content_request",
-                }
-              );
-
-            if (personalizedRecs.length > 0) {
-              const content = personalizedRecs[0];
-              // 애니메이션 완료 후 쇼츠 페이지에서 콘텐츠를 보여줄 예정
-              setCharacterText(`${content.title}을(를) 추천할게! 쇼츠 페이지에서 확인해봐!`);
-            }
-          }
-          // 인사 관련 응답인 경우
-          else if (response.includes("안녕") || response.includes("반가워")) {
-            context = "greeting";
-            triggerAnimation("happy", true);
-            setShowFloatingEmojis(true);
-            setTimeout(() => setShowFloatingEmojis(false), 3000);
-          }
-          // 감사 관련 응답인 경우
-          else if (response.includes("천만에") || response.includes("감사")) {
-            context = "thanking";
-            triggerAnimation("happy", true);
-            setShowFloatingEmojis(true);
-            setTimeout(() => setShowFloatingEmojis(false), 3000);
-          }
-          // 기본 응답
-          else {
-            context = emotionContext;
-          }
+          // API 응답을 사용하므로 로컬 로직 건너뜀
+          setCharacterText(response);
+          setConversationContext(emotionContext);
+          setIsAIThinking(false);
+          return;
         } else {
           throw new Error("API 응답이 올바르지 않습니다.");
         }
       } catch (apiError) {
-        // API 호출 실패 시 기존 로직으로 폴백
-        // 3. 문화 콘텐츠 추천 요청 감지
-        if (
-          lowerInput.includes("추천") ||
-          lowerInput.includes("볼만한") ||
-          lowerInput.includes("들을만한") ||
-          lowerInput.includes("읽을만한") ||
-          lowerInput.includes("영화") ||
-          lowerInput.includes("책") ||
-          lowerInput.includes("음악") ||
-          lowerInput.includes("플레이리스트")
-        ) {
-          const personalizedRecs =
-            await contentRecommendationEngine.getPersonalizedContentRecommendations(
-              {
-                mood: emotionContext,
-                context: "content_request",
-              }
-            );
+        console.error("API 호출 실패:", apiError);
+        // 서버 연결 실패 감지
+        if (apiError.message.includes('Failed to fetch') || apiError.message.includes('ERR_CONNECTION_REFUSED')) {
+          setCharacterText('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.');
+          setIsAIThinking(false);
+          return;
+        }
+        // 다른 API 오류는 로컬 로직으로 폴백
+      }
 
-          setContentRecommendations(personalizedRecs.slice(0, 3));
-
-          if (personalizedRecs.length > 0) {
-            const content = personalizedRecs[0];
-            const contentType =
-              content.type === "book"
-                ? "책"
-                : content.type === "movie"
-                  ? "영화"
-                  : content.type === "music"
-                    ? "음악"
-                    : "플레이리스트";
-
-            response =
-              `너의 감성에 맞는 ${contentType} 추천이야! 🎯\n\n` +
-              `**${content.title}**\n` +
-              `${content.creator}\n` +
-              `${content.recommendationReason}\n\n` +
-              `지금 바로 쇼츠 페이지에서 확인해봐!`;
-
-            // 애니메이션 트리거
-            triggerAnimation("product_recommendation", true);
-          } else {
-            response =
-              "아직 너에 대해 더 알아야 좋은 추천을 해줄 수 있어! 조금 더 대화해볼까?";
-          }
-
-          context = "recommendation";
-        } else if (
-          lowerInput.includes("안녕") ||
-          lowerInput.includes("하이") ||
-          lowerInput.includes("헬로")
-        ) {
-          const profileCompleteness =
-            userProfileService.getProfileCompleteness();
-
-          if (profileCompleteness < 50) {
-            response =
-              "안녕! 나는 덕키야 🦆 너에게 딱 맞는 상품을 추천해주고 싶어! 먼저 너에 대해 알려줄래?";
-
-            const questions = recommendationEngine.generateProfileQuestions();
-            if (questions.length > 0) {
-              setProfileQuestion(questions[0]);
-              response += `\n\n${questions[0].question}`;
+      // API 호출 실패 시 로컬 로직 실행 (서버가 다운되었을 때)
+      if (
+        lowerInput.includes("추천") ||
+        lowerInput.includes("볼만한") ||
+        lowerInput.includes("들을만한") ||
+        lowerInput.includes("읽을만한") ||
+        lowerInput.includes("영화") ||
+        lowerInput.includes("책") ||
+        lowerInput.includes("음악") ||
+        lowerInput.includes("플레이리스트")
+      ) {
+        const personalizedRecs =
+          await contentRecommendationEngine.getPersonalizedContentRecommendations(
+            {
+              mood: emotionContext,
+              context: "content_request",
             }
-          } else {
-            response = `안녕! 반가워 😊 오늘은 어떤 걸 찾고 있어?`;
-          }
-
-          context = "greeting";
-          triggerAnimation("happy", true);
-          setShowFloatingEmojis(true);
-          setTimeout(() => setShowFloatingEmojis(false), 3000);
-        } else if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
-          if (emotionContext === "happy" || emotionContext === "excited") {
-            response =
-              "와! 정말 기분이 좋아 보여! 나도 기뻐~ 🎉 기분 좋을 때 뭔가 특별한 걸 사보는 건 어때?";
-            context = "happy";
-          } else if (
-            emotionContext === "sad" ||
-            emotionContext === "frustrated"
-          ) {
-            response =
-              "괜찮아... 내가 여기 있을게. 힘내! 😊 가끔은 자신에게 선물을 해주는 것도 좋아!";
-            context = "sad";
-          } else {
-            response = "너의 기분을 이해해! 내가 여기 있어줄게~";
-            context = "neutral";
-          }
-        } else if (
-          lowerInput.includes("고마워") ||
-          lowerInput.includes("감사")
-        ) {
-          response = "천만에! 또 도움이 필요하면 언제든지 말해~";
-          context = "thanking";
-          triggerAnimation("happy", true);
-          setShowFloatingEmojis(true);
-          setTimeout(() => setShowFloatingEmojis(false), 3000);
-        } else {
-          // 5. 개인화된 일반 응답
-          const profile = userProfileService.getProfile();
-          const responses = generatePersonalizedResponse(
-            input,
-            profile,
-            emotionContext
           );
-          response = responses[Math.floor(Math.random() * responses.length)];
-          context = emotionContext;
 
-          // 가끔 프로필 질문 삽입
-          if (
-            Math.random() < 0.3 &&
-            userProfileService.getProfileCompleteness() < 80
-          ) {
-            const questions = recommendationEngine.generateProfileQuestions();
-            if (questions.length > 0) {
-              setProfileQuestion(questions[0]);
-              response += `\n\n그런데 ${questions[0].question}`;
-            }
+        setContentRecommendations(personalizedRecs.slice(0, 3));
+
+        if (personalizedRecs.length > 0) {
+          const content = personalizedRecs[0];
+          const contentType =
+            content.type === "book"
+              ? "책"
+              : content.type === "movie"
+                ? "영화"
+                : content.type === "music"
+                  ? "음악"
+                  : "플레이리스트";
+
+          response =
+            `너의 감성에 맞는 ${contentType} 추천이야! 🎯\n\n` +
+            `**${content.title}**\n` +
+            `${content.creator}\n` +
+            `${content.recommendationReason}\n\n` +
+            `지금 바로 쇼츠 페이지에서 확인해봐!`;
+
+          // 애니메이션 트리거
+          triggerAnimation("product_recommendation", true);
+        } else {
+          response =
+            "아직 너에 대해 더 알아야 좋은 추천을 해줄 수 있어! 조금 더 대화해볼까?";
+        }
+
+        context = "recommendation";
+      } else if (
+        lowerInput.includes("안녕") ||
+        lowerInput.includes("하이") ||
+        lowerInput.includes("헬로")
+      ) {
+        const profileCompleteness =
+          userProfileService.getProfileCompleteness();
+
+        if (profileCompleteness < 50) {
+          response =
+            "안녕! 나는 덕키야 🦆 너에게 딱 맞는 상품을 추천해주고 싶어! 먼저 너에 대해 알려줄래?";
+
+          const questions = recommendationEngine.generateProfileQuestions();
+          if (questions.length > 0) {
+            setProfileQuestion(questions[0]);
+            response += `\n\n${questions[0].question}`;
+          }
+        } else {
+          response = `안녕! 반가워 😊 오늘은 어떤 걸 찾고 있어?`;
+        }
+
+        context = "greeting";
+        triggerAnimation("happy", true);
+        setShowFloatingEmojis(true);
+        setTimeout(() => setShowFloatingEmojis(false), 3000);
+      } else if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
+        if (emotionContext === "happy" || emotionContext === "excited") {
+          response =
+            "와! 정말 기분이 좋아 보여! 나도 기뻐~ 🎉 기분 좋을 때 뭔가 특별한 걸 사보는 건 어때?";
+          context = "happy";
+        } else if (
+          emotionContext === "sad" ||
+          emotionContext === "frustrated"
+        ) {
+          response =
+            "괜찮아... 내가 여기 있을게. 힘내! 😊 가끔은 자신에게 선물을 해주는 것도 좋아!";
+          context = "sad";
+        } else {
+          response = "너의 기분을 이해해! 내가 여기 있어줄게~";
+          context = "neutral";
+        }
+      } else if (
+        lowerInput.includes("고마워") ||
+        lowerInput.includes("감사")
+      ) {
+        response = "천만에! 또 도움이 필요하면 언제든지 말해~";
+        context = "thanking";
+        triggerAnimation("happy", true);
+        setShowFloatingEmojis(true);
+        setTimeout(() => setShowFloatingEmojis(false), 3000);
+      } else {
+        // 5. 개인화된 일반 응답
+        const profile = userProfileService.getProfile();
+        const responses = generatePersonalizedResponse(
+          input,
+          profile,
+          emotionContext
+        );
+        response = responses[Math.floor(Math.random() * responses.length)];
+        context = emotionContext;
+
+        // 가끔 프로필 질문 삽입
+        if (
+          Math.random() < 0.3 &&
+          userProfileService.getProfileCompleteness() < 80
+        ) {
+          const questions = recommendationEngine.generateProfileQuestions();
+          if (questions.length > 0) {
+            setProfileQuestion(questions[0]);
+            response += `\n\n그런데 ${questions[0].question}`;
           }
         }
       }
