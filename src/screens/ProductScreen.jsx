@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Heart, ExternalLink, ChevronUp, ChevronDown } from "lucide-react";
 import { useThemeContext } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import { recommendationEngine } from "@/services/recommendationEngine";
+import { userProfileService } from "@/services/userProfile";
 
 // 쇼츠 스타일 샘플 상품 데이터
 const sampleProducts = [
@@ -83,8 +85,51 @@ export const ProductScreen = ({ onNavigateToMain, onProductLiked }) => {
   const [likedProducts, setLikedProducts] = useState([]);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+  const [personalizedProducts, setPersonalizedProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const currentProduct = sampleProducts[currentIndex];
+  // 개인화된 상품 또는 기본 상품 사용
+  const currentProducts = personalizedProducts.length > 0 ? personalizedProducts : sampleProducts;
+  const currentProduct = currentProducts[currentIndex];
+
+  // 개인화된 추천 로드
+  useEffect(() => {
+    const loadPersonalizedRecommendations = async () => {
+      try {
+        setIsLoading(true);
+        const recommendations = await recommendationEngine.getPersonalizedRecommendations({
+          context: 'product_browsing'
+        });
+        
+        if (recommendations.length > 0) {
+          // 추천 상품을 쇼츠 형태로 변환
+          const formattedProducts = recommendations.map((product, index) => ({
+            id: product.id,
+            brand: product.brand,
+            name: product.name,
+            price: `₩${product.price.toLocaleString()}`,
+            originalPrice: product.originalPrice ? `₩${product.originalPrice.toLocaleString()}` : null,
+            discount: product.originalPrice ? 
+              `${Math.round((1 - product.price / product.originalPrice) * 100)}%` : null,
+            tags: [product.tags?.[0] || "추천"],
+            image: product.image,
+            description: product.recommendationReason || product.description || "개인화 추천 상품입니다",
+            creator: "덕키 AI",
+            creatorAvatar: "🦆",
+            hashtags: product.tags ? product.tags.map(tag => `#${tag}`) : ["#AI추천", "#맞춤상품"]
+          }));
+          
+          setPersonalizedProducts(formattedProducts);
+        }
+      } catch (error) {
+        console.error('Failed to load personalized recommendations:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPersonalizedRecommendations();
+  }, []);
 
   // 터치 스와이프 핸들러
   const onTouchStart = (e) => {
@@ -112,13 +157,35 @@ export const ProductScreen = ({ onNavigateToMain, onProductLiked }) => {
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % sampleProducts.length);
+    setCurrentIndex((prev) => (prev + 1) % currentProducts.length);
     setIsLiked(false);
+    
+    // 상품 조회 기록
+    if (currentProduct) {
+      userProfileService.recordProductInteraction('view', {
+        id: currentProduct.id,
+        name: currentProduct.name,
+        category: currentProduct.category || '기타',
+        price: currentProduct.price,
+        brand: currentProduct.brand
+      });
+    }
   };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + sampleProducts.length) % sampleProducts.length);
+    setCurrentIndex((prev) => (prev - 1 + currentProducts.length) % currentProducts.length);
     setIsLiked(false);
+    
+    // 상품 조회 기록
+    if (currentProduct) {
+      userProfileService.recordProductInteraction('view', {
+        id: currentProduct.id,
+        name: currentProduct.name,
+        category: currentProduct.category || '기타',
+        price: currentProduct.price,
+        brand: currentProduct.brand
+      });
+    }
   };
 
   const handleLike = () => {
@@ -126,6 +193,15 @@ export const ProductScreen = ({ onNavigateToMain, onProductLiked }) => {
     if (!isLiked) {
       setLikedProducts(prev => [...prev, currentProduct]);
       onProductLiked?.(currentProduct);
+      
+      // 좋아요 상호작용 기록
+      userProfileService.recordProductInteraction('like', {
+        id: currentProduct.id,
+        name: currentProduct.name,
+        category: currentProduct.category || '기타',
+        price: currentProduct.price,
+        brand: currentProduct.brand
+      });
     } else {
       setLikedProducts(prev => prev.filter(p => p.id !== currentProduct.id));
     }
@@ -140,6 +216,34 @@ export const ProductScreen = ({ onNavigateToMain, onProductLiked }) => {
       });
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">🦆 너에게 딱 맞는 상품을 찾고 있어...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentProduct) {
+    return (
+      <div className="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-white text-lg mb-4">😅 추천할 상품을 찾지 못했어!</p>
+          <p className="text-white/70">덕키와 더 대화해서 취향을 알려줘!</p>
+          <button 
+            onClick={onNavigateToMain}
+            className="mt-4 px-6 py-2 bg-white/20 text-white rounded-full"
+          >
+            대화하러 가기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
@@ -285,7 +389,7 @@ export const ProductScreen = ({ onNavigateToMain, onProductLiked }) => {
             
             {/* 진행 인디케이터 */}
             <div className="flex flex-col space-y-1">
-              {sampleProducts.map((_, index) => (
+              {currentProducts.map((_, index) => (
                 <div
                   key={index}
                   className={cn(

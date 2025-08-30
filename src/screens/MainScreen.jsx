@@ -12,6 +12,8 @@ import { Brain, Heart } from "lucide-react";
 import { useThemeContext } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import QuickAccessButton from "@/components/QuickAccessButton";
+import { userProfileService } from "@/services/userProfile";
+import { recommendationEngine } from "@/services/recommendationEngine";
 
 export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
   const { isThinking, toggleTheme } = useThemeContext();
@@ -26,6 +28,8 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
   const [conversationContext, setConversationContext] = useState(null);
   const [textInput, setTextInput] = useState("");
   const [isAIThinking, setIsAIThinking] = useState(false);
+  const [profileQuestion, setProfileQuestion] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
   const characterRef = useRef(null);
 
   const {
@@ -72,89 +76,197 @@ export const MainScreen = ({ onNavigateToHistory, onNavigateToProducts }) => {
     return () => clearTimeout(welcomeTimer);
   }, [triggerAnimation]);
 
-  const handleUserInput = (input, emotion) => {
-    const lowerInput = input.toLowerCase();
-    let response = "";
-    let context = null;
-
-    // 감정 기반 응답 추가
-    const emotionContext = emotion?.emotion || "neutral";
-
-    if (
-      lowerInput.includes("안녕") ||
-      lowerInput.includes("하이") ||
-      lowerInput.includes("헬로")
-    ) {
-      response = "반가워! 오늘 뭐 하고 싶어? 쇼핑? 아니면 그냥 수다?";
-      context = "greeting";
-      triggerAnimation("happy", true);
-      setShowFloatingEmojis(true);
-      setTimeout(() => setShowFloatingEmojis(false), 3000);
-    } else if (
-      lowerInput.includes("쇼핑") ||
-      lowerInput.includes("상품") ||
-      lowerInput.includes("추천")
-    ) {
-      response = "좋아! 내가 너한테 딱 맞는 걸 찾아줄게! 잠깐만 기다려~";
-      context = "shopping";
-      triggerAnimation("gift_sequence", true);
-      setTimeout(() => onNavigateToProducts(), 6000); // Increased delay for full sequence
-    } else if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
-      if (emotionContext === "happy" || emotionContext === "excited") {
-        response = "와! 정말 기분이 좋아 보여! 나도 기뻐~";
-        context = "happy";
-      } else if (emotionContext === "sad" || emotionContext === "frustrated") {
-        response = "괜찮아... 내가 여기 있을게. 힘내!";
-        context = "sad";
-      } else {
-        response = "너의 기분을 이해해! 내가 여기 있어줄게~";
-        context = "neutral";
+  const handleUserInput = async (input, emotion) => {
+    try {
+      // 1. 사용자 입력을 프로필에 반영
+      userProfileService.updateFromConversation(input, emotion);
+      
+      // 2. 프로필 질문이 대기 중인지 확인
+      if (profileQuestion) {
+        const response = await handleProfileAnswer(input);
+        setCharacterText(response);
+        setProfileQuestion(null);
+        setIsAIThinking(false);
+        return;
       }
-    } else if (
-      lowerInput.includes("고마워") ||
-      lowerInput.includes("감사") ||
-      lowerInput.includes("thanks")
-    ) {
-      response = "천만에! 또 도움이 필요하면 언제든지 말해~";
-      context = "thanking";
-      triggerAnimation("happy", true);
-      setShowFloatingEmojis(true);
-      setTimeout(() => setShowFloatingEmojis(false), 3000);
-    } else if (
-      lowerInput.includes("싫어") ||
-      lowerInput.includes("짜증") ||
-      lowerInput.includes("화나")
-    ) {
-      response = "어? 뭔가 마음에 안 드는 게 있어? 괜찮아, 다른 걸 찾아보자!";
-      context = "frustrated";
-      triggerAnimation("mad", true);
-    } else {
-      const responses =
-        emotionContext === "sarcastic"
-          ? [
-              "어머~ 재밌는 얘기네!",
-              "그래~ 그래~ 알겠어~",
-              "와~ 정말 대단하다~",
-            ]
-          : emotionContext === "excited"
-            ? [
-                "우와! 신난다! 더 얘기해줘!",
-                "정말 재밌겠다! 계속 들려줘!",
-                "대박! 완전 좋은데?!",
-              ]
-            : [
-                "흥미로운 얘기야! 더 들려줘~",
-                "정말? 신기하다! 계속 말해봐~",
-                "우와! 그거 완전 재밌겠다!",
-                "좋은 생각이야! 나도 그렇게 생각해~",
-              ];
-      response = responses[Math.floor(Math.random() * responses.length)];
-      context = emotionContext;
+
+      const lowerInput = input.toLowerCase();
+      let response = "";
+      let context = null;
+      const emotionContext = emotion?.emotion || "neutral";
+
+      // 3. 상품 추천 요청 감지
+      if (lowerInput.includes("추천") || lowerInput.includes("뭐 살까") || 
+          lowerInput.includes("쇼핑") || lowerInput.includes("상품") ||
+          lowerInput.includes("필요해") || lowerInput.includes("사고싶")) {
+        
+        const personalizedRecs = await recommendationEngine.getPersonalizedRecommendations({
+          mood: emotionContext,
+          context: 'shopping_request'
+        });
+        
+        setRecommendations(personalizedRecs.slice(0, 3));
+        
+        if (personalizedRecs.length > 0) {
+          response = `맞춤 추천이야! 🎯\n\n` +
+            `**${personalizedRecs[0].name}**\n` +
+            `${personalizedRecs[0].price.toLocaleString()}원\n` +
+            `${personalizedRecs[0].recommendationReason}\n\n` +
+            `더 보려면 🛍️ 버튼을 눌러봐!`;
+          
+          setTimeout(() => onNavigateToProducts(), 3000);
+        } else {
+          response = "아직 너에 대해 더 알아야 좋은 추천을 해줄 수 있어! 조금 더 대화해볼까?";
+        }
+        
+        triggerAnimation("gift_sequence", true);
+        context = "recommendation";
+
+      // 4. 기본 감정/인사 응답
+      } else if (lowerInput.includes("안녕") || lowerInput.includes("하이") || lowerInput.includes("헬로")) {
+        const profileCompleteness = userProfileService.getProfileCompleteness();
+        
+        if (profileCompleteness < 50) {
+          response = "안녕! 나는 덕키야 🦆 너에게 딱 맞는 상품을 추천해주고 싶어! 먼저 너에 대해 알려줄래?";
+          
+          const questions = recommendationEngine.generateProfileQuestions();
+          if (questions.length > 0) {
+            setProfileQuestion(questions[0]);
+            response += `\n\n${questions[0].question}`;
+          }
+        } else {
+          response = `안녕! 반가워 😊 오늘은 어떤 걸 찾고 있어?`;
+        }
+        
+        context = "greeting";
+        triggerAnimation("happy", true);
+        setShowFloatingEmojis(true);
+        setTimeout(() => setShowFloatingEmojis(false), 3000);
+
+      } else if (lowerInput.includes("기분") || lowerInput.includes("감정")) {
+        if (emotionContext === "happy" || emotionContext === "excited") {
+          response = "와! 정말 기분이 좋아 보여! 나도 기뻐~ 🎉 기분 좋을 때 뭔가 특별한 걸 사보는 건 어때?";
+          context = "happy";
+        } else if (emotionContext === "sad" || emotionContext === "frustrated") {
+          response = "괜찮아... 내가 여기 있을게. 힘내! 😊 가끔은 자신에게 선물을 해주는 것도 좋아!";
+          context = "sad";
+        } else {
+          response = "너의 기분을 이해해! 내가 여기 있어줄게~";
+          context = "neutral";
+        }
+
+      } else if (lowerInput.includes("고마워") || lowerInput.includes("감사")) {
+        response = "천만에! 또 도움이 필요하면 언제든지 말해~";
+        context = "thanking";
+        triggerAnimation("happy", true);
+        setShowFloatingEmojis(true);
+        setTimeout(() => setShowFloatingEmojis(false), 3000);
+
+      } else {
+        // 5. 개인화된 일반 응답
+        const profile = userProfileService.getProfile();
+        const responses = generatePersonalizedResponse(input, profile, emotionContext);
+        response = responses[Math.floor(Math.random() * responses.length)];
+        context = emotionContext;
+        
+        // 가끔 프로필 질문 삽입
+        if (Math.random() < 0.3 && userProfileService.getProfileCompleteness() < 80) {
+          const questions = recommendationEngine.generateProfileQuestions();
+          if (questions.length > 0) {
+            setProfileQuestion(questions[0]);
+            response += `\n\n그런데 ${questions[0].question}`;
+          }
+        }
+      }
+
+      setCharacterText(response);
+      setConversationContext(context);
+      setIsAIThinking(false);
+      
+    } catch (error) {
+      console.error('Error in handleUserInput:', error);
+      setCharacterText("어? 뭔가 문제가 생겼어! 다시 말해줄래?");
+      setIsAIThinking(false);
+    }
+  };
+
+  // 프로필 질문 답변 처리
+  const handleProfileAnswer = async (answer) => {
+    const lowerAnswer = answer.toLowerCase();
+    
+    if (profileQuestion.type === 'age') {
+      let age = null;
+      if (lowerAnswer.includes('10')) age = 15;
+      else if (lowerAnswer.includes('20')) age = 25;
+      else if (lowerAnswer.includes('30')) age = 35;
+      else if (lowerAnswer.includes('40')) age = 45;
+      else if (lowerAnswer.includes('50')) age = 55;
+      
+      if (age) {
+        userProfileService.userProfile.demographics.age = age;
+        userProfileService.saveProfile();
+      }
+      
+      return "좋아! 이제 더 정확한 추천을 해줄 수 있을 거야! 😊";
+      
+    } else if (profileQuestion.type === 'living') {
+      let livingType = null;
+      if (lowerAnswer.includes('원룸') || lowerAnswer.includes('오피스텔')) livingType = '원룸';
+      else if (lowerAnswer.includes('아파트')) livingType = '아파트';
+      else if (lowerAnswer.includes('빌라')) livingType = '빌라'; 
+      else if (lowerAnswer.includes('주택')) livingType = '주택';
+      
+      if (livingType) {
+        userProfileService.userProfile.demographics.livingType = livingType;
+        userProfileService.saveProfile();
+      }
+      
+      return `${livingType}에서 살고 있구나! 공간에 딱 맞는 제품들을 추천해줄게! 🏠`;
+      
+    } else if (profileQuestion.type === 'hobbies') {
+      const hobbies = [];
+      if (lowerAnswer.includes('요리')) hobbies.push('cooking');
+      if (lowerAnswer.includes('운동')) hobbies.push('exercise');
+      if (lowerAnswer.includes('게임')) hobbies.push('gaming');
+      if (lowerAnswer.includes('독서')) hobbies.push('reading');
+      if (lowerAnswer.includes('영화')) hobbies.push('movies');
+      if (lowerAnswer.includes('여행')) hobbies.push('travel');
+      if (lowerAnswer.includes('인테리어')) hobbies.push('interior');
+      
+      if (hobbies.length > 0) {
+        userProfileService.userProfile.lifestyle.hobbies = [
+          ...new Set([...userProfileService.userProfile.lifestyle.hobbies, ...hobbies])
+        ];
+        userProfileService.saveProfile();
+      }
+      
+      return "오~ 취향을 알겠어! 이제 네 관심사에 맞는 상품들을 찾아줄 수 있을 거야! ✨";
+    }
+    
+    return "답변 고마워! 이제 더 나은 추천을 해줄 수 있을 거야! 😊";
+  };
+
+  // 개인화된 일반 응답 생성
+  const generatePersonalizedResponse = (input, profile, emotion) => {
+    const baseResponses = [
+      "그렇구나! 재밌는 얘기네~",
+      "오~ 그거 좋은데? 더 얘기해봐!",
+      "정말? 신기하다!",
+      "우와~ 흥미롭네!"
+    ];
+
+    // 프로필 기반 맞춤 응답
+    if (profile.lifestyle.hobbies.includes('cooking')) {
+      baseResponses.push("요리 좋아하는구나! 혹시 주방용품 관심 있어?");
+    }
+    if (profile.lifestyle.hobbies.includes('exercise')) {
+      baseResponses.push("운동하는구나! 홈트 용품 어때?");
+    }
+    if (profile.demographics.livingType === '원룸') {
+      baseResponses.push("원룸에서 쓰기 좋은 것들 많이 알고 있어!");
     }
 
-    setCharacterText(response);
-    setConversationContext(context);
-    setIsAIThinking(false);
+    return baseResponses;
   };
 
   const handleCharacterClick = () => {

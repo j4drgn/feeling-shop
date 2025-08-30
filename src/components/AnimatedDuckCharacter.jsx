@@ -130,11 +130,15 @@ const AnimatedDuckCharacter = ({
       if (animConfig.type === 'sequence') {
         const currentStep = animConfig.steps[currentSequenceStep];
         if (currentStep?.type === 'png_sequence') {
-          return `${currentStep.basePath}${String(currentFrame).padStart(3, '0')}.png`;
+          // duck_gift uses 3 digits, others use 2 digits
+          const padLength = currentStep.basePath.includes('duck_gift') ? 3 : 2;
+          return `${currentStep.basePath}${String(currentFrame).padStart(padLength, '0')}.png`;
         }
         return currentStep?.path || null;
       } else if (animConfig.type === 'png_sequence') {
-        return `${animConfig.basePath}${String(currentFrame).padStart(2, '0')}.png`;
+        // duck_gift uses 3 digits, others use 2 digits
+        const padLength = animConfig.basePath.includes('duck_gift') ? 3 : 2;
+        return `${animConfig.basePath}${String(currentFrame).padStart(padLength, '0')}.png`;
       } else {
         return animConfig.path || null;
       }
