@@ -85,17 +85,25 @@ export const ProductScreen = ({
   const handleSwipe = (direction, productId) => {
     setIsAnimating(true);
 
-    if (direction === "right") {
-      // 좋아요 기능 - 히스토리에 저장
+    if (direction === "left") {
+      // 좋아요 기능 - 히스토리에 저장 (왼쪽 스와이프)
       if (!likedProducts.some(p => p.id === currentProduct.id)) {
         setLikedProducts(prev => [...prev, currentProduct]);
         onProductLiked(currentProduct);
       }
-    } else if (direction === "left") {
-      // 링크로 이동 기능
+      // 애니메이션 유지 시간 단축
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 100);
+    } else if (direction === "right") {
+      // 링크로 이동 기능 (오른쪽 스와이프)
       if (currentProduct.productUrl) {
         window.open(currentProduct.productUrl, '_blank');
       }
+      // 애니메이션 유지 시간 단축
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 100);
     } else if (direction === "up") {
       // 이전 상품으로 이동
       setTimeout(() => {
@@ -115,11 +123,6 @@ export const ProductScreen = ({
       }, 300);
       return;
     }
-
-    // 좌우 스와이프 후 애니메이션 리셋
-    setTimeout(() => {
-      setIsAnimating(false);
-    }, 300);
   };
   
   // 스크롤 버튼 핸들러
